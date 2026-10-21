@@ -1,3 +1,9 @@
 version: 1
 bundleID: it.tuonome.nova   # CAMBIALO: deve essere unico
 infoPath: NOVA-Info.plist
+iconPath: Resources/icon1024.png
+resources:
+  - Resources/AppIcon60x60@2x.png
+  - Resources/AppIcon60x60@3x.png
+  - Resources/AppIcon76x76@2x~ipad.png
+  - Resources/AppIcon83.5x83.5@2x~ipad.png
