@@ -18,7 +18,7 @@ Il ponte nativo in Swift (`Sources/NOVA/NOVAApp.swift`) dà alla pagina web la b
 1. Apri NOVA e tocca l'ingranaggio (impostazioni)
 2. Nella sezione **ClasseViva** scrivi codice utente e password del registro e tocca "Collega ClasseViva"
 3. Se l'account ha più profili (per esempio un account famiglia con più studenti), scegli il tuo
-4. I compiti del registro compaiono nel widget con il prefisso **CV** e si aggiornano da soli a ogni apertura dell'app e ogni 30 minuti; il pulsante "ClasseViva" nel widget forza l'aggiornamento
+4. Compiti, verifiche e annotazioni dei prof compaiono nel widget con il prefisso **CV** e si aggiornano da soli a ogni apertura dell'app e ogni 30 minuti; il pulsante "ClasseViva" nel widget forza l'aggiornamento
 
 **Privacy**: codice utente e password vengono salvati solo nel Portachiavi di iOS sul telefono e usati unicamente per parlare con i server ufficiali di ClasseViva (web.spaggiari.eu). Non sono nel codice dell'app né in questo repository.
 
@@ -26,7 +26,7 @@ Il ponte nativo in Swift (`Sources/NOVA/NOVAApp.swift`) dà alla pagina web la b
 
 - SwiftUI + WKWebView, progetto SwiftPM (`Package.swift`), niente progetto Xcode
 - Si compila con [xtool](https://github.com/xtool-org/xtool) (config in `xtool.yml`)
-- ClasseViva: chiamate REST ufficiali (`/rest/v1/auth/login` + agenda compiti AGHW) fatte dal codice Swift nativo, credenziali nel Portachiavi iOS
+- ClasseViva: chiamate REST ufficiali (`/rest/v1/auth/login`, `homeworks` per i compiti, `agendav2` per verifiche e annotazioni) fatte dal codice Swift nativo, credenziali nel Portachiavi iOS
 
 ## Build automatica (GitHub Actions)
 
@@ -42,3 +42,4 @@ L'ipa non è firmato, va firmato in fase di installazione:
 1. Scarica `NOVA.ipa` dalla release
 2. Installalo con [AltStore](https://altstore.io) o [Sideloadly](https://sideloadly.io) usando un Apple ID (basta quello gratuito)
 3. Con l'Apple ID gratuito la firma dura 7 giorni: poi va rinnovata da AltStore/Sideloadly
+
