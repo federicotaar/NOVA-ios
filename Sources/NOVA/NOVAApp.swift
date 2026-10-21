@@ -293,7 +293,7 @@ enum ClasseViva {
     }
 
     private static func clean(_ s: String, _ maxLen: Int) -> String {
-        var t = s.replacingOccurrences(of: "\s+", with: " ", options: .regularExpression)
+        var t = s.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         if t.count > maxLen { t = String(t.prefix(maxLen - 1)) + "…" }
         return t
