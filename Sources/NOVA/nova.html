@@ -139,9 +139,29 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .obc{display:flex;flex-direction:column;gap:10px}
 .obf{display:flex;gap:10px;justify-content:space-between;max-width:560px;width:100%;margin:0 auto}
 .obf .btn{min-width:96px}
+@keyframes obIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes obInB{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes obFade{from{opacity:0}to{opacity:1}}
+.obm.ain{animation:obIn .45s cubic-bezier(.32,.72,0,1) both}
+.obm.ain.b{animation-name:obInB}
+.pop{animation:popIn .38s cubic-bezier(.32,.72,0,1) both}
+.obd i{transition:background .35s}
+#ob.open{animation:obFade .35s ease both}
+.btn,.seg button,.chips button{transition:transform .12s ease,background .2s,color .2s,border-color .2s}
+.btn:active,.seg button:active,.chips button:active{transform:scale(.965)}
+input,select,textarea{transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--fg);outline:none}
+.cvwho{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--mut)}
+.spc2{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;min-height:34vh}
+.spc2 .spic{width:64px;height:64px;border-radius:18px;background:var(--fld);display:flex;align-items:center;justify-content:center;color:var(--fg)}
+.spc2 .spic svg{width:32px;height:32px}
+.btn.big{padding:14px 28px;font-size:16px;border-radius:14px}
 @media (orientation:landscape) and (max-height:520px){.obm{flex-direction:row;align-items:center;max-width:none;gap:28px}.obm>*{flex:1;min-width:0}.obt h2{font-size:22px}.why{font-size:12.5px;margin-top:6px}#ob{gap:8px}.obf,.obd{max-width:none}.obc small{font-size:11.5px}}
 :root.sb body{height:100%;overflow:hidden}
 .sb #app{height:100%;max-width:none;display:flex;flex-direction:column;padding-top:6px;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+#bSbX{display:none;position:fixed;top:max(10px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));z-index:70}
+.sb #bSbX{display:inline-flex}
 .sb header{position:absolute;top:0;right:0;padding:6px 10px;opacity:0;pointer-events:none}
 .sb .hello{display:none}
 .sb .grid{flex:1;min-height:0;grid-template-columns:1.05fr 1fr;grid-template-rows:1.6fr 1.1fr .65fr;gap:8px}
@@ -167,6 +187,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 </head>
 <body>
 <div id="app">
+<button class="ico" id="bSbX" aria-label="Esci da StandBy"></button>
 <header>
  <div class="hello"><div class="brand">NOVA</div><h1 id="hi"></h1></div>
  <div class="bar"><button class="ico" id="bAI" aria-label="Assistente AI"></button><button class="ico" id="bSb" aria-label="StandBy"></button><button class="ico" id="bSet" aria-label="Impostazioni"></button></div>
@@ -241,6 +262,7 @@ dstr=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`,
 dd0=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
 const K='nova.v1';let S={name:'',theme:'auto',sb:'auto',done:0,ob:0,hwn:1,w:{},tasks:[],chat:[],gr:[],cv:{on:0,name:''}};
 try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
+if(S.sb==='on')S.sb='auto';
 S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};S.chat=S.chat||[];S.gr=S.gr||[];
 const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
 const bridge=()=>post({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))});
@@ -267,7 +289,7 @@ const RK={alta:0,media:1,bassa:2},mq=matchMedia('(orientation:landscape) and (ma
 let chg=null,lm=-1,wl=null,calOff=0;
 
 /* ---------- ClasseViva ---------- */
-let cvTmp=null,cvChoices=null,cvErr='';
+let cvTmp=null,cvChoices=null,cvErr='',cvStage={u:''};
 const kindOf=t=>t.kind||(String(t.id).startsWith('cvag')?'test':t.src==='cv'?'hw':'man');
 function cvImport(ev,gr){let n=0;const seen=new Set();
  for(const e of ev||[]){if(!e.id||!e.date)continue;
@@ -285,19 +307,25 @@ async function cvRefresh(manual){if(!S.cv.on)return;const r=await cv('refresh');
 async function cvLogin(u,p,ident){if(!u||!p){$$('.cvE').forEach(e=>e.textContent='Scrivi codice utente e password.');return}
  cvTmp={u:u,p:p};cvChoices=null;$$('.cvG').forEach(b=>{b.disabled=1;b.textContent='Collego…'});
  const r=await cv('login',ident?{uid:u,pass:p,ident:ident}:{uid:u,pass:p});
- if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;save();const n=cvImport(r.events,r.grades);toast('ClasseViva collegato: '+n+' elementi importati')}
+ if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;cvStage.u='';save();const n=cvImport(r.events,r.grades);toast('ClasseViva collegato: '+n+' elementi importati')}
  else if(r.needChoice)cvChoices=r.choices||[];
  else{cvTmp=null;cvErr=(r.err==='rete'?'Nessuna connessione o server ClasseViva giù. Riprova.':r.err==='bloccato'?'ClasseViva ha bloccato la richiesta. Riprova tra poco.':r.err==='bridge'?'Errore interno: reinstalla l\'ultima versione di NOVA.':'Credenziali non valide. Controlla codice utente e password.')+(r.info?' ('+r.info+')':'')}
  cvUI();if(cvErr){$$('.cvE').forEach(e=>e.textContent=cvErr);toast('ClasseViva: collegamento non riuscito');cvErr=''}if(window.obRefresh)obRefresh()}
-async function cvLogout(){await cv('logout');S.cv={on:0,name:''};S.tasks=S.tasks.filter(t=>t.src!=='cv');S.gr=[];save();tasks();cal();nxt();grades();cvUI();toast('ClasseViva scollegato')}
+async function cvLogout(){await cv('logout');cvStage.u='';S.cv={on:0,name:''};S.tasks=S.tasks.filter(t=>t.src!=='cv');S.gr=[];save();tasks();cal();nxt();grades();cvUI();toast('ClasseViva scollegato')}
 function cvUI(){$$('.cvb').forEach(b=>{
  if(cvChoices){b.innerHTML='<small>Questo account ha più profili: scegli il tuo.</small><div class="chips" style="margin-top:8px">'+cvChoices.map(c=>`<button data-i="${esc(c.ident)}">${esc(c.name||c.ident)}</button>`).join('')+'</div><small class="err cvE"></small>';
   b.querySelectorAll('button[data-i]').forEach(x=>x.onclick=()=>{const t=cvTmp,i=x.dataset.i;cvChoices=null;t&&cvLogin(t.u,t.p,i)})}
  else if(S.cv.on){b.innerHTML=`<small>Collegato come ${esc(S.cv.name||'studente')}.</small><div class="row" style="margin-top:8px"><button class="btn cvR">Aggiorna</button><button class="btn cvX">Scollega</button></div><small class="err cvE"></small>`;
   b.querySelector('.cvR').onclick=()=>cvRefresh(1);b.querySelector('.cvX').onclick=cvLogout}
- else{b.innerHTML='<div class="row"><input class="cvU" placeholder="Codice utente" autocomplete="username" autocapitalize="none"><input class="cvP" type="password" placeholder="Password" autocomplete="current-password"></div><button class="btn pri cvG" style="margin-top:8px">Collega ClasseViva</button><small class="err cvE"></small>';
-  const g=()=>cvLogin(b.querySelector('.cvU').value.trim(),b.querySelector('.cvP').value);
-  b.querySelector('.cvG').onclick=g;b.querySelector('.cvP').onkeydown=e=>{if(e.key==='Enter')g()}}});
+ else{b.innerHTML='<div class="cvSt"></div>';const st=b.querySelector('.cvSt'),
+  s1=()=>{st.innerHTML='<div class="pop"><input class="cvU" placeholder="Codice utente" autocomplete="username" autocapitalize="none" enterkeyhint="next"></div><button class="btn pri cvN" style="margin-top:10px;width:100%">Continua</button><small class="err cvE"></small>';
+   const go=()=>{const u=st.querySelector('.cvU').value.trim();if(!u){st.querySelector('.cvE').textContent='Scrivi il codice utente di ClasseViva.';return}cvStage.u=u;s2()};
+   st.querySelector('.cvN').onclick=go;st.querySelector('.cvU').onkeydown=e=>{if(e.key==='Enter')go()}},
+  s2=()=>{const u=cvStage.u;st.innerHTML='<div class="cvwho pop"><span>Account: <b>'+esc(u)+'</b></span><button class="lk cvB">Cambia</button></div><div class="pop"><input class="cvP" type="password" placeholder="Password" autocomplete="current-password" enterkeyhint="go"></div><button class="btn pri cvG" style="margin-top:10px;width:100%">Collega ClasseViva</button><small class="err cvE"></small>';
+   st.querySelector('.cvB').onclick=()=>{cvStage.u='';s1()};
+   const g=()=>cvLogin(u,st.querySelector('.cvP').value);
+   st.querySelector('.cvG').onclick=g;st.querySelector('.cvP').onkeydown=e=>{if(e.key==='Enter')g()}};
+  cvStage.u?s2():s1()}});
  $('#bCv').hidden=!S.cv.on}
 
 /* ---------- Groq ---------- */
@@ -325,6 +353,18 @@ function spUI(){$$('.spb').forEach(b=>{
  else{b.innerHTML='<button class="btn pri spL">Collega Spotify</button><div class="row" style="margin-top:8px"><button class="btn spCh">Cambia Client ID</button></div><small class="err spE"></small><small>Si apre la pagina di accesso di Spotify. Serve Premium per play, pausa e brano successivo.</small>';
   b.querySelector('.spCh').onclick=async()=>{await spo('setcid',{cid:''});sp.cid=false;spUI()};
   b.querySelector('.spL').onclick=async()=>{const e=b.querySelector('.spE');e.textContent='';const r=await spo('login');if(r.ok){sp.conn=true;spUI();spCard();spPoll();toast('Spotify collegato');if(window.obRefresh)obRefresh()}else{e.textContent=spMsg(r.err)+(r.info?' ('+r.info+')':'');toast('Spotify: collegamento non riuscito')}}}})}
+function spObCid(){$$('.spObC').forEach(b=>{
+ if(sp.cid||sp.conn){b.innerHTML='<div class="pop"><div class="cvwho"><span>Client ID salvato.</span><button class="lk spCh">Cambia</button></div></div>';
+  b.querySelector('.spCh').onclick=async()=>{await spo('setcid',{cid:''});sp.cid=false;spObCid();obRefresh()};return}
+ b.innerHTML='<div class="pop"><input class="spC" placeholder="Client ID (32 caratteri)" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"></div><button class="btn pri spS" style="margin-top:10px;width:100%">Salva e continua</button><small class="err spE"></small>';
+ const go=async()=>{const v=b.querySelector('.spC').value.trim(),e=b.querySelector('.spE');if(!/^[0-9a-f]{32}$/i.test(v)){e.textContent='Il Client ID \xe8 di 32 caratteri (lettere e numeri).';return}await spo('setcid',{cid:v});sp.cid=true;obRefresh();obGo(1)};
+ b.querySelector('.spS').onclick=go;b.querySelector('.spC').onkeydown=e=>{if(e.key==='Enter')go()}})}
+function spObL(){$$('.spObL').forEach(b=>{
+ if(sp.conn){b.innerHTML='<div class="spc2 pop"><div class="spic">'+ic('music')+'</div><b>Spotify collegato</b><small>Puoi controllare la musica dal widget.</small></div>';return}
+ if(!sp.cid){b.innerHTML='<div class="spc2 pop"><div class="spic">'+ic('music')+'</div><small>Prima serve il Client ID: torna indietro di un passaggio, oppure salta questo passo.</small></div>';return}
+ b.innerHTML='<div class="spc2 pop"><div class="spic">'+ic('music')+'</div><button class="btn pri big spL">Collega Spotify</button><small>Serve Spotify Premium. Si apre la pagina di accesso ufficiale di Spotify.</small><small class="err spE"></small></div>';
+ b.querySelector('.spL').onclick=async()=>{const e=b.querySelector('.spE'),x=b.querySelector('.spL');e.textContent='';x.disabled=1;x.textContent='Apro Spotify\u2026';const r=await spo('login');x.disabled=0;x.textContent='Collega Spotify';
+  if(r.ok){sp.conn=true;spUI();spCard();spPoll();toast('Spotify collegato');spObL();obRefresh()}else{e.textContent=spMsg(r.err)+(r.info?' ('+r.info+')':'')}}})}
 async function spPoll(){if(!sp.conn||!S.w.sp||document.hidden)return;const r=await spo('state');
  if(r.ok){sp.st=r;sp.err=''}else{sp.err=spMsg(r.err);if(r.err==='auth'){sp.conn=false;spUI()}}spCard()}
 async function spCtl(op){const r=await spo(op);if(!r.ok){sp.err=spMsg(r.err);spCard();return}setTimeout(spPoll,450)}
@@ -368,15 +408,16 @@ const OB=[
  {k:'ClasseViva',t:'Collega il registro',w:'Mi serve per portare in NOVA compiti, verifiche e voti. Codice utente e password restano nel Portachiavi di iOS sul telefono e vanno solo ai server di ClasseViva.',c:()=>'<div class="cvb"></div>',on:()=>cvUI(),skip:1,done:()=>S.cv.on},
  {k:'Notifiche',t:'Vuoi gli avvisi?',w:'Per ricordarti i compiti la sera prima (18:00), anche con l\'app chiusa. I compiti nuovi arrivano quando iOS aggiorna NOVA in background: succede ogni tanto, non subito.',c:()=>'<button class="btn pri" id="oNt">Attiva notifiche</button><small id="oNs"></small>',on:()=>{const f=()=>{const p='Notification' in window?Notification.permission:'';$('#oNs').textContent={granted:'Notifiche attive.',denied:'Bloccate: riattivale da Impostazioni di iOS > NOVA.',default:''}[p]||'';obRefresh()};f();$('#oNt').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}f()}},skip:1,done:notifOn},
  {k:'Assistente AI',t:'Chiave API di Groq',w:'Per far funzionare l\'assistente. Groq (non Grok di xAI) ha un piano gratuito: crei la chiave su console.groq.com/keys e la incolli qui. Resta nel Portachiavi e viene usata solo verso api.groq.com.',c:()=>'<div class="gqb"></div>',on:()=>gqUI(),skip:1,done:()=>gqHas},
- {k:'Spotify',t:'Collega Spotify',w:'Per controllare la musica (play, pausa, brano successivo) senza uscire da NOVA. Serve Spotify Premium e una tua app gratuita su developer.spotify.com: Spotify non permette di collegarsi senza.',c:()=>'<div class="spb"></div>',on:()=>spUI(),skip:1,done:()=>sp.conn},
+ {k:'Spotify',t:'Il Client ID di Spotify',w:'Per controllare la musica (play, pausa, brano successivo) senza uscire da NOVA serve una tua app Spotify, gratuita: 1. vai su developer.spotify.com/dashboard e crea un\'app 2. come Redirect URI scrivi esattamente nova://spotify-callback 3. spunta "Web API" e salva 4. incolla qui il Client ID. Serve anche Spotify Premium.',c:()=>'<div class="spObC"></div>',on:()=>spObCid(),skip:1,done:()=>sp.cid||sp.conn},
+ {k:'Spotify',t:'Connetti il tuo account',w:'Ultimo passo: NOVA apre la pagina ufficiale di Spotify e tu autorizzi l\'app che hai creato. Il collegamento resta sul telefono.',c:()=>'<div class="spObL"></div>',on:()=>spObL(),skip:1,done:()=>sp.conn},
  {k:'Fine',t:'Tutto pronto',w:'Puoi cambiare ogni scelta dalle impostazioni (icona in alto a destra).',c:()=>'<button class="btn pri" id="oDone">Apri NOVA</button>',on:()=>{$('#oDone').onclick=obEnd}}];
-let obI=0;
+let obI=0,obDir=1;
 function obDraw(){const s=OB[obI],o=$('#ob');
- o.innerHTML=`<div class="obd">${OB.map((_,i)=>`<i class="${i<=obI?'on':''}"></i>`).join('')}</div><div class="obm"><div class="obt"><div class="st">${obI+1} di ${OB.length} · ${s.k}</div><h2>${esc(obI===OB.length-1&&S.name?'Tutto pronto, '+S.name:s.t)}</h2><div class="why">${s.w}</div></div><div class="obc">${s.c()}</div></div><div class="obf"><button class="btn" id="oB" ${obI?'':'style="visibility:hidden"'}>Indietro</button>${obI<OB.length-1?`<button class="btn pri" id="oF">Avanti</button>`:'<span></span>'}</div>`;
+ o.innerHTML=`<div class="obd">${OB.map((_,i)=>`<i class="${i<=obI?'on':''}"></i>`).join('')}</div><div class="obm ain${obDir<0?' b':''}"><div class="obt"><div class="st">${obI+1} di ${OB.length} · ${s.k}</div><h2>${esc(obI===OB.length-1&&S.name?'Tutto pronto, '+S.name:s.t)}</h2><div class="why">${s.w}</div></div><div class="obc">${s.c()}</div></div><div class="obf"><button class="btn" id="oB" ${obI?'':'style="visibility:hidden"'}>Indietro</button>${obI<OB.length-1?`<button class="btn pri" id="oF">Avanti</button>`:'<span></span>'}</div>`;
  const b=$('#oB'),f=$('#oF');b&&(b.onclick=()=>obGo(-1));f&&(f.onclick=()=>obGo(1));s.on&&s.on();obRefresh()}
 window.obRefresh=()=>{if($('#ob').hidden)return;const f=$('#oF'),s=OB[obI];if(f)f.textContent=s.skip&&!s.done()?'Salta':'Avanti'};
-function obGo(d){obI=Math.max(0,Math.min(OB.length-1,obI+d));obDraw()}
-function obStart(){obI=0;$('#ob').hidden=false;obDraw()}
+function obGo(d){obDir=d<0?-1:1;obI=Math.max(0,Math.min(OB.length-1,obI+d));obDraw()}
+function obStart(){obI=0;obDir=1;const o=$('#ob');o.hidden=false;o.classList.remove('open');void o.offsetWidth;o.classList.add('open');obDraw()}
 function obEnd(){S.ob=2;S.done=1;save();$('#ob').hidden=true;head();show();tasks();cal();cvRefresh(0);spPoll()}
 
 /* ---------- views ---------- */
@@ -460,6 +501,10 @@ function newTask(ds){const d=ds?dd0(ds):new Date();if(!ds)d.setDate(d.getDate()+
 
 $('#bSb').innerHTML=ic('sb');$('#bSet').innerHTML=ic('sl');$('#bAI').innerHTML=ic('spark');$('#bAdd').innerHTML=ic('plus')+'Nuovo';$('#bCv').textContent='Aggiorna';$('#bCv').onclick=()=>cvRefresh(1);
 $('#cmP').innerHTML=ic('cl');$('#cmN').innerHTML=ic('cr');$('#aiC').innerHTML=ic('x');$('#aiS').innerHTML=ic('send');
+$('#bSbX').innerHTML=ic('x');
+const sbExit=()=>{S.sb='off';save();layout();toast('StandBy spento');try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}};
+$('#bSbX').onclick=e=>{e.stopPropagation();sbExit()};
+let sbTapT=0;document.addEventListener('click',()=>{if(!R.classList.contains('sb'))return;const n=Date.now();if(n-sbTapT<400)sbExit();sbTapT=n},true);
 $('#bSb').onclick=()=>{S.sb={auto:'on',on:'off',off:'auto'}[S.sb];save();layout();toast('StandBy: '+{auto:'automatico',on:'sempre attivo',off:'spento'}[S.sb]);
  try{if(S.sb==='on')R.requestFullscreen&&R.requestFullscreen().catch(()=>{});else if(document.fullscreenElement)document.exitFullscreen()}catch(e){}};
 $('#bSet').onclick=()=>{sheet();$('#dSet').showModal()};
