@@ -209,8 +209,8 @@ enum ClasseViva {
     // Coppie di header usate dai client open source documentati: se una chiave API
     // non viene più accettata si prova automaticamente l'altra.
     private static let headerPairs: [(ua: String, key: String)] = [
-        ("zorro/1.0", "+zorro+"),
-        ("CVVS/std/4.1.7 Android/10", "Tg1NWEwNGIgIC0K")
+        ("CVVS/std/4.1.7 Android/10", "Tg1NWEwNGIgIC0K"),
+        ("zorro/1.0", "+zorro+")
     ]
 
     private static func call(_ path: String, method: String = "GET", body: [String: Any]? = nil, token: String? = nil, pair: Int = 0) async throws -> (Data, Int) {
@@ -250,9 +250,13 @@ enum ClasseViva {
         for pair in 0..<headerPairs.count {
             do {
                 let (data, status) = try await call("/auth/login", method: "POST", body: payload, pair: pair)
-                guard let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return ["ok": 0, "err": "rete"] }
+                // Risposta non JSON (es. 403 del firewall): prova la coppia successiva.
+                guard let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    if pair + 1 < headerPairs.count { continue }
+                    return ["ok": 0, "err": "bloccato", "info": "HTTP \(status)"]
+                }
                 // Chiave API rifiutata: prova la coppia successiva.
-                if let e = j["error"] as? String, e.contains("apikey"), pair + 1 < headerPairs.count { continue }
+                if let e = j["error"] as? String, (e.lowercased().contains("apikey") || e.lowercased().contains("api key")), pair + 1 < headerPairs.count { continue }
                 // Account famiglia con più profili: l'app fa scegliere lo studente.
                 if let choices = j["choices"] as? [[String: Any]], !choices.isEmpty {
                     let list: [[String: Any]] = choices.map { c in
@@ -263,7 +267,8 @@ enum ClasseViva {
                     return ["ok": 0, "needChoice": 1, "choices": list]
                 }
                 guard status == 200, let token = j["token"] as? String, let fullIdent = j["ident"] as? String else {
-                    return ["ok": 0, "err": "credenziali"]
+                    let info = (j["info"] as? String ?? "") + " " + (j["error"] as? String ?? "")
+                    return ["ok": 0, "err": "credenziali", "info": "HTTP \(status) " + info.trimmingCharacters(in: .whitespaces)]
                 }
                 let studentID = fullIdent.replacingOccurrences(of: "[A-Za-z]", with: "", options: .regularExpression)
                 if save { CredStore.save(uid: uid, pass: pass) }
@@ -273,10 +278,10 @@ enum ClasseViva {
                 let events = await homework(token: token, studentID: studentID, pair: pair)
                 return ["ok": 1, "name": name, "events": events]
             } catch {
-                return ["ok": 0, "err": "rete"]
+                return ["ok": 0, "err": "rete", "info": error.localizedDescription]
             }
         }
-        return ["ok": 0, "err": "rete"]
+        return ["ok": 0, "err": "rete", "info": "nessuna risposta"]
     }
 
     // Compiti (codice AGHW) da una settimana fa a tre settimane avanti.
@@ -310,3 +315,4 @@ enum ClasseViva {
         }
     }
 }
+
