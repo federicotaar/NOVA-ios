@@ -43,3 +43,14 @@ L'ipa non è firmato, va firmato in fase di installazione:
 2. Installalo con [AltStore](https://altstore.io) o [Sideloadly](https://sideloadly.io) usando un Apple ID (basta quello gratuito)
 3. Con l'Apple ID gratuito la firma dura 7 giorni: poi va rinnovata da AltStore/Sideloadly
 
+
+
+
+## Novità v2
+
+- **Nuovo design** sobrio (grigi neutri, un solo colore d'accento) e **icona** nera con la N bianca
+- **Setup a pagine** senza scroll: nome, tema, widget, ClasseViva, notifiche, chiave Groq, Spotify
+- **Calendario** con popup del giorno (compiti e verifiche per intero), visibile anche in **StandBy** orizzontale; tocca un compito per aprire lo stesso popup
+- **Assistente AI** con Groq (chiave `gsk_...` da console.groq.com/keys, non Grok di xAI), salvata nel Portachiavi
+- **Prossima verifica** con conto alla rovescia, **Voti** con media e voto necessario per il 6, **Spotify** miniplayer (serve Premium e un Client ID tuo: redirect `nova://spotify-callback`)
+- **Notifiche a app chiusa**: avviso locale alle 18:00 del giorno prima di ogni scadenza e, quando iOS concede l'aggiornamento in background, avviso per i compiti nuovi (non garantito né immediato)
