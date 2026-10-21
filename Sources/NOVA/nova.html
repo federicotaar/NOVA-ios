@@ -88,7 +88,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .sb .card{padding:12px 16px;border-radius:24px;overflow:hidden}
 .sb #wClock{grid-column:1;grid-row:1/4;display:flex;flex-direction:column;justify-content:center}
 .sb #wWx{grid-column:2;grid-row:1}.sb #wBat{grid-column:2;grid-row:2}.sb #wTask{grid-column:2;grid-row:3}
-.sb #wCal,.sb #wWx .lb,.sb #wBat .lb,.sb #bAdd,.sb .lk{display:none}
+.sb #wCal,.sb #wWx .lb,.sb #wBat .lb,.sb #bAdd,.sb #bCv,.sb .lk{display:none}
 .sb .time{font-size:min(34vh,16vw)}
 .sb .big{font-size:34px}.sb .ring{width:48px;height:48px}.sb .wi{width:32px;height:32px}
 .sb ul{max-height:none;overflow:hidden}.sb .t{padding:6px 0}.sb .t:nth-child(n+3){display:none}
@@ -109,7 +109,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
  <section class="card" id="wWx" style="--i:1"><div class="lb">Meteo</div><div id="wxB"></div></section>
  <section class="card" id="wBat" style="--i:2"><div class="lb">Batteria</div><div id="batB"></div></section>
  <section class="card" id="wCal" style="--i:3"><div class="lb"><span id="calT"></span></div><div class="cal" id="calG"></div></section>
- <section class="card" id="wTask" style="--i:4"><div class="lb"><span>Compiti e promemoria</span><button class="pill sm" id="bAdd"></button></div><ul id="tl"></ul></section>
+ <section class="card" id="wTask" style="--i:4"><div class="lb"><span>Compiti e promemoria</span><span style="display:flex;gap:6px"><button class="pill sm" id="bCv" hidden></button><button class="pill sm" id="bAdd"></button></span></div><ul id="tl"></ul></section>
 </main>
 </div>
 
@@ -119,7 +119,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
  <div class="fl">Tema<div class="seg" id="fT"><button data-v="auto">Auto</button><button data-v="light">Chiaro</button><button data-v="dark">Scuro</button></div></div>
  <div class="fl">Widget da mostrare<div class="chips" id="fW"><button data-w="wx">Meteo</button><button data-w="bat">Batteria</button><button data-w="cal">Calendario</button><button data-w="task">Compiti</button></div></div>
  <div class="fl">Notifiche<button class="btn" id="bNot">Attiva notifiche</button><small id="nS"></small><small>Funzionano finché NOVA è aperta. Per riceverle a app chiusa servono un service worker e un server push, non ancora inclusi.</small></div>
- <div class="fl">Fonti scolastiche<small>Google Classroom e ClasseViva richiedono un backend (OAuth e credenziali) e non sono ancora collegati: per ora i compiti si aggiungono a mano.</small></div>
+ <div class="fl">ClasseViva<div id="cvB"></div><small>Codice utente e password restano solo sul telefono, nel Portachiavi di iOS: non finiscono nel codice dell'app né online. NOVA parla unicamente con i server di ClasseViva (web.spaggiari.eu). Google Classroom resta da collegare.</small></div>
  <button class="btn pri" id="sOk">Fatto</button>
 </div></dialog>
 
@@ -145,6 +145,36 @@ const K='nova.v1';let S={name:'',theme:'auto',sb:'auto',done:0,w:{wx:1,bat:1,cal
 try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 const bridge=()=>{try{webkit.messageHandlers.nova.postMessage({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))})}catch(e){}};
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge()};
+S.cv=S.cv||{on:0,name:''};
+let cvId=0,cvTmp=null,cvChoices=null;const cvW={};
+function cv(op,d){return new Promise(r=>{const i=++cvId;cvW[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:'classeviva',op:op,id:i},d||{}))}catch(e){delete cvW[i];r({ok:0,err:'bridge'})}})}
+window.__novaCV=(i,p)=>{const r=cvW[i];delete cvW[i];r&&r(p)};
+function cvImport(ev){let n=0;for(const e of ev||[]){if(!e.id||!e.date)continue;
+ const id='cv'+e.id,due=e.date+'T08:00',x=S.tasks.find(t=>t.id===id);
+ if(x){if(x.src==='cv'&&!x.done){x.title=e.title;x.note=e.note;x.due=due}continue}
+ S.tasks.push({id:id,title:e.title||'Compito',note:e.note||'',due:due,pr:'media',rem:0,done:0,fired:0,src:'cv'});n++}
+ save();tasks();cal();return n}
+async function cvRefresh(manual){if(!S.cv.on)return;const r=await cv('refresh');
+ if(r.ok){const n=cvImport(r.events);if(manual)toast(n?n+(n===1?' nuovo compito':' nuovi compiti')+' da ClasseViva':'Compiti ClasseViva già aggiornati')}
+ else if(r.err==='no-creds'){S.cv={on:0,name:''};save();cvUI()}
+ else if(manual)toast('ClasseViva non raggiungibile ora, riprova tra poco')}
+async function cvLogin(u,p,ident){if(!u||!p){const e=$('#cvE');e&&(e.textContent='Scrivi codice utente e password.');return}
+ cvTmp={u:u,p:p};cvChoices=null;const b=$('#cvG');if(b){b.disabled=1;b.textContent='Collego…'}
+ const r=await cv('login',ident?{uid:u,pass:p,ident:ident}:{uid:u,pass:p});
+ if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;save();const n=cvImport(r.events);toast('ClasseViva collegato: '+n+' compiti importati')}
+ else if(r.needChoice)cvChoices=r.choices||[];
+ else{cvTmp=null;const e=$('#cvE');e&&(e.textContent=r.err==='rete'?'Nessuna connessione o server ClasseViva giù. Riprova.':'Credenziali non valide. Controlla e riprova.')}
+ cvUI()}
+async function cvLogout(){await cv('logout');S.cv={on:0,name:''};S.tasks=S.tasks.filter(t=>t.src!=='cv');save();tasks();cal();cvUI();toast('ClasseViva scollegato')}
+function cvUI(){const b=$('#cvB');
+ if(b){if(cvChoices){b.innerHTML='<small>Questo account ha più profili: scegli il tuo.</small><div class="chips" style="margin-top:8px">'+cvChoices.map(c=>`<button data-i="${esc(c.ident)}">${esc(c.name||c.ident)}</button>`).join('')+'</div><small class="err" id="cvE"></small>';
+  b.querySelectorAll('button[data-i]').forEach(x=>x.onclick=()=>{const t=cvTmp,i=x.dataset.i;cvChoices=null;t&&cvLogin(t.u,t.p,i)})}
+ else if(S.cv.on){b.innerHTML=`<small>Collegato come ${esc(S.cv.name||'studente')}.</small><div class="row" style="margin-top:8px"><button class="btn" id="cvR">Aggiorna compiti</button><button class="btn" id="cvX">Scollega</button></div><small class="err" id="cvE"></small>`;
+  $('#cvR').onclick=()=>cvRefresh(1);$('#cvX').onclick=cvLogout}
+ else{b.innerHTML='<div class="row"><input id="cvU" placeholder="Codice utente" autocomplete="username" autocapitalize="none"><input id="cvP" type="password" placeholder="Password" autocomplete="current-password"></div><button class="btn pri" id="cvG" style="margin-top:8px">Collega ClasseViva</button><small class="err" id="cvE"></small>';
+  $('#cvG').onclick=()=>cvLogin($('#cvU').value.trim(),$('#cvP').value);
+  $('#cvP').onkeydown=e=>{if(e.key==='Enter')$('#cvG').click()}}}
+ const cvb=$('#bCv');if(cvb)cvb.hidden=!S.cv.on}
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',
 fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -176,7 +206,7 @@ function when(t){const d=new Date(t.due),n=new Date(),k=Math.round((new Date(d.g
  day=k===0?'Oggi':k===1?'Domani':k===-1?'Ieri':d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
  return{txt:`${day} · ${h}`,cls:d<n?'late':k===0?'soon':''}}
 function tasks(){const L=[...S.tasks].sort((a,b)=>a.done-b.done||new Date(a.due)-new Date(b.due)||RK[a.pr]-RK[b.pr]);
- $('#tl').innerHTML=L.length?L.map(t=>{const w=when(t);return `<li class="t${t.done?' dn':''}" data-id="${t.id}"><button class="ck" data-a="ck" aria-label="${t.done?'Riapri':'Completa'}">${ic('ck')}</button><div class="tx"><b>${esc(t.title)}</b><span class="${t.done?'':w.cls}"><i class="pr ${t.pr}"></i>${w.txt}${t.note?' · '+esc(t.note):''}</span></div><button class="x" data-a="rm" aria-label="Elimina">${ic('tr')}</button></li>`}).join(''):'<li class="empty">Nessun compito. Aggiungi una scadenza e NOVA la ordina per urgenza.</li>'}
+ $('#tl').innerHTML=L.length?L.map(t=>{const w=when(t);return `<li class="t${t.done?' dn':''}" data-id="${t.id}"><button class="ck" data-a="ck" aria-label="${t.done?'Riapri':'Completa'}">${ic('ck')}</button><div class="tx"><b>${t.src==='cv'?'CV · ':''}${esc(t.title)}</b><span class="${t.done?'':w.cls}"><i class="pr ${t.pr}"></i>${w.txt}${t.note?' · '+esc(t.note):''}</span></div><button class="x" data-a="rm" aria-label="Elimina">${ic('tr')}</button></li>`}).join(''):'<li class="empty">Nessun compito. Aggiungine uno a mano oppure collega ClasseViva dalle impostazioni.</li>'}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),6000)}
 function rem(){const n=Date.now();let ch=0;for(const t of S.tasks){if(t.done||t.fired||!t.rem)continue;
  if(n>=new Date(t.due)-t.rem*6e4){t.fired=1;ch=1;const m=`${t.title} — ${when(t).txt}`;toast('Promemoria: '+m);
@@ -206,9 +236,9 @@ function layout(){const on=S.sb==='on'||(S.sb==='auto'&&mq.matches&&chg===true);
 function show(){[['wx','#wWx'],['bat','#wBat'],['cal','#wCal'],['task','#wTask']].forEach(([k,s])=>$(s).hidden=!S.w[k])}
 function nstat(){$('#nS').textContent='Stato: '+(!('Notification' in window)?'non supportate da questo browser.':{granted:'attive.',denied:'bloccate dal browser, riattivale dalle impostazioni del sito.',default:'non ancora attive.'}[Notification.permission])}
 function sheet(){$('#fN').value=S.name;document.querySelectorAll('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
- document.querySelectorAll('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat()}
+ document.querySelectorAll('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();cvUI()}
 
-$('#bSb').innerHTML=ic('sb')+'<span>StandBy · <span id="sbL"></span></span>';$('#bSet').innerHTML=ic('sl');$('#bAdd').innerHTML=ic('plus')+'Nuovo';
+$('#bSb').innerHTML=ic('sb')+'<span>StandBy · <span id="sbL"></span></span>';$('#bSet').innerHTML=ic('sl');$('#bAdd').innerHTML=ic('plus')+'Nuovo';$('#bCv').textContent='ClasseViva';$('#bCv').onclick=()=>cvRefresh(1);
 $('#bSb').onclick=()=>{S.sb={auto:'on',on:'off',off:'auto'}[S.sb];save();layout();
  try{if(S.sb==='on')R.requestFullscreen&&R.requestFullscreen().catch(()=>{});else if(document.fullscreenElement)document.exitFullscreen()}catch(e){}};
 $('#bSet').onclick=()=>{$('#sT').textContent='Impostazioni';$('#sP').textContent='';sheet();$('#dSet').showModal()};
@@ -229,7 +259,9 @@ $('#tl').onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=S.t
 document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
 
 if(S.theme!=='auto')theme();
-show();tasks();cal();tick();layout();rem();bridge();
+show();tasks();cal();tick();layout();rem();bridge();cvUI();
+if(S.cv.on)cvRefresh(0);
+setInterval(()=>{if(S.cv.on&&!document.hidden)cvRefresh(0)},18e5);
 $('#batB').innerHTML='<p class="mut">Controllo la batteria…</p>';
 if(navigator.getBattery)navigator.getBattery().then(b=>{const u=()=>{chg=b.charging;drawBat(b);layout()};['levelchange','chargingchange','chargingtimechange','dischargingtimechange'].forEach(e=>b.addEventListener(e,u));u()}).catch(()=>drawBat(null));else drawBat(null);
 if(S.w.wx)wx();
@@ -240,3 +272,4 @@ if(!S.done){$('#sT').textContent='Benvenuto in NOVA';$('#sP').textContent='Perso
 </script>
 </body>
 </html>
+
