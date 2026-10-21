@@ -146,7 +146,7 @@ try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 const bridge=()=>{try{webkit.messageHandlers.nova.postMessage({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))})}catch(e){}};
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge()};
 S.cv=S.cv||{on:0,name:''};
-let cvId=0,cvTmp=null,cvChoices=null;const cvW={};
+let cvId=0,cvTmp=null,cvChoices=null,cvErr='';const cvW={};
 function cv(op,d){return new Promise(r=>{const i=++cvId;cvW[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:'classeviva',op:op,id:i},d||{}))}catch(e){delete cvW[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=cvW[i];delete cvW[i];r&&r(p)};
 function cvImport(ev){let n=0;for(const e of ev||[]){if(!e.id||!e.date)continue;
@@ -163,8 +163,8 @@ async function cvLogin(u,p,ident){if(!u||!p){const e=$('#cvE');e&&(e.textContent
  const r=await cv('login',ident?{uid:u,pass:p,ident:ident}:{uid:u,pass:p});
  if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;save();const n=cvImport(r.events);toast('ClasseViva collegato: '+n+' compiti importati')}
  else if(r.needChoice)cvChoices=r.choices||[];
- else{cvTmp=null;const e=$('#cvE');e&&(e.textContent=r.err==='rete'?'Nessuna connessione o server ClasseViva giù. Riprova.':'Credenziali non valide. Controlla e riprova.')}
- cvUI()}
+ else{cvTmp=null;cvErr=(r.err==='rete'?'Nessuna connessione o server ClasseViva giù. Riprova.':r.err==='bloccato'?'ClasseViva ha bloccato la richiesta. Riprova tra poco.':r.err==='bridge'?'Errore interno: reinstalla l\'ultima versione di NOVA.':'Credenziali non valide. Controlla codice utente e password.')+(r.info?' ('+r.info+')':'')}
+ cvUI();if(cvErr){const e=$('#cvE');e&&(e.textContent=cvErr);toast('ClasseViva: collegamento non riuscito');cvErr=''}}
 async function cvLogout(){await cv('logout');S.cv={on:0,name:''};S.tasks=S.tasks.filter(t=>t.src!=='cv');save();tasks();cal();cvUI();toast('ClasseViva scollegato')}
 function cvUI(){const b=$('#cvB');
  if(b){if(cvChoices){b.innerHTML='<small>Questo account ha più profili: scegli il tuo.</small><div class="chips" style="margin-top:8px">'+cvChoices.map(c=>`<button data-i="${esc(c.ident)}">${esc(c.name||c.ident)}</button>`).join('')+'</div><small class="err" id="cvE"></small>';
@@ -272,4 +272,5 @@ if(!S.done){$('#sT').textContent='Benvenuto in NOVA';$('#sP').textContent='Perso
 </script>
 </body>
 </html>
+
 
