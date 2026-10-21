@@ -155,13 +155,13 @@ function cvImport(ev){let n=0;for(const e of ev||[]){if(!e.id||!e.date)continue;
  S.tasks.push({id:id,title:e.title||'Compito',note:e.note||'',due:due,pr:'media',rem:0,done:0,fired:0,src:'cv'});n++}
  save();tasks();cal();return n}
 async function cvRefresh(manual){if(!S.cv.on)return;const r=await cv('refresh');
- if(r.ok){const n=cvImport(r.events);if(manual)toast(n?n+(n===1?' nuovo compito':' nuovi compiti')+' da ClasseViva':'Compiti ClasseViva già aggiornati')}
+ if(r.ok){const n=cvImport(r.events);if(manual)toast(n?n+(n===1?' novità':' novità')+' da ClasseViva':'Compiti e verifiche già aggiornati')}
  else if(r.err==='no-creds'){S.cv={on:0,name:''};save();cvUI()}
  else if(manual)toast('ClasseViva non raggiungibile ora, riprova tra poco')}
 async function cvLogin(u,p,ident){if(!u||!p){const e=$('#cvE');e&&(e.textContent='Scrivi codice utente e password.');return}
  cvTmp={u:u,p:p};cvChoices=null;const b=$('#cvG');if(b){b.disabled=1;b.textContent='Collego…'}
  const r=await cv('login',ident?{uid:u,pass:p,ident:ident}:{uid:u,pass:p});
- if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;save();const n=cvImport(r.events);toast('ClasseViva collegato: '+n+' compiti importati')}
+ if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;save();const n=cvImport(r.events);toast('ClasseViva collegato: '+n+' compiti e verifiche importati')}
  else if(r.needChoice)cvChoices=r.choices||[];
  else{cvTmp=null;cvErr=(r.err==='rete'?'Nessuna connessione o server ClasseViva giù. Riprova.':r.err==='bloccato'?'ClasseViva ha bloccato la richiesta. Riprova tra poco.':r.err==='bridge'?'Errore interno: reinstalla l\'ultima versione di NOVA.':'Credenziali non valide. Controlla codice utente e password.')+(r.info?' ('+r.info+')':'')}
  cvUI();if(cvErr){const e=$('#cvE');e&&(e.textContent=cvErr);toast('ClasseViva: collegamento non riuscito');cvErr=''}}
@@ -272,5 +272,6 @@ if(!S.done){$('#sT').textContent='Benvenuto in NOVA';$('#sP').textContent='Perso
 </script>
 </body>
 </html>
+
 
 
