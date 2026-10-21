@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import WebKit
+import Security
 import UserNotifications
 
 @main
@@ -47,7 +48,7 @@ struct WebContainer: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 }
 
-/// Ponte nativo: batteria reale, schermo acceso in carica, notifiche locali.
+/// Ponte nativo: batteria reale, schermo acceso in carica, notifiche locali, ClasseViva.
 final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUserNotificationCenterDelegate {
     weak var web: WKWebView?
     private let center = UNUserNotificationCenter.current()
@@ -109,6 +110,24 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             }
         } else if t == "sched", let items = body["items"] as? [[String: Any]] {
             schedule(items)
+        } else if t == "classeviva" {
+            let reqId = body["id"] as? Int ?? 0
+            Task {
+                let result = await ClasseViva.handle(body)
+                self.replyClasseViva(reqId, result)
+            }
+        }
+    }
+
+    // Risposta asincrona verso nova.html (window.__novaCV)
+    func replyClasseViva(_ id: Int, _ result: [String: Any]) {
+        guard JSONSerialization.isValidJSONObject(result),
+              let data = try? JSONSerialization.data(withJSONObject: result),
+              var json = String(data: data, encoding: .utf8) else { return }
+        json = json.replacingOccurrences(of: "\u{2028}", with: "\\u2028")
+                   .replacingOccurrences(of: "\u{2029}", with: "\\u2029")
+        DispatchQueue.main.async {
+            self.web?.evaluateJavaScript("window.__novaCV&&__novaCV(\(id),\(json))")
         }
     }
 
@@ -134,5 +153,160 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .sound]
+    }
+}
+
+// MARK: - Credenziali ClasseViva nel Portachiavi iOS (restano solo sul telefono)
+
+enum CredStore {
+    private static let service = "nova.classeviva"
+
+    static func save(uid: String, pass: String) {
+        guard let data = try? JSONSerialization.data(withJSONObject: ["uid": uid, "pass": pass]) else { return }
+        let base: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "login"
+        ]
+        SecItemDelete(base as CFDictionary)
+        var q = base
+        q[kSecValueData as String] = data
+        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(q as CFDictionary, nil)
+    }
+
+    static func read() -> (uid: String, pass: String)? {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "login",
+            kSecReturnData as String: true
+        ]
+        var out: CFTypeRef?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,
+              let data = out as? Data,
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let uid = dict["uid"] as? String,
+              let pass = dict["pass"] as? String else { return nil }
+        return (uid, pass)
+    }
+
+    static func clear() {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "login"
+        ]
+        SecItemDelete(q as CFDictionary)
+    }
+}
+
+// MARK: - ClasseViva REST (web.spaggiari.eu/rest/v1)
+
+enum ClasseViva {
+    static let base = "https://web.spaggiari.eu/rest/v1"
+
+    // Coppie di header usate dai client open source documentati: se una chiave API
+    // non viene più accettata si prova automaticamente l'altra.
+    private static let headerPairs: [(ua: String, key: String)] = [
+        ("zorro/1.0", "+zorro+"),
+        ("CVVS/std/4.1.7 Android/10", "Tg1NWEwNGIgIC0K")
+    ]
+
+    private static func call(_ path: String, method: String = "GET", body: [String: Any]? = nil, token: String? = nil, pair: Int = 0) async throws -> (Data, Int) {
+        var req = URLRequest(url: URL(string: base + path)!)
+        req.httpMethod = method
+        req.timeoutInterval = 25
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(headerPairs[pair].ua, forHTTPHeaderField: "User-Agent")
+        req.setValue(headerPairs[pair].key, forHTTPHeaderField: "Z-Dev-ApiKey")
+        if let token = token { req.setValue(token, forHTTPHeaderField: "Z-Auth-Token") }
+        if let body = body { req.httpBody = try JSONSerialization.data(withJSONObject: body) }
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        return (data, (resp as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+
+    static func handle(_ msg: [String: Any]) async -> [String: Any] {
+        let op = msg["op"] as? String ?? ""
+        switch op {
+        case "logout":
+            CredStore.clear()
+            return ["ok": 1]
+        case "login":
+            guard let uid = msg["uid"] as? String, !uid.isEmpty,
+                  let pass = msg["pass"] as? String, !pass.isEmpty else { return ["ok": 0, "err": "dati"] }
+            return await loginFlow(uid: uid, pass: pass, ident: msg["ident"] as? String, save: true)
+        case "refresh":
+            guard let c = CredStore.read() else { return ["ok": 0, "err": "no-creds"] }
+            return await loginFlow(uid: c.uid, pass: c.pass, ident: nil, save: false)
+        default:
+            return ["ok": 0, "err": "op"]
+        }
+    }
+
+    private static func loginFlow(uid: String, pass: String, ident: String?, save: Bool) async -> [String: Any] {
+        var payload: [String: Any] = ["uid": uid, "pass": pass, "ident": NSNull()]
+        if let ident = ident, !ident.isEmpty { payload["ident"] = ident }
+        for pair in 0..<headerPairs.count {
+            do {
+                let (data, status) = try await call("/auth/login", method: "POST", body: payload, pair: pair)
+                guard let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return ["ok": 0, "err": "rete"] }
+                // Chiave API rifiutata: prova la coppia successiva.
+                if let e = j["error"] as? String, e.contains("apikey"), pair + 1 < headerPairs.count { continue }
+                // Account famiglia con più profili: l'app fa scegliere lo studente.
+                if let choices = j["choices"] as? [[String: Any]], !choices.isEmpty {
+                    let list: [[String: Any]] = choices.map { c in
+                        ["ident": c["ident"] as? String ?? "",
+                         "name": c["name"] as? String ?? "",
+                         "school": c["school"] as? String ?? ""]
+                    }
+                    return ["ok": 0, "needChoice": 1, "choices": list]
+                }
+                guard status == 200, let token = j["token"] as? String, let fullIdent = j["ident"] as? String else {
+                    return ["ok": 0, "err": "credenziali"]
+                }
+                let studentID = fullIdent.replacingOccurrences(of: "[A-Za-z]", with: "", options: .regularExpression)
+                if save { CredStore.save(uid: uid, pass: pass) }
+                let first = j["firstName"] as? String ?? ""
+                let last = j["lastName"] as? String ?? ""
+                let name = (first + " " + last).trimmingCharacters(in: .whitespaces)
+                let events = await homework(token: token, studentID: studentID, pair: pair)
+                return ["ok": 1, "name": name, "events": events]
+            } catch {
+                return ["ok": 0, "err": "rete"]
+            }
+        }
+        return ["ok": 0, "err": "rete"]
+    }
+
+    // Compiti (codice AGHW) da una settimana fa a tre settimane avanti.
+    private static func homework(token: String, studentID: String, pair: Int) async -> [[String: Any]] {
+        let now = Date()
+        guard let start = Calendar.current.date(byAdding: .day, value: -7, to: now),
+              let end = Calendar.current.date(byAdding: .day, value: 21, to: now) else { return [] }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMdd"
+        do {
+            let (data, status) = try await call("/students/\(studentID)/agenda/AGHW/\(f.string(from: start))/\(f.string(from: end))", token: token, pair: pair)
+            guard status == 200,
+                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let agenda = j["agenda"] as? [[String: Any]] else { return [] }
+            var out: [[String: Any]] = []
+            for e in agenda {
+                guard let id = e["evtId"] as? Int else { continue }
+                let subj = (e["subjectDesc"] as? String ?? "Compito").capitalized
+                let notes = (e["notes"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let author = (e["authorName"] as? String ?? "").capitalized
+                var note = notes
+                if !author.isEmpty { note = note.isEmpty ? author : note + " · " + author }
+                var date = ""
+                if let dtb = e["evtDatetimeBegin"] as? String { date = String(dtb.prefix(10)) }
+                out.append(["id": id, "title": subj, "note": note, "date": date])
+            }
+            return out
+        } catch {
+            return []
+        }
     }
 }
