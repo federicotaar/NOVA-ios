@@ -275,7 +275,7 @@ enum ClasseViva {
                 let first = j["firstName"] as? String ?? ""
                 let last = j["lastName"] as? String ?? ""
                 let name = (first + " " + last).trimmingCharacters(in: .whitespaces)
-                let events = await homework(token: token, studentID: studentID, pair: pair)
+                let events = await fetchEvents(token: token, studentID: studentID, pair: pair)
                 return ["ok": 1, "name": name, "events": events]
             } catch {
                 return ["ok": 0, "err": "rete", "info": error.localizedDescription]
@@ -284,35 +284,91 @@ enum ClasseViva {
         return ["ok": 0, "err": "rete", "info": "nessuna risposta"]
     }
 
-    // Compiti (codice AGHW) da una settimana fa a tre settimane avanti.
-    private static func homework(token: String, studentID: String, pair: Int) async -> [[String: Any]] {
+    // Tutto quello che la sua scuola pubblica: compiti nuovi (NEWDC, sezione
+    // "Compiti e materiali"), annotazioni dei prof (AGNT: verifiche, interrogazioni)
+    // e compiti vecchio stile in agenda (AGHW).
+    private static func fetchEvents(token: String, studentID: String, pair: Int) async -> [[String: Any]] {
+        await homeworkItems(token: token, studentID: studentID, pair: pair)
+            + agendaItems(token: token, studentID: studentID, pair: pair)
+    }
+
+    private static func clean(_ s: String, _ maxLen: Int) -> String {
+        var t = s.replacingOccurrences(of: "\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.count > maxLen { t = String(t.prefix(maxLen - 1)) + "…" }
+        return t
+    }
+
+    // Compiti dal registro nuovo (eventi NEWDC): l'endpoint restituisce quelli ancora aperti.
+    private static func homeworkItems(token: String, studentID: String, pair: Int) async -> [[String: Any]] {
+        for path in ["/students/\(studentID)/homeworks", "/students/\(studentID)/homeworks/index"] {
+            do {
+                let (data, status) = try await call(path, token: token, pair: pair)
+                if status == 404 { continue }
+                guard status == 200,
+                      let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let items = j["items"] as? [[String: Any]] else { return [] }
+                var out: [[String: Any]] = []
+                for e in items {
+                    guard let id = e["evtId"] as? Int else { continue }
+                    if e["homeworkDone"] as? Bool ?? false { continue }
+                    guard let date = e["expiryDate"] as? String, date.count >= 10 else { continue }
+                    let subj = (e["subjectDesc"] as? String ?? "").capitalized
+                    let teacher = (e["teacherName"] as? String ?? "").capitalized
+                    let desc = clean(e["homeworkDesc"] as? String ?? "Compito", 180)
+                    var note = subj
+                    if !teacher.isEmpty { note = note.isEmpty ? teacher : note + " · " + teacher }
+                    out.append(["id": "hw\(id)", "title": desc, "note": note, "date": String(date.prefix(10))])
+                }
+                return out
+            } catch { return [] }
+        }
+        return []
+    }
+
+    // Agenda: annotazioni dei prof (AGNT) + compiti vecchio stile (AGHW), da una
+    // settimana fa a un mese avanti. Prova prima la agenda nuova (agendav2).
+    private static func agendaItems(token: String, studentID: String, pair: Int) async -> [[String: Any]] {
         let now = Date()
         guard let start = Calendar.current.date(byAdding: .day, value: -7, to: now),
-              let end = Calendar.current.date(byAdding: .day, value: 21, to: now) else { return [] }
+              let end = Calendar.current.date(byAdding: .day, value: 30, to: now) else { return [] }
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyyMMdd"
-        do {
-            let (data, status) = try await call("/students/\(studentID)/agenda/AGHW/\(f.string(from: start))/\(f.string(from: end))", token: token, pair: pair)
-            guard status == 200,
-                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let agenda = j["agenda"] as? [[String: Any]] else { return [] }
+        let a = f.string(from: start), b = f.string(from: end)
+        for path in ["/students/\(studentID)/agendav2/all/\(a)/\(b)", "/students/\(studentID)/agenda/all/\(a)/\(b)"] {
+            guard let events = await agendaCall(path, token: token, pair: pair) else { continue }
             var out: [[String: Any]] = []
-            for e in agenda {
-                guard let id = e["evtId"] as? Int else { continue }
-                let subj = (e["subjectDesc"] as? String ?? "Compito").capitalized
-                let notes = (e["notes"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            for e in events {
+                guard let code = e["evtCode"] as? String, let id = e["evtId"] as? Int,
+                      let dtb = e["evtDatetimeBegin"] as? String, dtb.count >= 10 else { continue }
+                let date = String(dtb.prefix(10))
+                let notes = clean(e["notes"] as? String ?? "", 180)
                 let author = (e["authorName"] as? String ?? "").capitalized
-                var note = notes
-                if !author.isEmpty { note = note.isEmpty ? author : note + " · " + author }
-                var date = ""
-                if let dtb = e["evtDatetimeBegin"] as? String { date = String(dtb.prefix(10)) }
-                out.append(["id": id, "title": subj, "note": note, "date": date])
+                if code == "AGNT" {
+                    guard !notes.isEmpty else { continue }
+                    out.append(["id": "ag\(id)", "title": notes, "note": author, "date": date])
+                } else if code == "AGHW" {
+                    let subj = (e["subjectDesc"] as? String ?? "Compito").capitalized
+                    var note = notes
+                    if !author.isEmpty { note = note.isEmpty ? author : note + " · " + author }
+                    out.append(["id": "ahw\(id)", "title": subj, "note": note, "date": date])
+                }
             }
             return out
-        } catch {
-            return []
         }
+        return []
+    }
+
+    private static func agendaCall(_ path: String, token: String, pair: Int) async -> [[String: Any]]? {
+        do {
+            let (data, status) = try await call(path, token: token, pair: pair)
+            guard status == 200,
+                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let agenda = j["agenda"] as? [[String: Any]] else { return nil }
+            return agenda
+        } catch { return nil }
     }
 }
+
 
