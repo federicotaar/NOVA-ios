@@ -1,0 +1,3 @@
+version: 1
+bundleID: it.tuonome.nova   # CAMBIALO: deve essere unico
+infoPath: NOVA-Info.plist

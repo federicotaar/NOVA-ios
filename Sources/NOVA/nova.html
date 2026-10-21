@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>NOVA</title>
+<style>
+:root{--bg:#f2efe9;--card:rgba(255,255,255,.62);--line:rgba(30,20,10,.09);--fg:#17130e;--mut:rgba(23,19,14,.56);--acc:#e8531f;--glow:rgba(232,83,31,.15);--ok:#18924d;--bad:#d0301f;--fld:rgba(30,20,10,.06);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#050505;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.1);--fg:#f6f2ea;--mut:rgba(246,242,234,.56);--acc:#ff7b47;--glow:rgba(255,123,71,.13);--ok:#4cd27a;--bad:#ff6154;--fld:rgba(255,255,255,.08);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#050505;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.1);--fg:#f6f2ea;--mut:rgba(246,242,234,.56);--acc:#ff7b47;--glow:rgba(255,123,71,.13);--ok:#4cd27a;--bad:#ff6154;--fld:rgba(255,255,255,.08);color-scheme:dark}
+:root.sb.night{--bg:#000;--fg:#ff8a68;--mut:rgba(255,138,104,.5);--acc:#ff5a3c;--card:rgba(255,70,30,.07);--line:rgba(255,90,50,.14);--glow:transparent;--fld:rgba(255,90,50,.1)}
+*{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:radial-gradient(900px 500px at 90% -5%,var(--glow),transparent 65%),radial-gradient(700px 500px at -10% 105%,var(--glow),transparent 60%),var(--bg);color:var(--fg);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;transition:background-color .5s,color .5s}
+[hidden]{display:none!important}
+svg{width:20px;height:20px;flex:none}
+#app{max-width:1100px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 4px 14px}
+.brand{font-size:11px;font-weight:700;letter-spacing:.24em;color:var(--mut)}
+.brand::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-right:8px}
+h1{font-size:clamp(22px,4vw,30px);margin:2px 0 0;font-weight:650;letter-spacing:-.02em}
+.bar{display:flex;gap:8px}
+.pill,.ico{height:40px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--fg);display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);font:inherit;font-size:14px;font-weight:600;padding:0 14px}
+.ico{width:40px;padding:0}
+.sm{height:32px;padding:0 12px;font-size:13px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.grid{display:grid;gap:14px;grid-template-columns:1fr 1fr;grid-auto-flow:dense}
+#wClock,#wCal,#wTask{grid-column:1/-1}
+@media(min-width:900px){.grid{grid-template-columns:repeat(6,1fr)}#wClock{grid-column:span 4}#wWx,#wBat,#wCal{grid-column:span 2}#wTask{grid-column:span 4;grid-row:span 2}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:20px;-webkit-backdrop-filter:blur(26px) saturate(1.4);backdrop-filter:blur(26px) saturate(1.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 14px 34px -18px rgba(0,0,0,.35);animation:rise .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*80ms);min-width:0}
+.lb{display:flex;align-items:center;justify-content:space-between;min-height:24px;margin-bottom:10px;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.lb .pill{text-transform:none;letter-spacing:0;margin:-4px 0}
+.time{font-size:clamp(72px,22vw,168px);font-weight:600;letter-spacing:-.045em;line-height:.95;font-variant-numeric:tabular-nums}
+.cl{color:var(--acc);animation:bl 2s ease-in-out infinite}
+.sub{font-size:clamp(17px,3.6vw,26px);color:var(--mut);margin-top:10px;font-weight:500}
+.mut{color:var(--mut);font-size:13px;margin:8px 0 0}
+.big{font-size:44px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.wxm,.bm{display:flex;align-items:center;gap:12px}
+.wi{width:40px;height:40px;color:var(--acc)}
+.ring{width:62px;height:62px}
+.bm span{font-size:13px;color:var(--mut)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px 0;text-align:center;font-size:14px;font-variant-numeric:tabular-nums}
+.cal i{font-style:normal;width:34px;height:34px;justify-self:center;display:grid;place-items:center;position:relative;border-radius:50%}
+.cal .hd{font-size:11px;color:var(--mut);font-weight:700;height:24px}
+.cal .td{background:var(--acc);color:#fff;font-weight:700}
+.cal .has::after{content:"";position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--acc)}
+.cal .td.has::after{background:#fff}
+ul{list-style:none;margin:0;padding:0;max-height:340px;overflow:auto}
+.t{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.t:first-child{border-top:0}
+.ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--mut);background:none;color:transparent;display:grid;place-items:center;cursor:pointer;flex:none;padding:0;transition:.25s}
+.ck svg{width:16px;height:16px;stroke-width:2.6}
+.dn{opacity:.55}
+.dn .ck{background:var(--acc);border-color:var(--acc);color:#fff}
+.dn b{text-decoration:line-through}
+.tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.tx b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx span{font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .late{color:var(--bad)}.tx .soon{color:var(--acc)}
+.pr{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--mut)}
+.pr.alta{background:var(--bad)}.pr.media{background:var(--acc)}
+.x{background:none;border:0;color:var(--mut);cursor:pointer;padding:6px;border-radius:8px}
+.empty{color:var(--mut);padding:6px 0;font-size:14px}
+.lk{background:none;border:0;color:var(--acc);font:inherit;font-size:13px;font-weight:600;padding:0;cursor:pointer}
+dialog{border:1px solid var(--line);border-radius:28px;padding:0;background:var(--bg);color:var(--fg);width:min(440px,calc(100% - 28px));max-height:calc(100% - 28px);box-shadow:0 30px 80px rgba(0,0,0,.4)}
+dialog::backdrop{background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+dialog[open]{animation:pop .35s cubic-bezier(.2,.9,.3,1.1)}
+.sheet{padding:22px;display:flex;flex-direction:column;gap:14px}
+h2{margin:0;font-size:22px;letter-spacing:-.02em}
+.fl{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--mut)}
+small{font-weight:400;font-size:12.5px;line-height:1.4;color:var(--mut)}
+.err{color:var(--bad)}
+input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var(--fld);border:1px solid var(--line);border-radius:14px;padding:11px 12px;width:100%}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.btn,.seg button,.chips button{font:inherit;font-weight:600;font-size:15px;border-radius:14px;border:1px solid var(--line);background:var(--fld);color:var(--fg);padding:11px 16px;cursor:pointer;transition:.2s}
+.seg,.chips{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.chips button{flex:1;font-size:14px;padding:10px 12px}
+.btn.pri,[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);opacity:0;pointer-events:none;background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:16px;font-size:14px;font-weight:600;max-width:calc(100% - 32px);transition:.4s cubic-bezier(.2,.9,.3,1);z-index:9}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+/* StandBy */
+:root.sb body{height:100%;overflow:hidden}
+.sb #app{height:100%;max-width:none;display:flex;flex-direction:column;padding-bottom:12px}
+.sb header{justify-content:flex-end;padding:8px 2px;opacity:.55}
+.sb .hello{display:none}
+.sb .grid{flex:1;min-height:0;grid-template-columns:1.25fr 1fr;grid-template-rows:1fr 1fr 1.3fr;gap:12px}
+.sb .card{padding:12px 16px;border-radius:24px;overflow:hidden}
+.sb #wClock{grid-column:1;grid-row:1/4;display:flex;flex-direction:column;justify-content:center}
+.sb #wWx{grid-column:2;grid-row:1}.sb #wBat{grid-column:2;grid-row:2}.sb #wTask{grid-column:2;grid-row:3}
+.sb #wCal,.sb #wWx .lb,.sb #wBat .lb,.sb #bAdd,.sb .lk{display:none}
+.sb .time{font-size:min(34vh,16vw)}
+.sb .big{font-size:34px}.sb .ring{width:48px;height:48px}.sb .wi{width:32px;height:32px}
+.sb ul{max-height:none;overflow:hidden}.sb .t{padding:6px 0}.sb .t:nth-child(n+3){display:none}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px)}}
+@keyframes bl{50%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+ <div class="hello"><div class="brand">NOVA</div><h1 id="hi"></h1></div>
+ <div class="bar"><button class="pill" id="bSb" title="Auto: si attiva da solo con il telefono in orizzontale e in carica"></button><button class="ico" id="bSet" aria-label="Impostazioni"></button></div>
+</header>
+<main class="grid">
+ <section class="card" id="wClock" style="--i:0"><div class="time" id="tm"></div><div class="sub" id="dd"></div></section>
+ <section class="card" id="wWx" style="--i:1"><div class="lb">Meteo</div><div id="wxB"></div></section>
+ <section class="card" id="wBat" style="--i:2"><div class="lb">Batteria</div><div id="batB"></div></section>
+ <section class="card" id="wCal" style="--i:3"><div class="lb"><span id="calT"></span></div><div class="cal" id="calG"></div></section>
+ <section class="card" id="wTask" style="--i:4"><div class="lb"><span>Compiti e promemoria</span><button class="pill sm" id="bAdd"></button></div><ul id="tl"></ul></section>
+</main>
+</div>
+
+<dialog id="dSet"><div class="sheet">
+ <h2 id="sT">Impostazioni</h2><small id="sP"></small>
+ <label class="fl">Come ti chiami?<input id="fN" maxlength="30" autocomplete="given-name" placeholder="Il tuo nome"></label>
+ <div class="fl">Tema<div class="seg" id="fT"><button data-v="auto">Auto</button><button data-v="light">Chiaro</button><button data-v="dark">Scuro</button></div></div>
+ <div class="fl">Widget da mostrare<div class="chips" id="fW"><button data-w="wx">Meteo</button><button data-w="bat">Batteria</button><button data-w="cal">Calendario</button><button data-w="task">Compiti</button></div></div>
+ <div class="fl">Notifiche<button class="btn" id="bNot">Attiva notifiche</button><small id="nS"></small><small>Funzionano finché NOVA è aperta. Per riceverle a app chiusa servono un service worker e un server push, non ancora inclusi.</small></div>
+ <div class="fl">Fonti scolastiche<small>Google Classroom e ClasseViva richiedono un backend (OAuth e credenziali) e non sono ancora collegati: per ora i compiti si aggiungono a mano.</small></div>
+ <button class="btn pri" id="sOk">Fatto</button>
+</div></dialog>
+
+<dialog id="dTask"><div class="sheet">
+ <h2>Nuovo compito</h2>
+ <label class="fl">Cosa devi fare?<input id="tT" maxlength="80" placeholder="Es. Esercizi di matematica, pag. 112"></label>
+ <label class="fl">Descrizione (facoltativa)<textarea id="tN" rows="2" maxlength="300"></textarea></label>
+ <label class="fl">Scadenza<input id="tD" type="datetime-local"></label>
+ <div class="row">
+  <label class="fl">Priorità<select id="tP"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="bassa">Bassa</option></select></label>
+  <label class="fl">Promemoria<select id="tR"><option value="0">Nessuno</option><option value="10">10 minuti prima</option><option value="60" selected>1 ora prima</option><option value="1440">1 giorno prima</option></select></label>
+ </div>
+ <small class="err" id="tE"></small>
+ <div class="row"><button class="btn" id="tC">Annulla</button><button class="btn pri" id="tS">Aggiungi</button></div>
+</div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $=s=>document.querySelector(s),R=document.documentElement,p2=n=>String(n).padStart(2,'0'),cap=s=>s[0].toUpperCase()+s.slice(1),
+esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+iso=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+const K='nova.v1';let S={name:'',theme:'auto',sb:'auto',done:0,w:{wx:1,bat:1,cal:1,task:1},tasks:[]};
+try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
+const bridge=()=>{try{webkit.messageHandlers.nova.postMessage({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))})}catch(e){}};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge()};
+const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',
+fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
+rain:'<path d="M7 14a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
+snow:'<path d="M7 14a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 14z"/><path d="M8 18h.01M12 20h.01M16 18h.01"/>',
+storm:'<path d="M7 14a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 14z"/><path d="M12 14l-2 3h3l-2 3"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',sl:'<path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/>',
+sb:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',ck:'<path d="M7 12.5l3.2 3.2L17 9"/>',tr:'<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>'};
+const ic=(n,c='')=>`<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+const WX=[[[0,1],'sun','Sereno'],[[2,3],'cloud','Nuvoloso'],[[45,48],'fog','Nebbia'],[[51,53,55,56,57,61,63,65,66,67,80,81,82],'rain','Pioggia'],[[71,73,75,77,85,86],'snow','Neve'],[[95,96,99],'storm','Temporale']];
+const RK={alta:0,media:1,bassa:2},mq=matchMedia('(orientation:landscape) and (max-height:540px)');
+let chg=null,lm=-1,wl=null;
+
+function theme(){S.theme==='auto'?R.removeAttribute('data-theme'):R.setAttribute('data-theme',S.theme)}
+function head(){const h=new Date().getHours();$('#hi').textContent=(h<5?'Buonanotte':h<12?'Buongiorno':h<18?'Buon pomeriggio':'Buonasera')+(S.name?', '+S.name:'')}
+function night(){const h=new Date().getHours();R.classList.toggle('night',R.classList.contains('sb')&&(h>=22||h<7))}
+function tick(){const n=new Date();if(n.getMinutes()===lm)return;lm=n.getMinutes();
+ $('#tm').innerHTML=`${p2(n.getHours())}<span class="cl">:</span>${p2(n.getMinutes())}`;
+ $('#dd').textContent=cap(n.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}));
+ head();cal();tasks();night()}
+function cal(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),off=(new Date(y,m,1).getDay()+6)%7,len=new Date(y,m+1,0).getDate();
+ const due=new Set(S.tasks.filter(t=>!t.done).map(t=>{const d=new Date(t.due);return d.getFullYear()===y&&d.getMonth()===m?d.getDate():0}));
+ let h='';for(const l of 'LMMGVSD')h+=`<i class="hd">${l}</i>`;
+ for(let i=0;i<off;i++)h+='<i></i>';
+ for(let d=1;d<=len;d++)h+=`<i class="${d===n.getDate()?'td ':''}${due.has(d)?'has':''}">${d}</i>`;
+ $('#calG').innerHTML=h;$('#calT').textContent=cap(n.toLocaleDateString('it-IT',{month:'long',year:'numeric'}))}
+function when(t){const d=new Date(t.due),n=new Date(),k=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/864e5),
+ h=d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
+ day=k===0?'Oggi':k===1?'Domani':k===-1?'Ieri':d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+ return{txt:`${day} · ${h}`,cls:d<n?'late':k===0?'soon':''}}
+function tasks(){const L=[...S.tasks].sort((a,b)=>a.done-b.done||new Date(a.due)-new Date(b.due)||RK[a.pr]-RK[b.pr]);
+ $('#tl').innerHTML=L.length?L.map(t=>{const w=when(t);return `<li class="t${t.done?' dn':''}" data-id="${t.id}"><button class="ck" data-a="ck" aria-label="${t.done?'Riapri':'Completa'}">${ic('ck')}</button><div class="tx"><b>${esc(t.title)}</b><span class="${t.done?'':w.cls}"><i class="pr ${t.pr}"></i>${w.txt}${t.note?' · '+esc(t.note):''}</span></div><button class="x" data-a="rm" aria-label="Elimina">${ic('tr')}</button></li>`}).join(''):'<li class="empty">Nessun compito. Aggiungi una scadenza e NOVA la ordina per urgenza.</li>'}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),6000)}
+function rem(){const n=Date.now();let ch=0;for(const t of S.tasks){if(t.done||t.fired||!t.rem)continue;
+ if(n>=new Date(t.due)-t.rem*6e4){t.fired=1;ch=1;const m=`${t.title} — ${when(t).txt}`;toast('Promemoria: '+m);
+ try{if('Notification' in window&&Notification.permission==='granted')new Notification('NOVA · Promemoria',{body:m})}catch(e){}}}
+ if(ch)save()}
+function drawBat(b){const el=$('#batB');
+ if(!b){el.innerHTML='<p class="mut">Non disponibile: questo browser non espone lo stato della batteria (ad esempio Safari su iPhone). StandBy resta attivabile a mano.</p>';return}
+ const lv=b.level,C=2*Math.PI*26,col=b.charging?'var(--ok)':lv<.2?'var(--bad)':'var(--fg)',
+ f=s=>isFinite(s)&&s>0?`${Math.floor(s/3600)} h ${Math.round(s%3600/60)} min`:'',
+ st=b.charging?'In carica'+(f(b.chargingTime)?` · piena tra ${f(b.chargingTime)}`:''):'Non in carica'+(f(b.dischargingTime)?` · ${f(b.dischargingTime)} rimasti`:'');
+ el.innerHTML=`<div class="bm"><svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--fld)" stroke-width="7"/><circle cx="32" cy="32" r="26" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(lv*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor" stroke="none">${Math.round(lv*100)}%</text></svg><span>${st}</span></div>`}
+async function wx(){const el=$('#wxB');if(!el.dataset.ok)el.innerHTML='<p class="mut">Carico il meteo…</p>';
+ try{let la,lo;if(S.city){la=S.city.lat;lo=S.city.lon}else{const pos=await new Promise((ok,no)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(ok,no,{timeout:10000,maximumAge:6e5}):no(new Error('geo')));la=pos.coords.latitude;lo=pos.coords.longitude}
+ const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${(+la).toFixed(3)}&longitude=${(+lo).toFixed(3)}&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`);
+ if(!r.ok)throw new Error('http');const j=await r.json(),c=j.current,[,k,d]=WX.find(x=>x[0].includes(c.weather_code))||[0,'cloud','Variabile'];
+ el.innerHTML=`<div class="wxm">${ic(k,'wi')}<span class="big">${Math.round(c.temperature_2m)}°</span></div><p class="mut">${S.city?esc(S.city.name)+' · ':''}${d} · ${Math.round(j.daily.temperature_2m_min[0])}° / ${Math.round(j.daily.temperature_2m_max[0])}° · percepita ${Math.round(c.apparent_temperature)}°</p><p><button class="lk" id="wxK">Cambia città</button></p>`;el.dataset.ok=1;$('#wxK').onclick=()=>askCity('Scegli la città per il meteo.')}
+ catch(e){askCity('Non riesco a leggere il meteo. Scrivi la tua città oppure consenti la posizione.')}}
+async function geo(q){const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=it`);if(!r.ok)throw new Error('http');const c=((await r.json()).results||[])[0];if(!c)throw new Error('nf');return{name:c.name,lat:c.latitude,lon:c.longitude}}
+function askCity(msg){const el=$('#wxB');delete el.dataset.ok;
+ el.innerHTML=`<p class="mut">${msg}</p><div class="row" style="margin-top:10px"><input id="wxC" placeholder="Es. Roma" aria-label="Città" maxlength="60"><button class="btn" id="wxS" style="flex:none;padding:10px 14px">Cerca</button></div><p><button class="lk" id="wxG">Usa la mia posizione</button></p>`;
+ $('#wxS').onclick=async()=>{const q=$('#wxC').value.trim();if(!q)return wx();try{S.city=await geo(q);save();wx()}catch(e){$('#wxC').value='';$('#wxC').placeholder='Città non trovata o rete assente'}};
+ $('#wxC').onkeydown=e=>{if(e.key==='Enter')$('#wxS').click()};
+ $('#wxG').onclick=()=>{S.city=null;save();wx()}}
+async function wake(on){try{if(on&&!wl&&navigator.wakeLock){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}else if(!on&&wl){await wl.release();wl=null}}catch(e){}}
+function layout(){const on=S.sb==='on'||(S.sb==='auto'&&mq.matches&&chg===true);R.classList.toggle('sb',on);
+ $('#sbL').textContent={auto:'Auto',on:'Attivo',off:'Off'}[S.sb];wake(on);night()}
+function show(){[['wx','#wWx'],['bat','#wBat'],['cal','#wCal'],['task','#wTask']].forEach(([k,s])=>$(s).hidden=!S.w[k])}
+function nstat(){$('#nS').textContent='Stato: '+(!('Notification' in window)?'non supportate da questo browser.':{granted:'attive.',denied:'bloccate dal browser, riattivale dalle impostazioni del sito.',default:'non ancora attive.'}[Notification.permission])}
+function sheet(){$('#fN').value=S.name;document.querySelectorAll('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
+ document.querySelectorAll('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat()}
+
+$('#bSb').innerHTML=ic('sb')+'<span>StandBy · <span id="sbL"></span></span>';$('#bSet').innerHTML=ic('sl');$('#bAdd').innerHTML=ic('plus')+'Nuovo';
+$('#bSb').onclick=()=>{S.sb={auto:'on',on:'off',off:'auto'}[S.sb];save();layout();
+ try{if(S.sb==='on')R.requestFullscreen&&R.requestFullscreen().catch(()=>{});else if(document.fullscreenElement)document.exitFullscreen()}catch(e){}};
+$('#bSet').onclick=()=>{$('#sT').textContent='Impostazioni';$('#sP').textContent='';sheet();$('#dSet').showModal()};
+$('#sOk').onclick=()=>$('#dSet').close();$('#dSet').onclose=()=>{S.done=1;save()};
+$('#fN').oninput=e=>{S.name=e.target.value.trim();save();head()};
+$('#fT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();sheet()};
+$('#fW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();sheet();if(k==='wx'&&S.w.wx)wx()};
+$('#bNot').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}nstat()};
+$('#bAdd').onclick=()=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(18,0,0,0);$('#tT').value='';$('#tN').value='';$('#tD').value=iso(d);$('#tE').textContent='';$('#dTask').showModal();$('#tT').focus()};
+$('#tC').onclick=()=>$('#dTask').close();
+$('#tS').onclick=()=>{const title=$('#tT').value.trim(),due=$('#tD').value,E=m=>($('#tE').textContent=m);
+ if(!title)return E('Scrivi cosa devi fare.');if(!due)return E('Imposta una scadenza.');
+ if(S.tasks.some(x=>!x.done&&x.due===due&&x.title.toLowerCase()===title.toLowerCase()))return E('Questo compito è già in elenco.');
+ S.tasks.push({id:uid(),title,note:$('#tN').value.trim(),due,pr:$('#tP').value,rem:+$('#tR').value,done:0,fired:0,src:'manuale'});
+ save();$('#dTask').close();tasks();cal();rem()};
+$('#tl').onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=S.tasks.find(x=>x.id===b.closest('li').dataset.id);if(!t)return;
+ if(b.dataset.a==='ck')t.done=t.done?0:1;else S.tasks=S.tasks.filter(x=>x!==t);save();tasks();cal()};
+document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
+
+if(S.theme!=='auto')theme();
+show();tasks();cal();tick();layout();rem();bridge();
+$('#batB').innerHTML='<p class="mut">Controllo la batteria…</p>';
+if(navigator.getBattery)navigator.getBattery().then(b=>{const u=()=>{chg=b.charging;drawBat(b);layout()};['levelchange','chargingchange','chargingtimechange','dischargingtimechange'].forEach(e=>b.addEventListener(e,u));u()}).catch(()=>drawBat(null));else drawBat(null);
+if(S.w.wx)wx();
+setInterval(tick,1000);setInterval(rem,15000);setInterval(()=>{if(S.w.wx)wx()},9e5);
+mq.addEventListener('change',layout);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&R.classList.contains('sb'))wake(true)});
+if(!S.done){$('#sT').textContent='Benvenuto in NOVA';$('#sP').textContent='Personalizza la tua dashboard. Potrai cambiare tutto quando vuoi dalle impostazioni.';sheet();$('#dSet').showModal()}
+</script>
+</body>
+</html>
