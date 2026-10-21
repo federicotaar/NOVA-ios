@@ -1,5 +1,9 @@
 version: 1
-bundleID: it.tuonome.nova   # CAMBIALO: deve essere unico
+bundleID: it.tuonome.nova
+product: NOVA
+extensions:
+  - product: NOVAWidget
+    infoPath: NOVAWidget-Info.plist
 infoPath: NOVA-Info.plist
 iconPath: Resources/icon1024.png
 resources:
