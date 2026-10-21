@@ -51,6 +51,17 @@ jobs:
           echo "/tmp/xtool/xtool.app/Contents/Resources/bin" >> "$GITHUB_PATH"
           xtool --version || true
 
+      - name: Generate app icon (black background, white N)
+        run: |
+          set -e
+          mkdir -p Resources
+          base64 -D -i assets/icon.b64 -o Resources/icon1024.png
+          sips -z 120 120 Resources/icon1024.png --out "Resources/AppIcon60x60@2x.png"
+          sips -z 180 180 Resources/icon1024.png --out "Resources/AppIcon60x60@3x.png"
+          sips -z 152 152 Resources/icon1024.png --out "Resources/AppIcon76x76@2x~ipad.png"
+          sips -z 167 167 Resources/icon1024.png --out "Resources/AppIcon83.5x83.5@2x~ipad.png"
+          ls -la Resources
+
       - name: Build unsigned IPA
         run: xtool dev build --ipa -c release
 
@@ -67,3 +78,4 @@ jobs:
           IPA="$(ls xtool/*.ipa | head -n1)"
           gh release view v1.0 >/dev/null 2>&1 || gh release create v1.0 --title "NOVA v1.0 (unsigned ipa)" --notes "NOVA.ipa non firmato. Installa con AltStore o Sideloadly."
           gh release upload v1.0 "$IPA" --clobber
+
