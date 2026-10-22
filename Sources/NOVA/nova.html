@@ -199,30 +199,31 @@ body{transition:background .35s ease,color .35s ease}
 /* ---------- intro cinematografica ---------- */
 #intro{position:fixed;inset:0;margin:0;z-index:80;background:#000;color:#fff;overflow:hidden;touch-action:manipulation}
 #intro canvas{position:absolute;inset:0;width:100%;height:100%}
-#inW{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;will-change:transform}
-#intro .inN{width:88px;height:88px;border-radius:23px;background:#fff;color:#000;display:grid;place-items:center;font-size:46px;font-weight:800;letter-spacing:-.03em;opacity:0;transform:scale(.6);filter:blur(8px);transition:opacity .9s ease,transform 1s cubic-bezier(.16,1,.3,1),filter .9s ease;box-shadow:0 0 60px rgba(255,255,255,.35)}
+#inW{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;will-change:transform;transform-origin:50% 50%}
+#intro .inN{width:88px;height:88px;border-radius:23px;background:#fff;color:#000;display:grid;place-items:center;font-size:46px;font-weight:800;letter-spacing:-.03em;opacity:0;transform:scale(.6);filter:blur(8px);transition:opacity .9s ease,transform 1s cubic-bezier(.16,1,.3,1),filter .9s ease,box-shadow .5s ease;box-shadow:0 0 60px rgba(255,255,255,.35)}
 #intro .inN.on{opacity:1;transform:scale(1);filter:none}
-#inT{min-height:1.4em;font-size:clamp(20px,5.6vw,28px);font-weight:650;letter-spacing:-.01em;text-align:center;padding:0 30px;line-height:1.25;transition:opacity .18s ease}
-#inT.out{opacity:0}
-#inT .w{display:inline-block;opacity:0;transform:translateY(.55em) scale(.96);filter:blur(10px);letter-spacing:.14em;animation:wIn .75s cubic-bezier(.16,1,.3,1) forwards;animation-delay:var(--d,0s)}
+#intro .inN.float{animation:nFloat 3.4s ease-in-out infinite}
+@keyframes nFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-7px) scale(1.02)}}
+#intro.fin #inT{min-height:0;opacity:0;transition:min-height .5s cubic-bezier(.16,1,.3,1),opacity .25s ease}
+#intro.fin .hint{opacity:0!important;transition:opacity .3s}
+#intro.fin .inN{animation:nShake var(--shd,.13s) linear infinite;box-shadow:0 0 calc(60px + var(--sx,1px)*6) rgba(255,255,255,.55)}
+@keyframes nShake{0%,100%{transform:translate(calc(var(--sx,1px)*-1),calc(var(--sy,1px)*.7)) rotate(calc(var(--sr,0deg)*-1))}25%{transform:translate(var(--sx,1px),calc(var(--sy,1px)*-1)) rotate(var(--sr,0deg))}50%{transform:translate(calc(var(--sx,1px)*.8),var(--sy,1px)) rotate(calc(var(--sr,0deg)*.6))}75%{transform:translate(calc(var(--sx,1px)*-.9),calc(var(--sy,1px)*-.8)) rotate(calc(var(--sr,0deg)*-.8))}}
+#inT{position:relative;min-height:2.8em;width:100%;display:grid;place-items:center;font-size:clamp(20px,5.6vw,28px);font-weight:650;letter-spacing:-.01em;text-align:center;line-height:1.25}
+#inT .line{grid-area:1/1;display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;column-gap:.32em;padding:0 30px;transition:opacity .3s ease,filter .3s ease}
+#inT .line.out{opacity:0;filter:blur(10px)}
+#inT .w{display:inline-block;opacity:0;transform:translateY(.5em) scale(.7) rotate(4deg);filter:blur(8px);transition:opacity .34s ease,transform .52s cubic-bezier(.16,1.3,.3,1),filter .4s ease}
+#inT .w.on{opacity:1;transform:none;filter:none}
 #inT .w.hl{font-weight:800;text-shadow:0 0 28px rgba(255,255,255,.7)}
-@keyframes wIn{60%{filter:blur(0)}to{opacity:1;transform:none;filter:blur(0);letter-spacing:-.01em}}
-#intro.cd #inT{font-size:clamp(56px,19vw,112px);font-weight:800;letter-spacing:-.04em}
-#intro.cd #inT .w{transform:scale(2.2);letter-spacing:0;animation:cdIn .42s cubic-bezier(.12,.9,.2,1) forwards}
-@keyframes cdIn{to{opacity:1;transform:none;filter:blur(0)}}
-#intro.go #inT .w{text-shadow:0 0 40px #fff,0 0 90px rgba(255,255,255,.8)}
 #intro .glow{position:absolute;left:50%;top:50%;width:80vmin;height:80vmin;margin:-40vmin 0 0 -40vmin;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),rgba(255,255,255,0) 62%);opacity:0;pointer-events:none}
 #intro .ring{position:absolute;left:50%;top:50%;width:30vmin;height:30vmin;margin:-15vmin 0 0 -15vmin;border-radius:50%;border:2px solid rgba(255,255,255,.7);opacity:0;pointer-events:none}
 #intro .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
+#intro .dim{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:5;transition:opacity .4s ease}
+#intro.dark .dim{opacity:1}
 #intro .lbx{position:absolute;left:0;right:0;height:0;background:#000;z-index:3;transition:height 1.2s cubic-bezier(.16,1,.3,1)}
 #intro .lbx.t{top:0}#intro .lbx.b{bottom:0}
 #intro.lbxon .lbx{height:11vh}
 #intro .hint{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,.45);z-index:4;opacity:0;animation:hintIn 1s 2s forwards}
 @keyframes hintIn{to{opacity:1}}
-#intro.zoom #inW{animation:inZoom 1.3s cubic-bezier(.55,.06,.68,.19) forwards}
-@keyframes inZoom{0%{transform:scale(1);opacity:1}40%{transform:scale(1.15);opacity:1}100%{transform:scale(2.6);opacity:0;filter:blur(10px)}}
-@keyframes shk{0%,100%{transform:none}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-3px,-3px)}80%{transform:translate(3px,3px)}}
-#intro.shake #inW{animation:shk .32s linear}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}#inT .w{opacity:1!important;transform:none!important;filter:none!important}}
 </style>
 </head>
@@ -247,7 +248,7 @@ body{transition:background .35s ease,color .35s ease}
 </main>
 </div>
 
-<div id="intro" hidden><canvas id="inC"></canvas><div class="glow" id="inG"></div><div id="inW"><div class="inN" id="inL">N</div><div id="inT"></div></div><i class="ring" id="inR"></i><i class="flash" id="inF"></i><div class="lbx t"></div><div class="lbx b"></div><span class="hint">Tocca per saltare</span></div>
+<div id="intro" hidden><canvas id="inC"></canvas><div class="glow" id="inG"></div><div id="inW"><div class="inN" id="inL">N</div><div id="inT"></div></div><i class="ring" id="inR"></i><i class="flash" id="inF"></i><div class="dim" id="inD"></div><div class="lbx t"></div><div class="lbx b"></div><span class="hint">Tocca per saltare</span></div>
 <div id="ob" hidden></div>
 
 <dialog id="dSet"><div class="sheet">
@@ -526,9 +527,9 @@ function intro(){
  const el=$('#intro');if(!el){if(S.ob!==2)obStart();return}
  const go=()=>{if(S.ob!==2)obStart()};
  if(S.introOff){el.remove();go();return}
- const lg=$('#inL'),ln=$('#inT'),glow=$('#inG'),ring=$('#inR'),fl=$('#inF'),cvs=$('#inC');
+ const lg=$('#inL'),ln=$('#inT'),glow=$('#inG'),ring=$('#inR'),cvs=$('#inC'),inW=$('#inW');
  const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
- let dead=0,started=0,raf=0,sp=.06,tgt=.06,warp=0;const T=[],later=(f,ms)=>T.push(setTimeout(()=>{if(!dead)f()},ms));
+ let dead=0,started=0,zoomed=0,raf=0,sp=.06,tgt=.06,warp=0;const T=[],later=(f,ms)=>T.push(setTimeout(()=>{if(!dead)f()},ms));
  const stars=[];let W=0,H=0,dpr=1,cx=null;
  if(RM){cvs.remove()}else{
   cx=cvs.getContext('2d');dpr=Math.min(window.devicePixelRatio||1,2);
@@ -549,27 +550,50 @@ function intro(){
   el.style.transition='opacity .4s ease';el.style.opacity='0';el.style.pointerEvents='none';
   setTimeout(()=>{el.remove();go()},430)};
  const hide=()=>{if(document.hidden)cleanup()};document.addEventListener('visibilitychange',hide);
- const lines=['This is NOVA.','Your entire school day, in one place.','Homework, tests, grades, music.','All handled.','Ready','Set','GO.'];
- const speeds=[.07,.09,.11,.14,.22,.34,.5];
- const anim=(n,k,o)=>{if(!RM&&n.animate)n.animate(k,o)};
+ const lines=['This is NOVA.','Your entire school day, in one place.','Homework, tests, grades, music.','All handled.'];
+ // Word start times (s) inside each bundled narration clip, measured from the real audio.
+ const WORD_T=[[0,.25,.95],[0,.2,.68,1.18,2.26,2.4,2.66],[0,1.37,2.9,4.57],[0,.2]];
+ const speeds=[.07,.09,.11,.14];
+ const anim=(n,k,o)=>{if(!RM&&n&&n.animate)n.animate(k,o)};
  const cue=i=>{
-  const build=()=>{ln.innerHTML=lines[i].split(' ').map((w,k)=>'<span class="w'+(i===0&&/NOVA/.test(w)?' hl':'')+'" style="--d:'+(k*.16)+'s">'+esc(w)+'</span>').join(' ');ln.classList.remove('out')};
-  el.classList.toggle('cd',i>=4);el.classList.toggle('go',i===6);
-  if(i>=4)lg.classList.remove('on');
-  if(i>=4||!ln.textContent)build();else{ln.classList.add('out');later(build,170)}
+  if(zoomed)return;
+  if(i>=lines.length){zoom();return}
+  const old=ln.querySelector('.line');
+  if(old){old.classList.add('out');later(()=>old.remove(),420)}
+  const lay=document.createElement('div');lay.className='line';
+  lay.innerHTML=lines[i].split(' ').map(w=>'<span class="w'+(/NOVA/.test(w)?' hl':'')+'">'+esc(w)+'</span>').join(' ');
+  ln.appendChild(lay);
+  const ws=[...lay.children],tt=WORD_T[i]||[];
+  ws.forEach((s,k)=>later(()=>{s.classList.add('on');
+   anim(lay,[{transform:'scale(1.025)'},{transform:'scale(1)'}],{duration:200,easing:'ease-out'});
+   anim(glow,[{opacity:.22,transform:'scale(.95)'},{opacity:0,transform:'scale(1.3)'}],{duration:480,easing:'ease-out'})},30+(tt[k]??k*.16)*1000));
   tgt=speeds[i]||tgt;
-  anim(glow,[{opacity:.9,transform:'scale(.7)'},{opacity:0,transform:'scale(1.5)'}],{duration:900,easing:'ease-out'});
-  if(i>=4)anim(ring,[{opacity:.85,transform:'scale(.2)'},{opacity:0,transform:'scale(4)'}],{duration:700,easing:'cubic-bezier(.1,.8,.2,1)'});
-  if(i===6){anim(fl,[{opacity:.55},{opacity:0}],{duration:420});if(!RM){el.classList.add('shake');later(()=>el.classList.remove('shake'),340)}}};
- const zoom=()=>{ln.classList.add('out');lg.classList.remove('on');el.classList.add('zoom');el.classList.remove('lbxon','cd','go');warp=1;tgt=1.8;
-  later(()=>anim(fl,[{opacity:0},{opacity:.9,offset:.55},{opacity:0}],{duration:900}),500)};
+  anim(ln,[{transform:'scale(.97) translateX('+(i%2?'.8%':'-.8%')+')'},{transform:'scale(1.045) translateX('+(i%2?'-.8%':'.8%')+')'}],{duration:((tt.length?tt[tt.length-1]:0)+1.3)*1000,easing:'linear'});
+  anim(ring,[{opacity:.5,transform:'scale(.45)'},{opacity:0,transform:'scale(2.6)'}],{duration:1100,easing:'cubic-bezier(.1,.8,.2,1)'});
+ };
+ const zoom=()=>{
+  if(zoomed)return;zoomed=1;
+  if(ln.getAnimations)ln.getAnimations().forEach(a=>a.cancel());
+  const old=ln.querySelector('.line');if(old){old.classList.add('out');later(()=>old.remove(),420)}
+  warp=1;tgt=2.6;
+  anim(glow,[{opacity:0,transform:'scale(.6)'},{opacity:.5,transform:'scale(1.5)',offset:.55},{opacity:0,transform:'scale(2.6)'}],{duration:2050,easing:'ease-in'});
+  if(RM){el.classList.add('fin');later(()=>el.classList.add('dark'),1500);return}
+  const t0=performance.now(),D=2050;
+  const step=now=>{if(dead)return;const p=Math.min(1,(now-t0)/D),e=p*p*p;
+   el.style.setProperty('--sx',(1+16*e)+'px');el.style.setProperty('--sy',(1+12*e)+'px');
+   el.style.setProperty('--sr',(4*e)+'deg');el.style.setProperty('--shd',(.15-.08*e)+'s');
+   inW.style.transform='scale('+(1+4.2*e)+')';
+   if(p<1)requestAnimationFrame(step);else el.classList.add('dark')};
+  later(()=>{el.classList.add('fin');lg.classList.remove('float');requestAnimationFrame(step)},280);
+ };
  const fallback=()=>{if(started)return;started=1;let t=0;
-  [2050,3690,5500,1340,755,625,445].forEach((d,i)=>{later(()=>{cue(i);haptic(i>=4?'heavy':'medium')},t);t+=d});
-  later(()=>{zoom();haptic('rumble')},t);later(cleanup,t+1700)};
+  [2050,3690,5500,1340].forEach((d,i)=>{later(()=>{cue(i);haptic('medium')},t);t+=d});
+  later(()=>{zoom();haptic('shakerumble')},t);later(cleanup,t+2950)};
  window.__novaIntro=(event,i)=>{if(dead)return;if(event==='cue'){started=1;cue(i)}else if(event==='zoom')zoom();else if(event==='end')cleanup();else if(event==='fallback')fallback()};
  el.hidden=false;el.addEventListener('pointerdown',cleanup);
  later(()=>el.classList.add('lbxon'),60);
  later(()=>lg.classList.add('on'),350);
+ later(()=>lg.classList.add('float'),1550);
  later(()=>{if(window.webkit?.messageHandlers?.nova)post({t:'intro'});else fallback()},1000);
  // Safety only: a missing bridge must not trap the user behind the intro.
  later(()=>{if(!started)fallback()},3000);
