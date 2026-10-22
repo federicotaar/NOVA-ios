@@ -36,6 +36,9 @@ struct WebContainer: UIViewRepresentable {
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = bridge
         web.scrollView.contentInsetAdjustmentBehavior = .never
+        web.scrollView.contentInset = .zero
+        web.scrollView.verticalScrollIndicatorInsets = .zero
+        web.scrollView.horizontalScrollIndicatorInsets = .zero
         web.scrollView.bounces = false
         web.isOpaque = false
         web.backgroundColor = .black
