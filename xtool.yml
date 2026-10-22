@@ -4,7 +4,9 @@ product: NOVA
 extensions:
   - product: NOVAWidget
     infoPath: NOVAWidget-Info.plist
+    entitlementsPath: NOVA.entitlements
 infoPath: NOVA-Info.plist
+entitlementsPath: NOVA.entitlements
 iconPath: Resources/icon1024.png
 resources:
   - Resources/AppIcon60x60@2x.png
