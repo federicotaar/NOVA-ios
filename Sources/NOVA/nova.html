@@ -129,7 +129,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .cf{display:flex;gap:8px;padding:0 16px 14px}
 .cf input{flex:1}
 .cf .ico{width:42px;height:42px;background:var(--fg);color:var(--bg);border-color:var(--fg)}
-#ob{position:fixed;inset:0;margin:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;gap:14px;overflow:hidden;padding:max(16px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
+#ob{position:fixed;inset:0;margin:0;z-index:60;background:var(--bg);box-shadow:0 0 0 120px var(--bg);display:flex;flex-direction:column;gap:14px;overflow:hidden;padding:max(16px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
 .obd{display:flex;gap:5px;max-width:560px;width:100%;margin:0 auto}
 .obd i{height:3px;flex:1;border-radius:2px;background:var(--line)}.obd i.on{background:var(--fg)}
 .obm{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:16px;max-width:560px;width:100%;margin:0 auto}
@@ -197,7 +197,9 @@ body{transition:background .35s ease,color .35s ease}
 .card,.btn,.seg button,.chips button,.ico,input,select,textarea{transition:background .35s ease,border-color .35s ease,color .35s ease,transform .12s ease,box-shadow .2s}
 .di{animation:popIn .34s cubic-bezier(.32,.72,0,1) both}
 /* ---------- intro cinematografica ---------- */
-#intro{position:fixed;inset:0;margin:0;z-index:80;background:#000;color:#fff;overflow:hidden;touch-action:manipulation}
+#intro{position:fixed;inset:0;margin:0;z-index:80;background:#000;color:#fff;overflow:hidden;touch-action:manipulation;box-shadow:0 0 0 120px #000}
+body.ovl #app{visibility:hidden}
+body.ovli{background:#000}
 #intro canvas{position:absolute;inset:0;width:100%;height:100%}
 #inW{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;will-change:transform;transform-origin:50% 50%}
 #intro .inN{width:88px;height:88px;border-radius:23px;background:#fff;color:#000;display:grid;place-items:center;font-size:46px;font-weight:800;letter-spacing:-.03em;opacity:0;transform:scale(.6);filter:blur(8px);transition:opacity .9s ease,transform 1s cubic-bezier(.16,1,.3,1),filter .9s ease,box-shadow .5s ease;box-shadow:0 0 60px rgba(255,255,255,.35)}
@@ -273,6 +275,7 @@ body{transition:background .35s ease,color .35s ease}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026-10-22.4</small>
 </div></dialog>
 
 <dialog id="dTT"><div class="sheet">
@@ -548,7 +551,7 @@ function intro(){
  const cleanup=()=>{if(dead)return;dead=1;T.forEach(clearTimeout);cancelAnimationFrame(raf);post({t:'intro',stop:true});delete window.__novaIntro;
   document.removeEventListener('visibilitychange',hide);
   el.style.transition='opacity .4s ease';el.style.opacity='0';el.style.pointerEvents='none';
-  setTimeout(()=>{el.remove();go()},430)};
+  setTimeout(()=>{el.remove();document.body.classList.remove('ovl','ovli');go()},430)};
  const hide=()=>{if(document.hidden)cleanup()};document.addEventListener('visibilitychange',hide);
  const lines=['This is NOVA.','Your entire school day, in one place.','Homework, tests, grades, music.','All handled.'];
  // Word start times (s) inside each bundled narration clip, measured from the real audio.
@@ -590,7 +593,7 @@ function intro(){
   [2050,3690,5500,1340].forEach((d,i)=>{later(()=>{cue(i);haptic('medium')},t);t+=d});
   later(()=>{zoom();haptic('shakerumble')},t);later(cleanup,t+2950)};
  window.__novaIntro=(event,i)=>{if(dead)return;if(event==='cue'){started=1;cue(i)}else if(event==='zoom')zoom();else if(event==='end')cleanup();else if(event==='fallback')fallback()};
- el.hidden=false;el.addEventListener('pointerdown',cleanup);
+ el.hidden=false;document.body.classList.add('ovl','ovli');el.addEventListener('pointerdown',cleanup);
  later(()=>el.classList.add('lbxon'),60);
  later(()=>lg.classList.add('on'),350);
  later(()=>lg.classList.add('float'),1550);
@@ -667,8 +670,8 @@ function obDraw(){const s=OB[obI],o=$('#ob');
  const b=$('#oB'),f=$('#oF');b&&(b.onclick=()=>obGo(-1));f&&(f.onclick=()=>obGo(1));s.on&&s.on();obRefresh()}
 window.obRefresh=()=>{if($('#ob').hidden)return;const f=$('#oF'),s=OB[obI];if(f)f.textContent=s.skip&&!s.done()?'Salta':'Avanti'};
 function obGo(d){obDir=d<0?-1:1;obI=Math.max(0,Math.min(OB.length-1,obI+d));obDraw()}
-function obStart(){obI=0;obDir=1;const o=$('#ob');o.hidden=false;o.classList.remove('open');void o.offsetWidth;o.classList.add('open');obDraw()}
-function obEnd(){S.ob=2;S.done=1;save();$('#ob').hidden=true;head();show();tasks();cal();cvRefresh(0);spPoll()}
+function obStart(){obI=0;obDir=1;document.body.classList.add('ovl');const o=$('#ob');o.hidden=false;o.classList.remove('open');void o.offsetWidth;o.classList.add('open');obDraw()}
+function obEnd(){S.ob=2;S.done=1;save();document.body.classList.remove('ovl','ovli');$('#ob').hidden=true;head();show();tasks();cal();cvRefresh(0);spPoll()}
 
 /* ---------- views ---------- */
 function theme(){S.theme==='auto'?R.removeAttribute('data-theme'):R.setAttribute('data-theme',S.theme)}
