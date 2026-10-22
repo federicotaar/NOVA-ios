@@ -183,6 +183,29 @@ input:focus,select:focus,textarea:focus{border-color:var(--fg);outline:none}
 .sb .cal .has::after,.sb .cal .tst::before{bottom:1px;width:3px;height:3px}
 .sb #wTask .lb{margin-bottom:4px}
 .sb ul{max-height:none;overflow:hidden}.sb .t{padding:6px 0}.sb .t:nth-child(n+3){display:none}.sb .ck{display:none}
+/* ---------- animazioni ---------- */
+@keyframes dlgIn{from{opacity:0;transform:scale(.95) translateY(14px)}to{opacity:1;transform:none}}
+dialog[open]{animation:dlgIn .34s cubic-bezier(.32,.72,0,1)}
+dialog::backdrop{animation:obFade .3s ease}
+.grid>section{animation:popIn .5s cubic-bezier(.32,.72,0,1) both}
+.grid>section:nth-child(2){animation-delay:.05s}.grid>section:nth-child(3){animation-delay:.1s}.grid>section:nth-child(4){animation-delay:.15s}.grid>section:nth-child(5){animation-delay:.2s}.grid>section:nth-child(6){animation-delay:.25s}.grid>section:nth-child(7){animation-delay:.3s}
+.ico,.ck,.x,.lk,.qs button,.cal button.d,.di .ai{transition:transform .12s ease,background .2s,color .2s,border-color .2s,opacity .2s}
+.ico:active,.ck:active,.x:active,.qs button:active,.cal button.d:active{transform:scale(.9)}
+.t{transition:opacity .3s ease}
+.ck{transition:background .18s ease,border-color .18s ease,color .18s ease,transform .12s ease}
+body{transition:background .35s ease,color .35s ease}
+.card,.btn,.seg button,.chips button,.ico,input,select,textarea{transition:background .35s ease,border-color .35s ease,color .35s ease,transform .12s ease,box-shadow .2s}
+.di{animation:popIn .34s cubic-bezier(.32,.72,0,1) both}
+/* ---------- intro cinematografica ---------- */
+#intro{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;touch-action:manipulation}
+#intro .inN{width:88px;height:88px;border-radius:23px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:46px;font-weight:800;letter-spacing:-.03em;opacity:0;transform:scale(.7);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.9,.3,1.15)}
+#intro .inN.on{opacity:1;transform:scale(1)}
+#inT{font-size:clamp(18px,5vw,24px);font-weight:650;letter-spacing:-.01em;text-align:center;padding:0 34px;min-height:1.4em;opacity:0;transform:translateY(10px);transition:opacity .28s ease,transform .28s ease}
+#inT.on{opacity:1;transform:none}
+#intro.fast #inT{transition-duration:.1s;font-size:clamp(23px,6.5vw,32px)}
+#intro .hint{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--mut)}
+#intro.zoom{animation:inZoom 1.05s cubic-bezier(.55,.06,.68,.19) forwards}
+@keyframes inZoom{0%{transform:scale(1);filter:blur(0);opacity:1}35%{transform:scale(1.18);filter:blur(2px);opacity:1}100%{transform:scale(1.75);filter:blur(12px);opacity:0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -207,6 +230,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--fg);outline:none}
 </main>
 </div>
 
+<div id="intro" hidden><div class="inN" id="inL">N</div><div id="inT"></div><span class="hint">Tocca per saltare</span></div>
 <div id="ob" hidden></div>
 
 <dialog id="dSet"><div class="sheet">
@@ -218,12 +242,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--fg);outline:none}
  <div class="fl">Notifiche<button class="btn" id="bNot">Attiva notifiche</button><small id="nS"></small>
   <button class="btn tgl" id="bHw" aria-pressed="true">Avvisi compiti: attivi</button>
   <small>La sera prima di ogni scadenza (alle 18:00) NOVA ti manda un riepilogo, anche con l'app chiusa. I compiti nuovi li scopre quando l'app si aggiorna: iOS lo fa in background solo ogni tanto, quindi non è istantaneo.</small></div>
+ <div class="fl">Intro<button class="btn tgl" id="bIntro" aria-pressed="true">Intro all'avvio: attiva</button><small>La sequenza cinematografica quando apri NOVA, con voce in inglese. Puoi saltarla con un tocco.</small></div>
  <div class="sep"></div>
  <div class="fl">ClasseViva<div class="cvb"></div><small>Codice utente e password restano solo sul telefono, nel Portachiavi di iOS. NOVA parla solo con web.spaggiari.eu.</small></div>
  <div class="sep"></div>
  <div class="fl">Assistente AI (Groq)<div class="gqb"></div></div>
  <div class="sep"></div>
  <div class="fl">Spotify<div class="spb"></div></div>
+ <div class="sep"></div>
+ <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
 </div></dialog>
@@ -266,6 +293,7 @@ try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 if(S.sb==='on')S.sb='auto';
 S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};S.chat=S.chat||[];S.gr=S.gr||[];
 const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
+const haptic=s=>post({t:'haptic',style:s||'light'});
 const bridge=()=>post({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))});
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge();acctPush()};
 let nid=0;const nw={};
@@ -462,6 +490,27 @@ function acctUI(){$$('.acctb').forEach(b=>{
   acct.busy=0;acctUI()}
  })}
 
+/* ---------- intro cinematografica ---------- */
+function intro(){
+ const el=$('#intro');if(!el){if(S.ob!==2)obStart();return}
+ const go=()=>{if(S.ob!==2)obStart()};
+ if(S.introOff){el.remove();go();return}
+ const lg=$('#inL'),ln=$('#inT');
+ let dead=0;const T=[],later=(f,ms)=>T.push(setTimeout(()=>{if(!dead)f()},ms));
+ const cleanup=()=>{if(dead)return;dead=1;T.forEach(clearTimeout);post({t:'speak',stop:true});
+  el.style.transition='opacity .4s ease';el.style.opacity='0';el.style.pointerEvents='none';
+  setTimeout(()=>{el.remove();go()},430)};
+ el.hidden=false;el.addEventListener('pointerdown',cleanup);
+ later(()=>lg.classList.add('on'),250);
+ const lines=[['This is NOVA.',2000],['Your entire school day, in one place.',2200],['Homework, tests, grades, music.',1900],['All handled.',1200]];
+ let t=1100;
+ lines.forEach(([s,d])=>{later(()=>{ln.classList.remove('on');later(()=>{ln.textContent=s;ln.classList.add('on')},240);haptic('selection');post({t:'speak',text:s})},t);t+=d});
+ let iv=540;
+ ['Ready','Set','GO.'].forEach(s=>{later(()=>{el.classList.add('fast');ln.classList.remove('on');later(()=>{ln.textContent=s;ln.classList.add('on')},70);haptic('medium')},t);t+=iv;iv=Math.max(200,iv-160)});
+ later(()=>{post({t:'speak',stop:true});ln.classList.remove('on');el.classList.add('zoom');haptic('rumble')},t+120);
+ later(cleanup,t+1400);
+}
+
 /* ---------- onboarding ---------- */
 const WL=[['wx','Meteo'],['bat','Batteria'],['cal','Calendario'],['task','Compiti'],['nx','Prossima verifica'],['gr','Voti'],['sp','Spotify']];
 const notifOn=()=>'Notification' in window&&Notification.permission==='granted';
@@ -528,7 +577,7 @@ function openDay(ds,fid){dyDate=ds;const L=S.tasks.filter(t=>t.due.slice(0,10)==
  const dlg=$('#dDay');if(!dlg.open)dlg.showModal();const f=$('#dyL .f');f&&setTimeout(()=>f.scrollIntoView({block:'center'}),60)}
 $('#dyL').onclick=e=>{const b=e.target.closest('button[data-a]');if(!b)return;const t=S.tasks.find(x=>x.id===b.closest('.di').dataset.id);if(!t)return;
  if(b.dataset.a==='ai'){$('#dDay').close();openChat();const v=kindOf(t)==='test';chatSend((v?'Aiutami a prepararmi per questa verifica':'Aiutami con questo compito')+(t.subj?' di '+t.subj:'')+' (per '+dd0(t.due.slice(0,10)).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})+'): "'+String(t.title).slice(0,500)+'". Spiegami come procedere passo passo.');return}
- t.done=t.done?0:1;save();tasks();cal();nxt();openDay(dyDate,t.id)};
+ t.done=t.done?0:1;haptic(t.done?'success':'medium');save();tasks();cal();nxt();openDay(dyDate,t.id)};
 $('#dyC').onclick=()=>$('#dDay').close();
 $('#dyA').onclick=()=>{$('#dDay').close();newTask(dyDate)};
 $('#calG').onclick=e=>{const b=e.target.closest('button.d');b&&openDay(b.dataset.d)};
@@ -560,8 +609,9 @@ function layout(){const on=S.sb==='on'||(S.sb==='auto'&&mq.matches&&chg===true);
 function show(){[['wx','#wWx'],['bat','#wBat'],['cal','#wCal'],['task','#wTask'],['nx','#wNx'],['gr','#wGr'],['sp','#wSp']].forEach(([k,s])=>$(s).hidden=!S.w[k])}
 function nstat(){$('#nS').textContent='Stato: '+(!('Notification' in window)?'non supportate.':{granted:'attive.',denied:'bloccate, riattivale da Impostazioni di iOS.',default:'non ancora attive.'}[Notification.permission])}
 function hwBtn(){const b=$('#bHw');b.setAttribute('aria-pressed',!!S.hwn);b.textContent='Avvisi compiti: '+(S.hwn?'attivi':'spenti')}
+function introBtn(){const b=$('#bIntro'),on=!S.introOff;b.setAttribute('aria-pressed',on);b.textContent='Intro all\'avvio: '+(on?'attiva':'spenta')}
 function sheet(){$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
- $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();cvUI();gqUI();spUI()}
+ $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();introBtn();acctUI();cvUI();gqUI();spUI()}
 function newTask(ds){const d=ds?dd0(ds):new Date();if(!ds)d.setDate(d.getDate()+1);d.setHours(18,0,0,0);$('#tT').value='';$('#tN').value='';$('#tD').value=iso(d);$('#tE').textContent='';$('#dTask').showModal();$('#tT').focus()}
 
 $('#bSb').innerHTML=ic('sb');$('#bSet').innerHTML=ic('sl');$('#bAI').innerHTML=ic('spark');$('#bAdd').innerHTML=ic('plus')+'Nuovo';$('#bCv').textContent='Aggiorna';$('#bCv').onclick=()=>cvRefresh(1);
@@ -580,21 +630,29 @@ $('#fT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();s
 $('#fW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();sheet();if(k==='wx'&&S.w.wx)wx();if(k==='sp')spPoll()};
 $('#bNot').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}nstat()};
 $('#bHw').onclick=()=>{S.hwn=S.hwn?0:1;save();post({t:'hwn',on:!!S.hwn});hwBtn()};
+$('#bIntro').onclick=()=>{S.introOff=S.introOff?0:1;save();introBtn()};
 $('#bAdd').onclick=()=>newTask();
 $('#tC').onclick=()=>$('#dTask').close();
-$('#tS').onclick=()=>{const title=$('#tT').value.trim(),due=$('#tD').value,E=m=>($('#tE').textContent=m);
+$('#tS').onclick=()=>{const title=$('#tT').value.trim(),due=$('#tD').value,E=m=>{$('#tE').textContent=m;haptic('error')};
  if(!title)return E('Scrivi cosa devi fare.');if(!due)return E('Imposta una scadenza.');
  if(S.tasks.some(x=>!x.done&&x.due===due&&x.title.toLowerCase()===title.toLowerCase()))return E('Questo compito è già in elenco.');
  S.tasks.push({id:uid(),title,note:$('#tN').value.trim(),due,pr:$('#tP').value,rem:+$('#tR').value,done:0,fired:0,src:'manuale',kind:'man'});
- save();$('#dTask').close();tasks();cal();nxt();rem()};
+ haptic('medium');save();$('#dTask').close();tasks();cal();nxt();rem()};
 $('#tl').onclick=e=>{const li=e.target.closest('li[data-id]'),b=e.target.closest('button[data-a],.tx');if(!li||!b)return;const t=S.tasks.find(x=>x.id===li.dataset.id);if(!t)return;
  const a=b.dataset.a;if(a==='op')return openDay(t.due.slice(0,10),t.id);
- if(a==='ck')t.done=t.done?0:1;else S.tasks=S.tasks.filter(x=>x!==t);save();tasks();cal();nxt()};
+ if(a==='ck'){t.done=t.done?0:1;haptic(t.done?'success':'medium')}else S.tasks=S.tasks.filter(x=>x!==t);save();tasks();cal();nxt()};
 $('#bAI').onclick=openChat;
 $('#qs').onclick=e=>{const b=e.target.closest('button');if(!b)return;const q=QS[+b.dataset.i][1];if(q.endsWith(': ')){$('#ai').value=q;$('#ai').focus()}else chatSend(q)};
 $('#aiS').onclick=()=>chatSend($('#ai').value);$('#ai').onkeydown=e=>{if(e.key==='Enter')chatSend($('#ai').value)};
 $('#aiC').onclick=()=>$('#dAI').close();$('#aiX').onclick=()=>{S.chat=[];save();chatDraw()};
 $$('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
+
+// Feedback tattile: leggero sui bottoni, selezione sui segmenti (stile iOS).
+document.addEventListener('pointerdown',e=>{
+ const b=e.target.closest('button,.lk');if(!b)return;
+ if(b.matches('[data-a="ck"],#tS'))return; // completamento e salvataggio compito hanno un feedback dedicato
+ haptic(b.matches('.seg button,.chips button')?'selection':'light')
+},true);
 
 if(S.theme!=='auto')theme();
 show();tasks();cal();tick();layout();rem();bridge();cvUI();gqUI();nxt();grades();spCard();post({t:'hwn',on:!!S.hwn});
@@ -608,7 +666,7 @@ if(S.w.wx)wx();
 setInterval(tick,1000);setInterval(rem,15000);setInterval(()=>{if(S.w.wx)wx()},9e5);
 mq.addEventListener('change',layout);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(R.classList.contains('sb'))wake(true);if(S.cv.on)cvRefresh(0);spPoll()}});
-if(S.ob!==2)obStart();
+intro();
 </script>
 </body>
 </html>
