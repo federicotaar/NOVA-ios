@@ -6,6 +6,8 @@ import UserNotifications
 import BackgroundTasks
 import AuthenticationServices
 import CryptoKit
+import CoreHaptics
+import AVFoundation
 
 @main
 struct NOVAApp: App {
@@ -57,6 +59,8 @@ struct WebContainer: UIViewRepresentable {
 final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUserNotificationCenterDelegate {
     weak var web: WKWebView?
     private let center = UNUserNotificationCenter.current()
+    private let tts = AVSpeechSynthesizer()
+    private var hapticEngine: CHHapticEngine?
 
     // Safari/WKWebView su iPhone non espone navigator.getBattery né Notification:
     // li simuliamo con i dati nativi, così nova.html funziona senza modifiche.
@@ -102,6 +106,74 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         web?.evaluateJavaScript("window.__novaBattery&&__novaBattery(\(level),\(charging))")
     }
 
+    // Feedback tattile in stile iOS: leggero sui tocchi, selezione sui segmenti, successo sui compiti completati.
+    func haptic(_ style: String?) {
+        switch style {
+        case "selection": UISelectionFeedbackGenerator().selectionChanged()
+        case "medium": UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        case "heavy": UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case "warning": UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        case "error": UINotificationFeedbackGenerator().notificationOccurred(.error)
+        case "rumble": rumble()
+        default: UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+    }
+
+    // Rombo crescente per l'intro: Core Haptics se disponibile, altrimenti impulsi in salita.
+    func rumble() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { fallbackRumble(); return }
+        do {
+            if hapticEngine == nil {
+                hapticEngine = try CHHapticEngine()
+                hapticEngine?.resetHandler = { [weak self] in try? self?.hapticEngine?.start() }
+            }
+            guard let engine = hapticEngine else { fallbackRumble(); return }
+            let continuous = CHHapticEvent(eventType: .hapticContinuous, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.3),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.2)
+            ], relativeTime: 0, duration: 1.1)
+            let intensity = CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [
+                CHHapticParameterCurve.ControlPoint(relativeTime: 0, value: 0.15),
+                CHHapticParameterCurve.ControlPoint(relativeTime: 0.55, value: 0.45),
+                CHHapticParameterCurve.ControlPoint(relativeTime: 0.95, value: 1.0),
+                CHHapticParameterCurve.ControlPoint(relativeTime: 1.1, value: 0.0)
+            ], relativeTime: 0)
+            let sharpness = CHHapticParameterCurve(parameterID: .hapticSharpnessControl, controlPoints: [
+                CHHapticParameterCurve.ControlPoint(relativeTime: 0, value: 0.1),
+                CHHapticParameterCurve.ControlPoint(relativeTime: 0.8, value: 0.55),
+                CHHapticParameterCurve.ControlPoint(relativeTime: 1.0, value: 1.0)
+            ], relativeTime: 0)
+            let tick = CHHapticEvent(eventType: .hapticTransient, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.7)
+            ], relativeTime: 1.12)
+            let pattern = try CHHapticPattern(events: [continuous, tick], parameterCurves: [intensity, sharpness])
+            try engine.start()
+            try engine.makePlayer(with: pattern).start(atTime: CHHapticTimeImmediate)
+        } catch { fallbackRumble() }
+    }
+
+    func fallbackRumble() {
+        let steps: [(UIImpactFeedbackGenerator.FeedbackStyle, Double)] = [(.light, 0), (.light, 0.14), (.medium, 0.28), (.medium, 0.42), (.heavy, 0.58), (.heavy, 0.76)]
+        for (style, delay) in steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                UIImpactFeedbackGenerator(style: style).impactOccurred()
+            }
+        }
+    }
+
+    // Voce inglese dell'intro (rispetta la modalita silenziosa dell'iPhone).
+    func speak(_ body: [String: Any]) {
+        if body["stop"] as? Bool == true { tts.stopSpeaking(at: .immediate); return }
+        guard let text = body["text"] as? String, !text.isEmpty else { return }
+        if tts.isSpeaking { tts.stopSpeaking(at: .immediate) }
+        let u = AVSpeechUtterance(string: text)
+        u.voice = AVSpeechSynthesisVoice(language: "en-US")
+        u.rate = 0.52
+        tts.speak(u)
+    }
+
     // Link esterni (es. console.groq.com) si aprono in Safari, non dentro l'app.
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = navigationAction.request.url, let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" {
@@ -131,6 +203,10 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             schedule(items)
         } else if t == "hwn" {
             UserDefaults.standard.set(body["on"] as? Bool ?? true, forKey: "nova.hwn")
+        } else if t == "haptic" {
+            haptic(body["style"] as? String)
+        } else if t == "speak" {
+            speak(body)
         } else if t == "timer" {
             scheduleTimer(body["at"] as? Double)
         } else if t == "spotify" {
