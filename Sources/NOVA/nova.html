@@ -153,6 +153,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 input,select,textarea{transition:border-color .2s,box-shadow .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--fg);outline:none}
 .cvwho{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--mut)}
+.cvU2{background:none;border:0;outline:0;color:var(--fg);font:inherit;font-weight:700;min-width:0;flex:1;padding:0;-webkit-text-fill-color:var(--fg)}
 .spc2{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;min-height:34vh}
 .spc2 .spic{width:64px;height:64px;border-radius:18px;background:var(--fld);display:flex;align-items:center;justify-content:center;color:var(--fg)}
 .spc2 .spic svg{width:32px;height:32px}
@@ -289,7 +290,7 @@ const RK={alta:0,media:1,bassa:2},mq=matchMedia('(orientation:landscape) and (ma
 let chg=null,lm=-1,wl=null,calOff=0;
 
 /* ---------- ClasseViva ---------- */
-let cvTmp=null,cvChoices=null,cvErr='',cvStage={u:''};
+let cvTmp=null,cvChoices=null,cvErr='',cvStage={u:''},cvFails=0;
 const kindOf=t=>t.kind||(String(t.id).startsWith('cvag')?'test':t.src==='cv'?'hw':'man');
 function cvImport(ev,gr){let n=0;const seen=new Set();
  for(const e of ev||[]){if(!e.id||!e.date)continue;
@@ -307,10 +308,10 @@ async function cvRefresh(manual){if(!S.cv.on)return;const r=await cv('refresh');
 async function cvLogin(u,p,ident){if(!u||!p){$$('.cvE').forEach(e=>e.textContent='Scrivi codice utente e password.');return}
  cvTmp={u:u,p:p};cvChoices=null;$$('.cvG').forEach(b=>{b.disabled=1;b.textContent='Collego…'});
  const r=await cv('login',ident?{uid:u,pass:p,ident:ident}:{uid:u,pass:p});
- if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;cvStage.u='';save();const n=cvImport(r.events,r.grades);toast('ClasseViva collegato: '+n+' elementi importati')}
+ if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;cvStage.u='';cvFails=0;save();const n=cvImport(r.events,r.grades);toast('ClasseViva collegato: '+n+' elementi importati')}
  else if(r.needChoice)cvChoices=r.choices||[];
  else{cvTmp=null;cvErr=(r.err==='rete'?'Nessuna connessione o server ClasseViva giù. Riprova.':r.err==='bloccato'?'ClasseViva ha bloccato la richiesta. Riprova tra poco.':r.err==='bridge'?'Errore interno: reinstalla l\'ultima versione di NOVA.':'Credenziali non valide. Controlla codice utente e password.')+(r.info?' ('+r.info+')':'')}
- cvUI();if(cvErr){$$('.cvE').forEach(e=>e.textContent=cvErr);toast('ClasseViva: collegamento non riuscito');cvErr=''}if(window.obRefresh)obRefresh()}
+ cvUI();if(cvErr){cvFails++;if(cvFails>=3)cvErr+=' Attenzione: dopo 5 tentativi sbagliati ClasseViva sospende l\'accesso per 60 minuti.';$$('.cvE').forEach(e=>e.textContent=cvErr);toast('ClasseViva: collegamento non riuscito');cvErr=''}if(window.obRefresh)obRefresh()}
 async function cvLogout(){await cv('logout');cvStage.u='';S.cv={on:0,name:''};S.tasks=S.tasks.filter(t=>t.src!=='cv');S.gr=[];save();tasks();cal();nxt();grades();cvUI();toast('ClasseViva scollegato')}
 function cvUI(){$$('.cvb').forEach(b=>{
  if(cvChoices){b.innerHTML='<small>Questo account ha più profili: scegli il tuo.</small><div class="chips" style="margin-top:8px">'+cvChoices.map(c=>`<button data-i="${esc(c.ident)}">${esc(c.name||c.ident)}</button>`).join('')+'</div><small class="err cvE"></small>';
@@ -318,12 +319,14 @@ function cvUI(){$$('.cvb').forEach(b=>{
  else if(S.cv.on){b.innerHTML=`<small>Collegato come ${esc(S.cv.name||'studente')}.</small><div class="row" style="margin-top:8px"><button class="btn cvR">Aggiorna</button><button class="btn cvX">Scollega</button></div><small class="err cvE"></small>`;
   b.querySelector('.cvR').onclick=()=>cvRefresh(1);b.querySelector('.cvX').onclick=cvLogout}
  else{b.innerHTML='<div class="cvSt"></div>';const st=b.querySelector('.cvSt'),
-  s1=()=>{st.innerHTML='<div class="pop"><input class="cvU" placeholder="Codice utente" autocomplete="username" autocapitalize="none" enterkeyhint="next"></div><button class="btn pri cvN" style="margin-top:10px;width:100%">Continua</button><small class="err cvE"></small>';
+  s1=()=>{st.innerHTML='<div class="pop"><input class="cvU" placeholder="Codice utente o email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next"></div><button class="btn pri cvN" style="margin-top:10px;width:100%">Continua</button><small class="err cvE"></small>';
    const go=()=>{const u=st.querySelector('.cvU').value.trim();if(!u){st.querySelector('.cvE').textContent='Scrivi il codice utente di ClasseViva.';return}cvStage.u=u;s2()};
    st.querySelector('.cvN').onclick=go;st.querySelector('.cvU').onkeydown=e=>{if(e.key==='Enter')go()}},
-  s2=()=>{const u=cvStage.u;st.innerHTML='<div class="cvwho pop"><span>Account: <b>'+esc(u)+'</b></span><button class="lk cvB">Cambia</button></div><div class="pop"><input class="cvP" type="password" placeholder="Password" autocomplete="current-password" enterkeyhint="go"></div><button class="btn pri cvG" style="margin-top:10px;width:100%">Collega ClasseViva</button><small class="err cvE"></small>';
+  s2=()=>{const u=cvStage.u;st.innerHTML='<div class="cvwho pop"><span>Account:</span><input class="cvU2" readonly tabindex="-1" value="'+esc(u)+'" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"><button class="lk cvB">Cambia</button></div><div class="pop"><input class="cvP" type="password" placeholder="Password" autocomplete="current-password" enterkeyhint="go"></div><button class="btn pri cvG" style="margin-top:10px;width:100%">Collega ClasseViva</button><small class="err cvE"></small>';
    st.querySelector('.cvB').onclick=()=>{cvStage.u='';s1()};
-   const g=()=>cvLogin(u,st.querySelector('.cvP').value);
+   const g=()=>{const pw=st.querySelector('.cvP').value;
+    if(pw!==pw.trim()){st.querySelector('.cvE').textContent='La password inizia o finisce con uno spazio (succede con i suggerimenti della tastiera): toglilo e riprova.';return}
+    cvLogin(u,pw)};
    st.querySelector('.cvG').onclick=g;st.querySelector('.cvP').onkeydown=e=>{if(e.key==='Enter')g()}};
   cvStage.u?s2():s1()}});
  $('#bCv').hidden=!S.cv.on}
