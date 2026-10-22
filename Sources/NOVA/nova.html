@@ -197,16 +197,33 @@ body{transition:background .35s ease,color .35s ease}
 .card,.btn,.seg button,.chips button,.ico,input,select,textarea{transition:background .35s ease,border-color .35s ease,color .35s ease,transform .12s ease,box-shadow .2s}
 .di{animation:popIn .34s cubic-bezier(.32,.72,0,1) both}
 /* ---------- intro cinematografica ---------- */
-#intro{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;touch-action:manipulation}
-#intro .inN{width:88px;height:88px;border-radius:23px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:46px;font-weight:800;letter-spacing:-.03em;opacity:0;transform:scale(.7);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.9,.3,1.15)}
-#intro .inN.on{opacity:1;transform:scale(1)}
-#inT{font-size:clamp(18px,5vw,24px);font-weight:650;letter-spacing:-.01em;text-align:center;padding:0 34px;min-height:1.4em;opacity:0;transform:translateY(10px);transition:opacity .28s ease,transform .28s ease}
-#inT.on{opacity:1;transform:none}
-#intro.fast #inT{transition-duration:.1s;font-size:clamp(23px,6.5vw,32px)}
-#intro .hint{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--mut)}
-#intro.zoom{animation:inZoom 1.05s cubic-bezier(.55,.06,.68,.19) forwards}
-@keyframes inZoom{0%{transform:scale(1);filter:blur(0);opacity:1}35%{transform:scale(1.18);filter:blur(2px);opacity:1}100%{transform:scale(1.75);filter:blur(12px);opacity:0}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+#intro{position:fixed;inset:0;z-index:80;background:#000;color:#fff;overflow:hidden;touch-action:manipulation}
+#intro canvas{position:absolute;inset:0;width:100%;height:100%}
+#inW{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;will-change:transform}
+#intro .inN{width:88px;height:88px;border-radius:23px;background:#fff;color:#000;display:grid;place-items:center;font-size:46px;font-weight:800;letter-spacing:-.03em;opacity:0;transform:scale(.6);filter:blur(8px);transition:opacity .9s ease,transform 1s cubic-bezier(.16,1,.3,1),filter .9s ease;box-shadow:0 0 60px rgba(255,255,255,.35)}
+#intro .inN.on{opacity:1;transform:scale(1);filter:none}
+#inT{min-height:1.4em;font-size:clamp(20px,5.6vw,28px);font-weight:650;letter-spacing:-.01em;text-align:center;padding:0 30px;line-height:1.25;transition:opacity .18s ease}
+#inT.out{opacity:0}
+#inT .w{display:inline-block;opacity:0;transform:translateY(.55em) scale(.96);filter:blur(10px);letter-spacing:.14em;animation:wIn .75s cubic-bezier(.16,1,.3,1) forwards;animation-delay:var(--d,0s)}
+#inT .w.hl{font-weight:800;text-shadow:0 0 28px rgba(255,255,255,.7)}
+@keyframes wIn{60%{filter:blur(0)}to{opacity:1;transform:none;filter:blur(0);letter-spacing:-.01em}}
+#intro.cd #inT{font-size:clamp(56px,19vw,112px);font-weight:800;letter-spacing:-.04em}
+#intro.cd #inT .w{transform:scale(2.2);letter-spacing:0;animation:cdIn .42s cubic-bezier(.12,.9,.2,1) forwards}
+@keyframes cdIn{to{opacity:1;transform:none;filter:blur(0)}}
+#intro.go #inT .w{text-shadow:0 0 40px #fff,0 0 90px rgba(255,255,255,.8)}
+#intro .glow{position:absolute;left:50%;top:50%;width:80vmin;height:80vmin;margin:-40vmin 0 0 -40vmin;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),rgba(255,255,255,0) 62%);opacity:0;pointer-events:none}
+#intro .ring{position:absolute;left:50%;top:50%;width:30vmin;height:30vmin;margin:-15vmin 0 0 -15vmin;border-radius:50%;border:2px solid rgba(255,255,255,.7);opacity:0;pointer-events:none}
+#intro .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
+#intro .lbx{position:absolute;left:0;right:0;height:0;background:#000;z-index:3;transition:height 1.2s cubic-bezier(.16,1,.3,1)}
+#intro .lbx.t{top:0}#intro .lbx.b{bottom:0}
+#intro.lb .lbx{height:11vh}
+#intro .hint{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,.45);z-index:4;opacity:0;animation:hintIn 1s 2s forwards}
+@keyframes hintIn{to{opacity:1}}
+#intro.zoom #inW{animation:inZoom 1.3s cubic-bezier(.55,.06,.68,.19) forwards}
+@keyframes inZoom{0%{transform:scale(1);opacity:1}40%{transform:scale(1.15);opacity:1}100%{transform:scale(2.6);opacity:0;filter:blur(10px)}}
+@keyframes shk{0%,100%{transform:none}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-3px,-3px)}80%{transform:translate(3px,3px)}}
+#intro.shake #inW{animation:shk .32s linear}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}#inT .w{opacity:1!important;transform:none!important;filter:none!important}}
 </style>
 </head>
 <body>
@@ -230,7 +247,7 @@ body{transition:background .35s ease,color .35s ease}
 </main>
 </div>
 
-<div id="intro" hidden><div class="inN" id="inL">N</div><div id="inT"></div><span class="hint">Tocca per saltare</span></div>
+<div id="intro" hidden><canvas id="inC"></canvas><div class="glow" id="inG"></div><div id="inW"><div class="inN" id="inL">N</div><div id="inT"></div></div><i class="ring" id="inR"></i><i class="flash" id="inF"></i><div class="lbx t"></div><div class="lbx b"></div><span class="hint">Tocca per saltare</span></div>
 <div id="ob" hidden></div>
 
 <dialog id="dSet"><div class="sheet">
@@ -244,6 +261,8 @@ body{transition:background .35s ease,color .35s ease}
   <small>La sera prima di ogni scadenza (alle 18:00) NOVA ti manda un riepilogo, anche con l'app chiusa. I compiti nuovi li scopre quando l'app si aggiorna: iOS lo fa in background solo ogni tanto, quindi non è istantaneo.</small></div>
  <div class="fl">Intro<button class="btn tgl" id="bIntro" aria-pressed="true">Intro all'avvio: attiva</button><small>La sequenza cinematografica quando apri NOVA, con voce in inglese. Puoi saltarla con un tocco.</small></div>
  <div class="sep"></div>
+ <div class="fl">Orario e widget<button class="btn" id="bTT">Modifica orario</button><small id="ttSum"></small></div>
+ <div class="sep"></div>
  <div class="fl">ClasseViva<div class="cvb"></div><small>Codice utente e password restano solo sul telefono, nel Portachiavi di iOS. NOVA parla solo con web.spaggiari.eu.</small></div>
  <div class="sep"></div>
  <div class="fl">Assistente AI (Groq)<div class="gqb"></div></div>
@@ -253,6 +272,17 @@ body{transition:background .35s ease,color .35s ease}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
+</div></dialog>
+
+<dialog id="dTT"><div class="sheet">
+ <h2>Il tuo orario</h2>
+ <small>I widget seguono questo orario. Carica una foto e l'assistente lo compila: controlla e correggi prima di salvare.</small>
+ <div class="row"><label class="btn" id="ttPh" for="ttF" style="text-align:center">Carica una foto</label><input id="ttF" type="file" accept="image/*" hidden></div>
+ <small id="ttS"></small>
+ <div class="seg" id="ttD"></div>
+ <div id="ttL" style="display:flex;flex-direction:column;gap:8px"></div>
+ <button class="btn" id="ttA">Aggiungi lezione</button>
+ <div class="row"><button class="btn" id="ttX">Svuota</button><button class="btn" id="ttC">Annulla</button><button class="btn pri" id="ttOk">Salva</button></div>
 </div></dialog>
 
 <dialog id="dTask"><div class="sheet">
@@ -291,7 +321,9 @@ dd0=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
 const K='nova.v1';let S={name:'',theme:'auto',sb:'auto',done:0,ob:0,hwn:1,w:{},tasks:[],chat:[],gr:[],cv:{on:0,name:''}};
 try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 if(S.sb==='on')S.sb='auto';
-S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};S.chat=S.chat||[];S.gr=S.gr||[];
+S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};
+// Orario personale: i nuovi utenti partono vuoti. Solo l'installazione di Federico (gia' configurata) tiene il suo orario storico.
+if(!S.tt)S.tt={lessons:(S.done&&/taranu|federico|fred/i.test((S.name||'')+' '+((S.cv&&S.cv.name)||'')))?[{"d":2,"s":490,"e":590,"n":"INFO"},{"d":2,"s":590,"e":640,"n":"IRC"},{"d":2,"s":640,"e":690,"n":"SR"},{"d":2,"s":690,"e":740,"n":"ING"},{"d":2,"s":740,"e":840,"n":"TELECOM"},{"d":3,"s":490,"e":590,"n":"ING"},{"d":3,"s":590,"e":640,"n":"TPSIT"},{"d":3,"s":640,"e":740,"n":"ITA"},{"d":3,"s":740,"e":790,"n":"MAT"},{"d":4,"s":490,"e":540,"n":"STO"},{"d":4,"s":540,"e":590,"n":"ITA"},{"d":4,"s":590,"e":690,"n":"MAT"},{"d":4,"s":690,"e":740,"n":"SR"},{"d":4,"s":740,"e":840,"n":"INFO"},{"d":5,"s":490,"e":540,"n":"TELECOM"},{"d":5,"s":540,"e":640,"n":"TPSIT"},{"d":5,"s":640,"e":740,"n":"SMS"},{"d":5,"s":740,"e":840,"n":"AG"},{"d":6,"s":490,"e":590,"n":"INFO"},{"d":6,"s":590,"e":640,"n":"STO"},{"d":6,"s":640,"e":690,"n":"ITA"},{"d":6,"s":690,"e":740,"n":"MAT"},{"d":6,"s":740,"e":840,"n":"SR"}]:[]};S.chat=S.chat||[];S.gr=S.gr||[];
 const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
 const haptic=s=>post({t:'haptic',style:s||'light'});
 const bridge=()=>post({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))});
@@ -435,59 +467,58 @@ async function api(p,m,b){const h={'content-type':'application/json'};if(S.acct&
  const r=await fetch(API+p,{method:m,headers:h,body:b?JSON.stringify(b):undefined});
  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'HTTP '+r.status);return j}
 let acct={mode:'new',stage:'email',email:'',busy:0,err:''};
-const setupJson=()=>({v:1,name:S.name,theme:S.theme,sb:S.sb,hwn:S.hwn,w:S.w,cv:S.cv});
+const setupJson=()=>({v:1,name:S.name,theme:S.theme,sb:S.sb,hwn:S.hwn,w:S.w,cv:S.cv,tt:S.tt});
 let acctLast='',acctT=0;
 function acctPush(){if(!S.acct||!S.acct.token)return;const s=JSON.stringify(setupJson());if(s===acctLast)return;
  clearTimeout(acctT);acctT=setTimeout(async()=>{try{await api('/sync','PUT',{json:setupJson()});acctLast=s}catch(e){}},800)}
 async function acctPull(){const r=await api('/sync','GET');if(!r.json)return false;
  const j=r.json;['name','theme','sb','hwn'].forEach(k=>{if(j[k]!==undefined)S[k]=j[k]});
- if(j.w)S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},j.w);if(j.cv)S.cv=j.cv;
+ if(j.w)S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},j.w);if(j.cv)S.cv=j.cv;if(j.tt&&j.tt.lessons){S.tt=j.tt;ttPush()}
  save();theme();head();show();acctLast=JSON.stringify(setupJson());return true}
 async function acctDone(email,token){S.acct={email:email.toLowerCase(),token};save();
- acct.err='';acct.stage='done';
+ acct={mode:'new',stage:'email',email:'',busy:0,err:''};
  const had=await acctPull().catch(()=>false);if(!had)acctPush();
- acctUI();if(window.obRefresh)obRefresh();
- toast(had?'Configurazione ripristinata dal tuo account':'Account collegato: la configurazione si sincronizza da sola')}
+ const inOb=!$('#ob').hidden&&OB[obI]&&OB[obI].k==='Account';
+ acctUI();
+ if(inOb){if(had&&S.name){obEnd();toast('Bentornato, '+S.name+': configurazione ripristinata')}else{obGo(1);toast(had?'Account collegato':'Account creato')}}
+ else{if(window.obRefresh)obRefresh();toast(had?'Configurazione ripristinata dal tuo account':'Account collegato: la configurazione si sincronizza da sola')}}
+const mailOk=e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
 function acctUI(){$$('.acctb').forEach(b=>{
  if(S.acct&&S.acct.token){b.innerHTML='<small>Collegato come <b>'+esc(S.acct.email)+'</b>. La configurazione si sincronizza automaticamente.</small><div class="row" style="margin-top:8px"><button class="btn acO">Esci</button></div>';
   b.querySelector('.acO').onclick=()=>{delete S.acct;save();acct={mode:'new',stage:'email',email:'',busy:0,err:''};acctUI();obRefresh()};return}
- const seg='<div class="seg" id="acM"><button data-v="new" aria-pressed="'+(acct.mode==='new')+'">Nuovo account</button><button data-v="login" aria-pressed="'+(acct.mode==='login')+'">Ho gi\'un account</button></div>';
+ const em='<input id="acE" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="La tua email" value="'+esc(acct.email)+'">';
+ const codeIn='<input id="acC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Codice a 6 cifre">';
+ const sent='<small>Codice inviato a <b>'+esc(acct.email)+'</b>. Controlla la posta (anche spam): vale 10 minuti.</small>';
  let f='';
- if(acct.mode==='login'&&acct.stage==='lcode')f='<small>Codice inviato a <b>'+esc(acct.email)+'</b>. Controlla la posta (anche spam): vale 10 minuti.</small><input id="acC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Codice a 6 cifre"><button class="btn pri" id="acGo">Accedi</button><button class="btn" id="acBk" style="margin-top:8px">Indietro</button>';
- else if(acct.mode==='login')f='<input id="acE" type="email" autocomplete="email" placeholder="La tua email" value="'+esc(acct.email)+'"><input id="acP" type="password" autocomplete="current-password" placeholder="Password"><button class="btn pri" id="acGo">Accedi</button><button class="btn" id="acLc" style="margin-top:8px">Accedi con un codice via email</button>';
- else if(acct.stage==='email')f='<input id="acE" type="email" autocomplete="email" placeholder="La tua email" value="'+esc(acct.email)+'"><button class="btn pri" id="acGo">Invia codice</button>';
- else f='<small>Codice inviato a <b>'+esc(acct.email)+'</b>. Controlla la posta (anche spam): vale 10 minuti.</small><input id="acC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Codice a 6 cifre"><input id="acP" type="password" autocomplete="new-password" placeholder="Crea password (min 8 caratteri)"><button class="btn pri" id="acGo">Crea account</button>';
- b.innerHTML=seg+f+(acct.err?'<small class="err">'+esc(acct.err)+'</small>':'')+(acct.busy?'<small>Un attimo\u2026</small>':'');
- b.querySelector('#acM').onclick=e=>{const v=e.target.dataset.v;if(!v||v===acct.mode)return;acct.mode=v;acct.stage='email';acct.err='';acctUI()};
- const go=b.querySelector('#acGo'),em=b.querySelector('#acE');if(em)em.oninput=()=>acct.email=em.value.trim();
- const bk=b.querySelector('#acBk');if(bk)bk.onclick=()=>{acct.stage='email';acct.err='';acctUI()};
- const lc=b.querySelector('#acLc');if(lc)lc.onclick=async()=>{acct.err='';
-  try{const e=em.value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))throw new Error('Email non valida');acct.busy=1;acctUI();
-   const r=await api('/auth/request-code','POST',{email:e,mode:'login'});
-   if(!r.sent)throw new Error('no account');acct.email=e;acct.stage='lcode'}
-  catch(e){acct.err=String(e.message||e);
-   if(/no account/.test(acct.err))acct.err='Non c\'\u00e8 nessun account con questa email. Creane uno da "Nuovo account".';
-   if(/wait a moment/.test(acct.err))acct.err='Aspetta qualche secondo prima di chiedere un altro codice.'}
-  acct.busy=0;acctUI()};
+ if(acct.stage==='lcode')f='<small>Bentornato! Ho trovato il tuo account.</small>'+sent+codeIn+'<button class="btn pri" id="acGo">Accedi</button><button class="btn" id="acPw" style="margin-top:8px">Uso la password</button><button class="btn" id="acBk" style="margin-top:8px">Cambia email</button>';
+ else if(acct.stage==='lpw')f='<small>Account: <b>'+esc(acct.email)+'</b></small><input id="acP" type="password" autocomplete="current-password" placeholder="Password"><button class="btn pri" id="acGo">Accedi</button><button class="btn" id="acLc" style="margin-top:8px">Mandami un codice</button><button class="btn" id="acBk" style="margin-top:8px">Cambia email</button>';
+ else if(acct.stage==='code')f='<small>Nessun account con questa email: ne creo uno nuovo.</small>'+sent+codeIn+'<input id="acP" type="password" autocomplete="new-password" placeholder="Crea una password (min 8 caratteri)"><button class="btn pri" id="acGo">Crea account</button><button class="btn" id="acBk" style="margin-top:8px">Cambia email</button>';
+ else f=em+'<button class="btn pri" id="acGo">Continua</button>';
+ b.innerHTML=f+(acct.err?'<small class="err">'+esc(acct.err)+'</small>':'')+(acct.busy?'<small>Un attimo\u2026</small>':'');
+ const g=q=>b.querySelector(q),go=g('#acGo'),ei=g('#acE');if(ei)ei.oninput=()=>acct.email=ei.value.trim();
+ const re=()=>{acct.busy=0;acctUI()};
+ const fail=e=>{let m=String(e&&e.message||e);
+  if(/wrong password|unknown email/.test(m))m='Email o password sbagliate.';
+  else if(/wrong or expired code/.test(m))m='Codice sbagliato o scaduto. Chiedine uno nuovo.';
+  else if(/wait a moment/.test(m))m='Aspetta qualche secondo prima di chiedere un altro codice.';
+  else if(/Failed to fetch|Load failed|network/i.test(m))m='Rete non disponibile. Riprova.';
+  acct.err=m;re()};
+ const bk=g('#acBk');if(bk)bk.onclick=()=>{acct.stage='email';acct.err='';acctUI()};
+ const pw=g('#acPw');if(pw)pw.onclick=()=>{acct.stage='lpw';acct.err='';acctUI()};
+ const lc=g('#acLc');if(lc)lc.onclick=async()=>{acct.err='';try{acct.busy=1;acctUI();const r=await api('/auth/request-code','POST',{email:acct.email,mode:'login'});if(!r.sent)throw new Error('Email non trovata');acct.stage='lcode';re()}catch(e){fail(e)}};
  if(go)go.onclick=async()=>{acct.err='';
   try{
-   if(acct.mode==='login'&&acct.stage==='lcode'){const c=b.querySelector('#acC').value.trim();
-    if(!/^\d{6}$/.test(c))throw new Error('Il codice \u00e8 di 6 cifre');acct.busy=1;acctUI();
+   if(acct.stage==='email'){const e=ei.value.trim();if(!mailOk(e))throw new Error('Email non valida');acct.email=e;acct.busy=1;acctUI();
+    const r=await api('/auth/request-code','POST',{email:e,mode:'login'});
+    if(r&&r.sent)acct.stage='lcode';else{await api('/auth/request-code','POST',{email:e});acct.stage='code'}
+    re()}
+   else if(acct.stage==='lcode'){const c=g('#acC').value.trim();if(!/^\d{6}$/.test(c))throw new Error('Il codice \u00e8 di 6 cifre');acct.busy=1;acctUI();
     const r=await api('/auth/login-code','POST',{email:acct.email,code:c});await acctDone(acct.email,r.token)}
-   else if(acct.mode==='login'){const e=em.value.trim(),pw=b.querySelector('#acP').value;
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))throw new Error('Email non valida');acct.busy=1;acctUI();
-    const r=await api('/auth/login','POST',{email:e,password:pw});await acctDone(e,r.token)}
-   else if(acct.stage==='email'){const e=em.value.trim();
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))throw new Error('Email non valida');acct.busy=1;acctUI();
-    await api('/auth/request-code','POST',{email:e});acct.email=e;acct.stage='code'}
-   else{const c=b.querySelector('#acC').value.trim(),pw=b.querySelector('#acP').value;
-    if(!/^\d{6}$/.test(c))throw new Error('Il codice \u00e8 di 6 cifre');if(pw.length<8)throw new Error('La password deve avere almeno 8 caratteri');acct.busy=1;acctUI();
-    const r=await api('/auth/verify','POST',{email:acct.email,code:c,password:pw});await acctDone(acct.email,r.token)}
-  }catch(e){acct.err=String(e.message||e);
-   if(/wrong password|unknown email/.test(acct.err))acct.err='Email o password sbagliate.';
-   if(/wrong or expired code/.test(acct.err))acct.err='Codice sbagliato o scaduto. Chiedine uno nuovo.';
-   if(/wait a moment/.test(acct.err))acct.err='Aspetta qualche secondo prima di chiedere un altro codice.'}
-  acct.busy=0;acctUI()}
+   else if(acct.stage==='lpw'){const p=g('#acP').value;acct.busy=1;acctUI();
+    const r=await api('/auth/login','POST',{email:acct.email,password:p});await acctDone(acct.email,r.token)}
+   else{const c=g('#acC').value.trim(),p=g('#acP').value;if(!/^\d{6}$/.test(c))throw new Error('Il codice \u00e8 di 6 cifre');if(p.length<8)throw new Error('La password deve avere almeno 8 caratteri');acct.busy=1;acctUI();
+    const r=await api('/auth/verify','POST',{email:acct.email,code:c,password:p});await acctDone(acct.email,r.token)}
+  }catch(e){fail(e)}}
  })}
 
 /* ---------- intro cinematografica ---------- */
@@ -495,39 +526,114 @@ function intro(){
  const el=$('#intro');if(!el){if(S.ob!==2)obStart();return}
  const go=()=>{if(S.ob!==2)obStart()};
  if(S.introOff){el.remove();go();return}
- const lg=$('#inL'),ln=$('#inT');
- let dead=0,started=0;const T=[],later=(f,ms)=>T.push(setTimeout(()=>{if(!dead)f()},ms));
- const cleanup=()=>{if(dead)return;dead=1;T.forEach(clearTimeout);post({t:'intro',stop:true});delete window.__novaIntro;
+ const lg=$('#inL'),ln=$('#inT'),glow=$('#inG'),ring=$('#inR'),fl=$('#inF'),cvs=$('#inC');
+ const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+ let dead=0,started=0,raf=0,sp=.06,tgt=.06,warp=0;const T=[],later=(f,ms)=>T.push(setTimeout(()=>{if(!dead)f()},ms));
+ const stars=[];let W=0,H=0,dpr=1,cx=null;
+ if(RM){cvs.remove()}else{
+  cx=cvs.getContext('2d');dpr=Math.min(window.devicePixelRatio||1,2);
+  const rs=()=>{W=cvs.width=Math.round(innerWidth*dpr);H=cvs.height=Math.round(innerHeight*dpr)};rs();
+  for(let i=0;i<110;i++)stars.push({a:Math.random()*6.2832,r:Math.random()*.9,s:.4+Math.random()*.9});
+  let last=performance.now();
+  const draw=now=>{if(dead)return;const dt=Math.min(.05,(now-last)/1000);last=now;sp+=(tgt-sp)*Math.min(1,dt*3);
+   cx.fillStyle='rgba(0,0,0,'+(warp?.2:.32)+')';cx.fillRect(0,0,W,H);
+   const mx=Math.hypot(W,H)/2,x0=W/2,y0=H/2;cx.fillStyle='#fff';cx.strokeStyle='#fff';
+   for(const p of stars){const pr=p.r;p.r+=sp*p.s*dt*(.4+p.r*2.2);if(p.r>1){p.r=.02+Math.random()*.05;p.a=Math.random()*6.2832}
+    const c=Math.cos(p.a),sn=Math.sin(p.a),x=x0+c*pr*mx,y=y0+sn*pr*mx;cx.globalAlpha=Math.min(1,p.r*1.6)*.9;
+    if(sp>.45){cx.lineWidth=Math.max(1,p.r*2.2*dpr);cx.beginPath();cx.moveTo(x,y);cx.lineTo(x0+c*p.r*mx,y0+sn*p.r*mx);cx.stroke()}
+    else{const z=Math.max(.6,p.r*2.4)*dpr;cx.fillRect(x-z/2,y-z/2,z,z)}}
+   cx.globalAlpha=1;raf=requestAnimationFrame(draw)};
+  raf=requestAnimationFrame(draw)}
+ const cleanup=()=>{if(dead)return;dead=1;T.forEach(clearTimeout);cancelAnimationFrame(raf);post({t:'intro',stop:true});delete window.__novaIntro;
   document.removeEventListener('visibilitychange',hide);
   el.style.transition='opacity .4s ease';el.style.opacity='0';el.style.pointerEvents='none';
   setTimeout(()=>{el.remove();go()},430)};
  const hide=()=>{if(document.hidden)cleanup()};document.addEventListener('visibilitychange',hide);
  const lines=['This is NOVA.','Your entire school day, in one place.','Homework, tests, grades, music.','All handled.','Ready','Set','GO.'];
- const cue=i=>{ln.classList.remove('on');el.classList.toggle('fast',i>=4);later(()=>{ln.textContent=lines[i]||'';ln.classList.add('on')},i>=4?25:60)};
- const zoom=()=>{ln.classList.remove('on');el.classList.add('zoom')};
+ const speeds=[.07,.09,.11,.14,.22,.34,.5];
+ const anim=(n,k,o)=>{if(!RM&&n.animate)n.animate(k,o)};
+ const cue=i=>{
+  const build=()=>{ln.innerHTML=lines[i].split(' ').map((w,k)=>'<span class="w'+(i===0&&/NOVA/.test(w)?' hl':'')+'" style="--d:'+(k*.16)+'s">'+esc(w)+'</span>').join(' ');ln.classList.remove('out')};
+  el.classList.toggle('cd',i>=4);el.classList.toggle('go',i===6);
+  if(i>=4)lg.classList.remove('on');
+  if(i>=4||!ln.textContent)build();else{ln.classList.add('out');later(build,170)}
+  tgt=speeds[i]||tgt;
+  anim(glow,[{opacity:.9,transform:'scale(.7)'},{opacity:0,transform:'scale(1.5)'}],{duration:900,easing:'ease-out'});
+  if(i>=4)anim(ring,[{opacity:.85,transform:'scale(.2)'},{opacity:0,transform:'scale(4)'}],{duration:700,easing:'cubic-bezier(.1,.8,.2,1)'});
+  if(i===6){anim(fl,[{opacity:.55},{opacity:0}],{duration:420});if(!RM){el.classList.add('shake');later(()=>el.classList.remove('shake'),340)}}};
+ const zoom=()=>{ln.classList.add('out');lg.classList.remove('on');el.classList.add('zoom');el.classList.remove('lb','cd','go');warp=1;tgt=1.8;
+  later(()=>anim(fl,[{opacity:0},{opacity:.9,offset:.55},{opacity:0}],{duration:900}),500)};
  const fallback=()=>{if(started)return;started=1;let t=0;
   [2050,3690,5500,1340,755,625,445].forEach((d,i)=>{later(()=>{cue(i);haptic(i>=4?'heavy':'medium')},t);t+=d});
-  later(()=>{zoom();haptic('rumble')},t);later(cleanup,t+1350)};
+  later(()=>{zoom();haptic('rumble')},t);later(cleanup,t+1700)};
  window.__novaIntro=(event,i)=>{if(dead)return;if(event==='cue'){started=1;cue(i)}else if(event==='zoom')zoom();else if(event==='end')cleanup();else if(event==='fallback')fallback()};
  el.hidden=false;el.addEventListener('pointerdown',cleanup);
- later(()=>lg.classList.add('on'),250);
+ later(()=>el.classList.add('lb'),60);
+ later(()=>lg.classList.add('on'),350);
  later(()=>{if(window.webkit?.messageHandlers?.nova)post({t:'intro'});else fallback()},1000);
  // Safety only: a missing bridge must not trap the user behind the intro.
  later(()=>{if(!started)fallback()},3000);
- later(cleanup,24000);
+ later(cleanup,26000);
 }
+
+
+/* ---------- orario personale (widget) ---------- */
+const TTD=[[2,'Lun'],[3,'Mar'],[4,'Mer'],[5,'Gio'],[6,'Ven'],[7,'Sab']];
+let ttDraft=[],ttDay=2,ttShared=null;
+const ttCount=()=>(S.tt&&S.tt.lessons||[]).length;
+const ttSum=()=>ttCount()?ttCount()+' lezioni salvate. '+(ttShared===false?'Attenzione: i widget non riescono a leggere l\'orario su questa installazione.':''):'Nessun orario: i widget restano vuoti finché non lo aggiungi.';
+const mm=t=>{const[a,b]=String(t||'').split(':').map(Number);return isFinite(a)&&isFinite(b)?a*60+b:NaN};
+const hm=n=>p2(Math.floor(n/60))+':'+p2(n%60);
+async function ttPush(){const r=await nat('tt','set',{json:JSON.stringify({v:1,lessons:S.tt.lessons})});if(r&&r.ok){ttShared=!!r.shared}const e=$('#ttSum');if(e)e.textContent=ttSum()}
+function ttMerge(L){const o=[];L.slice().sort((a,b)=>a.d-b.d||a.s-b.s).forEach(l=>{const q=o[o.length-1];if(q&&q.d===l.d&&q.n===l.n&&q.e===l.s)q.e=l.e;else o.push(Object.assign({},l))});return o}
+function ttDraw(){
+ $('#ttD').innerHTML=TTD.map(([d,l])=>'<button data-d="'+d+'" aria-pressed="'+(d===ttDay)+'">'+l+(ttDraft.some(x=>x.d===d)?' •':'')+'</button>').join('');
+ const rows=ttDraft.map((l,i)=>({l,i})).filter(x=>x.l.d===ttDay).sort((a,b)=>a.l.s-b.l.s);
+ $('#ttL').innerHTML=rows.length?rows.map(({l,i})=>'<div class="row" data-i="'+i+'" style="align-items:center;flex-wrap:wrap;gap:6px;padding-bottom:8px;border-bottom:1px solid var(--line)"><input type="time" class="ts" style="flex:1 1 40%;min-width:0" value="'+hm(l.s)+'" aria-label="Inizio"><input type="time" class="te" style="flex:1 1 40%;min-width:0" value="'+hm(l.e)+'" aria-label="Fine"><input class="tn" style="flex:1 1 60%;min-width:0" maxlength="14" value="'+esc(l.n)+'" aria-label="Materia" placeholder="Materia"><button class="btn sm tx2" style="flex:0 0 auto" aria-label="Elimina">Elimina</button></div>').join(''):'<small>Nessuna lezione per questo giorno.</small>';
+}
+function openTT(){ttDraft=(S.tt.lessons||[]).map(x=>Object.assign({},x));ttDay=2;$('#ttS').textContent='';ttDraw();if(!$('#dTT').open)$('#dTT').showModal()}
+$('#ttD').onclick=e=>{const d=+e.target.dataset.d;if(!d)return;ttDay=d;ttDraw()};
+$('#ttL').addEventListener('input',e=>{const r=e.target.closest('[data-i]');if(!r)return;const l=ttDraft[+r.dataset.i];if(!l)return;
+ if(e.target.classList.contains('ts')){const v=mm(e.target.value);if(isFinite(v))l.s=v}
+ else if(e.target.classList.contains('te')){const v=mm(e.target.value);if(isFinite(v))l.e=v}
+ else if(e.target.classList.contains('tn'))l.n=e.target.value.toUpperCase()});
+$('#ttL').onclick=e=>{if(!e.target.closest('.tx2'))return;const r=e.target.closest('[data-i]');ttDraft.splice(+r.dataset.i,1);ttDraw()};
+$('#ttA').onclick=()=>{const day=ttDraft.filter(x=>x.d===ttDay).sort((a,b)=>b.e-a.e)[0];const s0=day?day.e:490;ttDraft.push({d:ttDay,s:s0,e:s0+60,n:''});ttDraw()};
+$('#ttX').onclick=()=>{ttDraft=ttDraft.filter(x=>x.d!==ttDay);ttDraw();$('#ttS').textContent='Giorno svuotato. Tocca Salva per confermare.'};
+$('#ttC').onclick=()=>$('#dTT').close();
+$('#ttOk').onclick=async()=>{const L=ttMerge(ttDraft.filter(l=>l.n.trim()&&l.e>l.s).map(l=>({d:l.d,s:l.s,e:l.e,n:l.n.trim().slice(0,14)})));
+ S.tt={lessons:L};save();haptic('success');$('#dTT').close();await ttPush();toast(L.length?'Orario salvato: i widget lo seguono':'Orario svuotato');const o=$('#oTS');if(o)o.textContent=ttSum();if(window.obRefresh)obRefresh()};
+$('#bTT').onclick=openTT;
+function ttImg(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const m=1600,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.85))};im.onerror=()=>{URL.revokeObjectURL(u);ko(new Error('img'))};im.src=u})}
+const TTP='Questa e\' la foto di un orario scolastico settimanale. Estrai TUTTE le lezioni. Rispondi SOLO con un oggetto JSON di questa forma: {"lessons":[{"d":1,"h":1,"s":"08:10","e":"09:00","n":"INFO"}]}. d = giorno (1=lunedi, 2=martedi, 3=mercoledi, 4=giovedi, 5=venerdi, 6=sabato). h = numero dell\'ora (1,2,3...) nella griglia. s ed e = orario di inizio e fine in formato 24h HH:MM se sono scritti nella foto, altrimenti null. n = nome della materia, breve e in MAIUSCOLO, come scritto nella foto (es. MAT, ITA, INFO). Una lezione per ogni cella non vuota. Non inventare lezioni che non vedi.';
+$('#ttF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;const st=$('#ttS');
+ if(!gqHas){st.textContent='Prima salva la chiave Groq (impostazioni o passo di configurazione).';haptic('error');return}
+ try{st.textContent='Leggo la foto… può volerci qualche secondo.';const img=await ttImg(f);
+  const r=await gq('vision',{img,prompt:TTP});
+  if(!r.ok)throw new Error(r.err==='key'?'La chiave Groq non è valida.':r.err==='limite'?'Limite di richieste Groq raggiunto: riprova tra poco.':r.err==='rete'?'Rete non disponibile.':'Non riesco a leggere la foto. Riprova con una foto più nitida.');
+  let j;try{j=JSON.parse(r.text)}catch(x){const m=String(r.text).match(/\{[\s\S]*\}/);j=m?JSON.parse(m[0]):null}
+  const arr=j&&Array.isArray(j.lessons)?j.lessons:[];
+  const L=arr.map(o=>{const h=+o.h||1;let s=mm(o.s),e=mm(o.e);if(!isFinite(s)||!isFinite(e)||e<=s){s=480+(h-1)*60;e=s+60}
+   return{d:(+o.d||1)+1,s,e,n:String(o.n||'').trim().toUpperCase().slice(0,14)}}).filter(l=>l.n&&l.d>=2&&l.d<=7);
+  if(!L.length)throw new Error('Non ho trovato lezioni nella foto.');
+  ttDraft=ttMerge(L);ttDay=2;ttDraw();
+  const guessed=arr.some(o=>!isFinite(mm(o.s)));
+  st.textContent='Ho letto '+ttDraft.length+' lezioni. Controlla giorni, orari e materie'+(guessed?' (gli orari mancanti sono stimati: correggili)':'')+', poi tocca Salva.';haptic('success')}
+ catch(x){st.textContent=String(x.message||x);haptic('error')}};
 
 /* ---------- onboarding ---------- */
 const WL=[['wx','Meteo'],['bat','Batteria'],['cal','Calendario'],['task','Compiti'],['nx','Prossima verifica'],['gr','Voti'],['sp','Spotify']];
 const notifOn=()=>'Notification' in window&&Notification.permission==='granted';
+const ACCSTEP={k:'Account',t:'Inserisci la tua email',w:'Se hai già un account NOVA ti mando un codice, accedi e ritrovi tutta la configurazione senza rifarla. Se è la prima volta, ricevi un codice, scegli una password e poi continuiamo. Online finisce solo la configurazione: la password di ClasseViva, la chiave di Groq e Spotify restano sempre e solo su questo telefono. Puoi anche saltare.',c:()=>'<div class="acctb"></div>',on:()=>acctUI(),skip:1,done:()=>!!(S.acct&&S.acct.token)};
 const OB=[
+ ACCSTEP,
  {k:'Benvenuto',t:'Ciao, come ti chiamo?',w:'Uso il nome solo per salutarti nell\'app e nelle risposte dell\'assistente. Resta sul tuo telefono.',c:()=>'<input id="oN" maxlength="30" autocomplete="given-name" placeholder="Il tuo nome" value="'+esc(S.name)+'">',on:()=>{const i=$('#oN');i.oninput=()=>{S.name=i.value.trim();save();head()};i.onkeydown=e=>{if(e.key==='Enter')obGo(1)}}},
- {k:'Account',t:'Vuoi un account NOVA?',w:'Facoltativo: ti fa ritrovare questa configurazione se reinstalli l\'app o cambi iPhone. Online finisce solo la configurazione: la password di ClasseViva, la chiave di Groq e Spotify restano sempre e solo su questo telefono.',c:()=>'<div class="acctb"></div>',on:()=>acctUI(),skip:1,done:()=>!!(S.acct&&S.acct.token)},
  {k:'Aspetto',t:'Che tema preferisci?',w:'Cambia colori e contrasto. "Auto" segue l\'impostazione chiaro/scuro del tuo iPhone, così di sera non ti abbaglia.',c:()=>'<div class="seg" id="oT"><button data-v="auto">Auto</button><button data-v="light">Chiaro</button><button data-v="dark">Scuro</button></div>',on:()=>{const f=()=>$$('#oT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));f();$('#oT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();f()}}},
  {k:'Widget',t:'Cosa vuoi vedere?',w:'Così la schermata mostra solo quello che ti serve. Puoi cambiare scelta quando vuoi dalle impostazioni.',c:()=>'<div class="chips" id="oW">'+WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('')+'</div>',on:()=>{const f=()=>$$('#oW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));f();$('#oW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();f()}}},
  {k:'ClasseViva',t:'Collega il registro',w:'Mi serve per portare in NOVA compiti, verifiche e voti. Codice utente e password restano nel Portachiavi di iOS sul telefono e vanno solo ai server di ClasseViva.',c:()=>'<div class="cvb"></div>',on:()=>cvUI(),skip:1,done:()=>S.cv.on},
  {k:'Notifiche',t:'Vuoi gli avvisi?',w:'Per ricordarti i compiti la sera prima (18:00), anche con l\'app chiusa. I compiti nuovi arrivano quando iOS aggiorna NOVA in background: succede ogni tanto, non subito.',c:()=>'<button class="btn pri" id="oNt">Attiva notifiche</button><small id="oNs"></small>',on:()=>{const f=()=>{const p='Notification' in window?Notification.permission:'';$('#oNs').textContent={granted:'Notifiche attive.',denied:'Bloccate: riattivale da Impostazioni di iOS > NOVA.',default:''}[p]||'';obRefresh()};f();$('#oNt').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}f()}},skip:1,done:notifOn},
  {k:'Assistente AI',t:'Chiave API di Groq',w:'Per far funzionare l\'assistente. Groq (non Grok di xAI) ha un piano gratuito: crei la chiave su console.groq.com/keys e la incolli qui. Resta nel Portachiavi e viene usata solo verso api.groq.com.',c:()=>'<div class="gqb"></div>',on:()=>gqUI(),skip:1,done:()=>gqHas},
+ {k:'Orario',t:'Il tuo orario',w:'I widget (lezione in corso, lezioni di oggi, fine scuola) seguono il tuo orario. Scatta una foto dell\'orario: l\'assistente lo legge e lo compila, poi controlli tu. Serve la chiave Groq (passo precedente). Puoi farlo anche dopo dalle impostazioni.',c:()=>'<button class="btn pri" id="oTT">Imposta l\'orario</button><small id="oTS"></small>',on:()=>{$('#oTT').onclick=openTT;$('#oTS').textContent=ttSum()},skip:1,done:()=>ttCount()>0},
  {k:'Spotify',t:'Il Client ID di Spotify',w:'Per controllare la musica (play, pausa, brano successivo) senza uscire da NOVA serve una tua app Spotify, gratuita: 1. vai su developer.spotify.com/dashboard e crea un\'app 2. come Redirect URI scrivi esattamente nova://spotify-callback 3. spunta "Web API" e salva 4. incolla qui il Client ID. Serve anche Spotify Premium.',c:()=>'<div class="spObC"></div>',on:()=>spObCid(),skip:1,done:()=>sp.cid||sp.conn},
  {k:'Spotify',t:'Connetti il tuo account',w:'Ultimo passo: NOVA apre la pagina ufficiale di Spotify e tu autorizzi l\'app che hai creato. Il collegamento resta sul telefono.',c:()=>'<div class="spObL"></div>',on:()=>spObL(),skip:1,done:()=>sp.conn},
  {k:'Fine',t:'Tutto pronto',w:'Puoi cambiare ogni scelta dalle impostazioni (icona in alto a destra).',c:()=>'<button class="btn pri" id="oDone">Apri NOVA</button>',on:()=>{$('#oDone').onclick=obEnd}}];
@@ -617,7 +723,7 @@ function nstat(){$('#nS').textContent='Stato: '+(!('Notification' in window)?'no
 function hwBtn(){const b=$('#bHw');b.setAttribute('aria-pressed',!!S.hwn);b.textContent='Avvisi compiti: '+(S.hwn?'attivi':'spenti')}
 function introBtn(){const b=$('#bIntro'),on=!S.introOff;b.setAttribute('aria-pressed',on);b.textContent='Intro all\'avvio: '+(on?'attiva':'spenta')}
 function sheet(){$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
- $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();introBtn();acctUI();cvUI();gqUI();spUI()}
+ $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();introBtn();$('#ttSum').textContent=ttSum();acctUI();cvUI();gqUI();spUI()}
 function newTask(ds){const d=ds?dd0(ds):new Date();if(!ds)d.setDate(d.getDate()+1);d.setHours(18,0,0,0);$('#tT').value='';$('#tN').value='';$('#tD').value=iso(d);$('#tE').textContent='';$('#dTask').showModal();$('#tT').focus()}
 
 $('#bSb').innerHTML=ic('sb');$('#bSet').innerHTML=ic('sl');$('#bAI').innerHTML=ic('spark');$('#bAdd').innerHTML=ic('plus')+'Nuovo';$('#bCv').textContent='Aggiorna';$('#bCv').onclick=()=>cvRefresh(1);
@@ -662,7 +768,7 @@ document.addEventListener('pointerdown',e=>{
 
 if(S.theme!=='auto')theme();
 show();tasks();cal();tick();layout();rem();bridge();cvUI();gqUI();nxt();grades();spCard();post({t:'hwn',on:!!S.hwn});
-gqInit();spInit();
+gqInit();spInit();ttPush();
 if(S.cv.on)cvRefresh(0);
 setInterval(()=>{if(S.cv.on&&!document.hidden)cvRefresh(0)},18e5);
 setInterval(spPoll,6000);
