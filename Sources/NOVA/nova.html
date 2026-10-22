@@ -275,7 +275,7 @@ body.ovli{background:#000}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026-10-23.1</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026-10-23.2</small>
 </div></dialog>
 
 <dialog id="dTT"><div class="sheet">
@@ -633,7 +633,7 @@ $('#ttA').onclick=()=>{const day=ttDraft.filter(x=>x.d===ttDay).sort((a,b)=>b.e-
 $('#ttX').onclick=()=>{ttDraft=ttDraft.filter(x=>x.d!==ttDay);ttDraw();$('#ttS').textContent='Giorno svuotato. Tocca Salva per confermare.'};
 $('#ttC').onclick=()=>$('#dTT').close();
 $('#ttOk').onclick=async()=>{const L=ttMerge(ttDraft.filter(l=>l.n.trim()&&l.e>l.s).map(l=>({d:l.d,s:l.s,e:l.e,n:l.n.trim().slice(0,14)})));
- S.tt={lessons:L};save();haptic('success');$('#dTT').close();await ttPush();toast(L.length?'Orario salvato: i widget lo seguono':'Orario svuotato');const o=$('#oTS');if(o)o.textContent=ttSum();if(window.obRefresh)obRefresh()};
+ S.tt={lessons:L};save();haptic('success');$('#dTT').close();await ttPush();toast(L.length?(ttShared===false?'Orario salvato, ma i widget non possono leggerlo su questa installazione':'Orario salvato: i widget lo seguono'):'Orario svuotato');const o=$('#oTS');if(o)o.textContent=ttSum();if(window.obRefresh)obRefresh()};
 $('#bTT').onclick=openTT;
 function ttImg(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const m=1600,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.85))};im.onerror=()=>{URL.revokeObjectURL(u);ko(new Error('img'))};im.src=u})}
 const TTP='Questa e\' la foto di un orario scolastico settimanale. Estrai TUTTE le lezioni. Rispondi SOLO con un oggetto JSON di questa forma: {"lessons":[{"d":1,"h":1,"s":"08:10","e":"09:00","n":"INFO"}]}. d = giorno (1=lunedi, 2=martedi, 3=mercoledi, 4=giovedi, 5=venerdi, 6=sabato). h = numero dell\'ora (1,2,3...) nella griglia. s ed e = orario di inizio e fine in formato 24h HH:MM se sono scritti nella foto, altrimenti null. n = nome della materia, breve e in MAIUSCOLO, come scritto nella foto (es. MAT, ITA, INFO). Una lezione per ogni cella non vuota. Non inventare lezioni che non vedi.';
