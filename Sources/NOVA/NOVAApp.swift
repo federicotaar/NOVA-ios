@@ -386,8 +386,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             }
         } else if t == "tt" {
             let reqId = body["id"] as? Int ?? 0
-            let shared = TT.save(body["json"] as? String ?? "")
-            replyClasseViva(reqId, ["ok": 1, "shared": shared])
+            let written = TT.save(body["json"] as? String ?? "")
+            replyClasseViva(reqId, ["ok": 1, "shared": !written.isEmpty, "groups": written])
         } else if t == "groq" {
             let reqId = body["id"] as? Int ?? 0
             Task {
@@ -819,29 +819,52 @@ enum Secret {
 // MARK: - Orario personale condiviso con i widget (App Group)
 
 enum TT {
+    // AltStore/SideStore rinominano i gruppi come group.<id>.<TEAMID> e li pubblicano in ALTAppGroups,
+    // ma non sempre in TUTTI i bundle (app si, widget no). Come ridondanza ricaviamo il nome anche
+    // dal bundle ID resigned: app = it.tuonome.nova.<TEAMID>, widget = it.tuonome.nova.<TEAMID>.NOVAWidget.
     static func groupIDs() -> [String] {
         var ids: [String] = []
         if let a = Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] { ids += a }
-        ids.append("group.it.tuonome.nova")
-        return ids
-    }
-
-    static func fileURL() -> URL? {
-        for id in groupIDs() {
-            if let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) {
-                return u.appendingPathComponent("timetable.json")
+        if let bid = Bundle.main.bundleIdentifier {
+            var comps = bid.split(separator: ".").map(String.init)
+            while comps.count > 3 {
+                ids.append("group." + comps.joined(separator: "."))
+                comps.removeLast()
             }
         }
-        return nil
+        ids.append("group.it.tuonome.nova")
+        var seen = Set<String>()
+        return ids.filter { seen.insert($0).inserted }
     }
 
-    static func save(_ json: String) -> Bool {
-        guard let u = fileURL() else { return false }
-        do {
-            try json.write(to: u, atomically: true, encoding: .utf8)
+    static func containers() -> [(id: String, url: URL)] {
+        var out: [(id: String, url: URL)] = []
+        var seenPaths = Set<String>()
+        for id in groupIDs() {
+            guard let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id),
+                  seenPaths.insert(u.path).inserted else { continue }
+            out.append((id, u))
+        }
+        return out
+    }
+
+    // Scrive in TUTTI i contenitori raggiungibili: se app e widget risolvono gruppi diversi,
+    // il file arriva comunque a quello che il widget riesce a leggere.
+    static func save(_ json: String) -> [String] {
+        var written: [String] = []
+        for (id, u) in containers() {
+            do {
+                try json.write(to: u.appendingPathComponent("timetable.json"), atomically: true, encoding: .utf8)
+                written.append(id)
+            } catch {}
+        }
+        if !written.isEmpty {
             WidgetCenter.shared.reloadAllTimelines()
-            return true
-        } catch { return false }
+            for kind in ["NOVAOrarioWidget", "NOVAOggiWidget", "NOVAFineWidget"] {
+                WidgetCenter.shared.reloadTimelines(ofKind: kind)
+            }
+        }
+        return written
     }
 }
 
