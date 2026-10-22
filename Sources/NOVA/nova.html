@@ -267,7 +267,7 @@ if(S.sb==='on')S.sb='auto';
 S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};S.chat=S.chat||[];S.gr=S.gr||[];
 const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
 const bridge=()=>post({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))});
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge()};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge();acctPush()};
 let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
@@ -401,11 +401,59 @@ async function chatSend(text){text=(text||'').trim();if(!text)return;
  save();chatDraw()}
 function openChat(){chatDraw();$('#qs').innerHTML=QS.map((q,i)=>`<button data-i="${i}">${q[0]}</button>`).join('');if(!$('#dAI').open)$('#dAI').showModal();if(!gqHas)toast('Serve la chiave Groq: impostazioni > Assistente AI')}
 
+/* ---------- account & sync ---------- */
+const API='https://api.federicotaranu.site';
+async function api(p,m,b){const h={'content-type':'application/json'};if(S.acct&&S.acct.token)h.authorization='Bearer '+S.acct.token;
+ const r=await fetch(API+p,{method:m,headers:h,body:b?JSON.stringify(b):undefined});
+ const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'HTTP '+r.status);return j}
+let acct={mode:'new',stage:'email',email:'',busy:0,err:''};
+const setupJson=()=>({v:1,name:S.name,theme:S.theme,sb:S.sb,hwn:S.hwn,w:S.w,cv:S.cv});
+let acctLast='',acctT=0;
+function acctPush(){if(!S.acct||!S.acct.token)return;const s=JSON.stringify(setupJson());if(s===acctLast)return;
+ clearTimeout(acctT);acctT=setTimeout(async()=>{try{await api('/sync','PUT',{json:setupJson()});acctLast=s}catch(e){}},800)}
+async function acctPull(){const r=await api('/sync','GET');if(!r.json)return false;
+ const j=r.json;['name','theme','sb','hwn'].forEach(k=>{if(j[k]!==undefined)S[k]=j[k]});
+ if(j.w)S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},j.w);if(j.cv)S.cv=j.cv;
+ save();theme();head();show();acctLast=JSON.stringify(setupJson());return true}
+async function acctDone(email,token){S.acct={email:email.toLowerCase(),token};save();
+ acct.err='';acct.stage='done';
+ const had=await acctPull().catch(()=>false);if(!had)acctPush();
+ acctUI();if(window.obRefresh)obRefresh();
+ toast(had?'Configurazione ripristinata dal tuo account':'Account collegato: la configurazione si sincronizza da sola')}
+function acctUI(){$$('.acctb').forEach(b=>{
+ if(S.acct&&S.acct.token){b.innerHTML='<small>Collegato come <b>'+esc(S.acct.email)+'</b>. La configurazione si sincronizza automaticamente.</small><div class="row" style="margin-top:8px"><button class="btn acO">Esci</button></div>';
+  b.querySelector('.acO').onclick=()=>{delete S.acct;save();acct={mode:'new',stage:'email',email:'',busy:0,err:''};acctUI();obRefresh()};return}
+ const seg='<div class="seg" id="acM"><button data-v="new" aria-pressed="'+(acct.mode==='new')+'">Nuovo account</button><button data-v="login" aria-pressed="'+(acct.mode==='login')+'">Ho gi\'un account</button></div>';
+ let f='';
+ if(acct.mode==='login')f='<input id="acE" type="email" autocomplete="email" placeholder="La tua email" value="'+esc(acct.email)+'"><input id="acP" type="password" autocomplete="current-password" placeholder="Password"><button class="btn pri" id="acGo">Accedi</button>';
+ else if(acct.stage==='email')f='<input id="acE" type="email" autocomplete="email" placeholder="La tua email" value="'+esc(acct.email)+'"><button class="btn pri" id="acGo">Invia codice</button>';
+ else f='<small>Codice inviato a <b>'+esc(acct.email)+'</b>. Controlla la posta (anche spam): vale 10 minuti.</small><input id="acC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Codice a 6 cifre"><input id="acP" type="password" autocomplete="new-password" placeholder="Crea password (min 8 caratteri)"><button class="btn pri" id="acGo">Crea account</button>';
+ b.innerHTML=seg+f+(acct.err?'<small class="err">'+esc(acct.err)+'</small>':'')+(acct.busy?'<small>Un attimo\u2026</small>':'');
+ b.querySelector('#acM').onclick=e=>{const v=e.target.dataset.v;if(!v||v===acct.mode)return;acct.mode=v;acct.stage='email';acct.err='';acctUI()};
+ const go=b.querySelector('#acGo'),em=b.querySelector('#acE');if(em)em.oninput=()=>acct.email=em.value.trim();
+ if(go)go.onclick=async()=>{acct.err='';
+  try{
+   if(acct.mode==='login'){const e=em.value.trim(),pw=b.querySelector('#acP').value;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))throw new Error('Email non valida');acct.busy=1;acctUI();
+    const r=await api('/auth/login','POST',{email:e,password:pw});await acctDone(e,r.token)}
+   else if(acct.stage==='email'){const e=em.value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))throw new Error('Email non valida');acct.busy=1;acctUI();
+    await api('/auth/request-code','POST',{email:e});acct.email=e;acct.stage='code'}
+   else{const c=b.querySelector('#acC').value.trim(),pw=b.querySelector('#acP').value;
+    if(!/^\d{6}$/.test(c))throw new Error('Il codice \u00e8 di 6 cifre');if(pw.length<8)throw new Error('La password deve avere almeno 8 caratteri');acct.busy=1;acctUI();
+    const r=await api('/auth/verify','POST',{email:acct.email,code:c,password:pw});await acctDone(acct.email,r.token)}
+  }catch(e){acct.err=String(e.message||e);
+   if(/wrong password|unknown email/.test(acct.err))acct.err='Email o password sbagliate.';
+   if(/wrong or expired code/.test(acct.err))acct.err='Codice sbagliato o scaduto. Chiedine uno nuovo.'}
+  acct.busy=0;acctUI()}
+ })}
+
 /* ---------- onboarding ---------- */
 const WL=[['wx','Meteo'],['bat','Batteria'],['cal','Calendario'],['task','Compiti'],['nx','Prossima verifica'],['gr','Voti'],['sp','Spotify']];
 const notifOn=()=>'Notification' in window&&Notification.permission==='granted';
 const OB=[
  {k:'Benvenuto',t:'Ciao, come ti chiamo?',w:'Uso il nome solo per salutarti nell\'app e nelle risposte dell\'assistente. Resta sul tuo telefono.',c:()=>'<input id="oN" maxlength="30" autocomplete="given-name" placeholder="Il tuo nome" value="'+esc(S.name)+'">',on:()=>{const i=$('#oN');i.oninput=()=>{S.name=i.value.trim();save();head()};i.onkeydown=e=>{if(e.key==='Enter')obGo(1)}}},
+ {k:'Account',t:'Vuoi un account NOVA?',w:'Facoltativo: ti fa ritrovare questa configurazione se reinstalli l\'app o cambi iPhone. Online finisce solo la configurazione: la password di ClasseViva, la chiave di Groq e Spotify restano sempre e solo su questo telefono.',c:()=>'<div class="acctb"></div>',on:()=>acctUI(),skip:1,done:()=>!!(S.acct&&S.acct.token)},
  {k:'Aspetto',t:'Che tema preferisci?',w:'Cambia colori e contrasto. "Auto" segue l\'impostazione chiaro/scuro del tuo iPhone, così di sera non ti abbaglia.',c:()=>'<div class="seg" id="oT"><button data-v="auto">Auto</button><button data-v="light">Chiaro</button><button data-v="dark">Scuro</button></div>',on:()=>{const f=()=>$$('#oT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));f();$('#oT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();f()}}},
  {k:'Widget',t:'Cosa vuoi vedere?',w:'Così la schermata mostra solo quello che ti serve. Puoi cambiare scelta quando vuoi dalle impostazioni.',c:()=>'<div class="chips" id="oW">'+WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('')+'</div>',on:()=>{const f=()=>$$('#oW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));f();$('#oW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();f()}}},
  {k:'ClasseViva',t:'Collega il registro',w:'Mi serve per portare in NOVA compiti, verifiche e voti. Codice utente e password restano nel Portachiavi di iOS sul telefono e vanno solo ai server di ClasseViva.',c:()=>'<div class="cvb"></div>',on:()=>cvUI(),skip:1,done:()=>S.cv.on},
