@@ -275,7 +275,7 @@ body.ovli{background:#000}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026-10-22.4</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026-10-23.1</small>
 </div></dialog>
 
 <dialog id="dTT"><div class="sheet">
@@ -327,7 +327,11 @@ try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 if(S.sb==='on')S.sb='auto';
 S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};
 // Orario personale: i nuovi utenti partono vuoti. Solo l'installazione di Federico (gia' configurata) tiene il suo orario storico.
-if(!S.tt)S.tt={lessons:(S.done&&/taranu|federico|fred/i.test((S.name||'')+' '+((S.cv&&S.cv.name)||'')))?[{"d":2,"s":490,"e":590,"n":"INFO"},{"d":2,"s":590,"e":640,"n":"IRC"},{"d":2,"s":640,"e":690,"n":"SR"},{"d":2,"s":690,"e":740,"n":"ING"},{"d":2,"s":740,"e":840,"n":"TELECOM"},{"d":3,"s":490,"e":590,"n":"ING"},{"d":3,"s":590,"e":640,"n":"TPSIT"},{"d":3,"s":640,"e":740,"n":"ITA"},{"d":3,"s":740,"e":790,"n":"MAT"},{"d":4,"s":490,"e":540,"n":"STO"},{"d":4,"s":540,"e":590,"n":"ITA"},{"d":4,"s":590,"e":690,"n":"MAT"},{"d":4,"s":690,"e":740,"n":"SR"},{"d":4,"s":740,"e":840,"n":"INFO"},{"d":5,"s":490,"e":540,"n":"TELECOM"},{"d":5,"s":540,"e":640,"n":"TPSIT"},{"d":5,"s":640,"e":740,"n":"SMS"},{"d":5,"s":740,"e":840,"n":"AG"},{"d":6,"s":490,"e":590,"n":"INFO"},{"d":6,"s":590,"e":640,"n":"STO"},{"d":6,"s":640,"e":690,"n":"ITA"},{"d":6,"s":690,"e":740,"n":"MAT"},{"d":6,"s":740,"e":840,"n":"SR"}]:[]};S.chat=S.chat||[];S.gr=S.gr||[];
+if(!S.tt)S.tt={lessons:[]};
+// Orario di Federico: dopo una reinstallazione localStorage e' vuoto. Lo ripristina una sola volta,
+// appena il setup e' fatto e il nome corrisponde; ttPush() all'avvio lo passa ai widget.
+const TTSEED=[{"d":2,"s":490,"e":590,"n":"INFO"},{"d":2,"s":590,"e":640,"n":"IRC"},{"d":2,"s":640,"e":690,"n":"SR"},{"d":2,"s":690,"e":740,"n":"ING"},{"d":2,"s":740,"e":840,"n":"TELECOM"},{"d":3,"s":490,"e":590,"n":"ING"},{"d":3,"s":590,"e":640,"n":"TPSIT"},{"d":3,"s":640,"e":740,"n":"ITA"},{"d":3,"s":740,"e":790,"n":"MAT"},{"d":4,"s":490,"e":540,"n":"STO"},{"d":4,"s":540,"e":590,"n":"ITA"},{"d":4,"s":590,"e":690,"n":"MAT"},{"d":4,"s":690,"e":740,"n":"SR"},{"d":4,"s":740,"e":840,"n":"INFO"},{"d":5,"s":490,"e":540,"n":"TELECOM"},{"d":5,"s":540,"e":640,"n":"TPSIT"},{"d":5,"s":640,"e":740,"n":"SMS"},{"d":5,"s":740,"e":840,"n":"AG"},{"d":6,"s":490,"e":590,"n":"INFO"},{"d":6,"s":590,"e":640,"n":"STO"},{"d":6,"s":640,"e":690,"n":"ITA"},{"d":6,"s":690,"e":740,"n":"MAT"},{"d":6,"s":740,"e":840,"n":"SR"}];
+if(S.done&&!S.ttSeeded&&!S.tt.lessons.length&&/taranu|federico|fred/i.test((S.name||'')+' '+((S.cv&&S.cv.name)||''))){S.tt={lessons:TTSEED.map(x=>Object.assign({},x))};S.ttSeeded=1;setTimeout(()=>save(),0)}S.chat=S.chat||[];S.gr=S.gr||[];
 const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
 const haptic=s=>post({t:'haptic',style:s||'light'});
 const bridge=()=>post({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))});
