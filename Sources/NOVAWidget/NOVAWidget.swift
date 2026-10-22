@@ -40,7 +40,7 @@ enum Orario {
         Lesson(weekday: 5, start: 490, end: 540, subject: "TELECOM"),
         Lesson(weekday: 5, start: 540, end: 640, subject: "TPSIT"),
         Lesson(weekday: 5, start: 640, end: 740, subject: "SMS"),
-        Lesson(weekday: 5, start: 740, end: 790, subject: "AG"),
+        Lesson(weekday: 5, start: 740, end: 840, subject: "AG"),
         // Venerdi
         Lesson(weekday: 6, start: 490, end: 590, subject: "INFO"),
         Lesson(weekday: 6, start: 590, end: 640, subject: "STO"),
