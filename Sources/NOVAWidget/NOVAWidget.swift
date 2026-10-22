@@ -19,36 +19,28 @@ struct Slot: Identifiable {
 }
 
 enum Orario {
-    static let lessons: [Lesson] = [
-        // Lunedi
-        Lesson(weekday: 2, start: 490, end: 590, subject: "INFO"),
-        Lesson(weekday: 2, start: 590, end: 640, subject: "IRC"),
-        Lesson(weekday: 2, start: 640, end: 690, subject: "SR"),
-        Lesson(weekday: 2, start: 690, end: 740, subject: "ING"),
-        Lesson(weekday: 2, start: 740, end: 840, subject: "TELECOM"),
-        // Martedi (via Canapa, 19-LING)
-        Lesson(weekday: 3, start: 490, end: 590, subject: "ING"),
-        Lesson(weekday: 3, start: 590, end: 640, subject: "TPSIT"),
-        Lesson(weekday: 3, start: 640, end: 740, subject: "ITA"),
-        Lesson(weekday: 3, start: 740, end: 790, subject: "MAT"),
-        // Mercoledi
-        Lesson(weekday: 4, start: 490, end: 540, subject: "STO"),
-        Lesson(weekday: 4, start: 540, end: 590, subject: "ITA"),
-        Lesson(weekday: 4, start: 590, end: 690, subject: "MAT"),
-        Lesson(weekday: 4, start: 690, end: 740, subject: "SR"),
-        Lesson(weekday: 4, start: 740, end: 840, subject: "INFO"),
-        // Giovedi
-        Lesson(weekday: 5, start: 490, end: 540, subject: "TELECOM"),
-        Lesson(weekday: 5, start: 540, end: 640, subject: "TPSIT"),
-        Lesson(weekday: 5, start: 640, end: 740, subject: "SMS"),
-        Lesson(weekday: 5, start: 740, end: 840, subject: "AG"),
-        // Venerdi
-        Lesson(weekday: 6, start: 490, end: 590, subject: "INFO"),
-        Lesson(weekday: 6, start: 590, end: 640, subject: "STO"),
-        Lesson(weekday: 6, start: 640, end: 690, subject: "ITA"),
-        Lesson(weekday: 6, start: 690, end: 740, subject: "MAT"),
-        Lesson(weekday: 6, start: 740, end: 840, subject: "SR"),
-    ]
+    // L'orario e' quello dell'utente: NOVA lo scrive in un file condiviso (App Group).
+    static var lessons: [Lesson] {
+        var ids: [String] = []
+        if let a = Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] { ids += a }
+        let host = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Info.plist")
+        if let d = NSDictionary(contentsOf: host), let a = d["ALTAppGroups"] as? [String] { ids += a }
+        ids.append("group.it.tuonome.nova")
+        for id in ids {
+            guard let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id)?
+                .appendingPathComponent("timetable.json"),
+                  let data = try? Data(contentsOf: u),
+                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let arr = j["lessons"] as? [[String: Any]] else { continue }
+            return arr.compactMap { o in
+                guard let d = o["d"] as? Int, let s = o["s"] as? Int, let e = o["e"] as? Int,
+                      let n = o["n"] as? String, e > s else { return nil }
+                return Lesson(weekday: d, start: s, end: e, subject: n)
+            }
+        }
+        return []
+    }
 
     static var calendar: Calendar {
         var c = Calendar(identifier: .gregorian)
@@ -126,8 +118,8 @@ enum OrarioLogic {
             return OrarioEntry(date: now, subject: nxt.subject, target: nxt.start, barStart: prevEnd,
                                isCurrent: false, showTimer: !far, range: Orario.range(nxt))
         }
-        return OrarioEntry(date: now, subject: "NOVA", target: now, barStart: now,
-                           isCurrent: false, showTimer: false, range: "")
+        return OrarioEntry(date: now, subject: "ORARIO", target: now, barStart: now,
+                           isCurrent: false, showTimer: false, range: Orario.lessons.isEmpty ? "Aggiungilo in NOVA" : "")
     }
 }
 
