@@ -129,7 +129,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .cf{display:flex;gap:8px;padding:0 16px 14px}
 .cf input{flex:1}
 .cf .ico{width:42px;height:42px;background:var(--fg);color:var(--bg);border-color:var(--fg)}
-#ob{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;gap:14px;overflow:hidden;padding:max(16px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
+#ob{position:fixed;inset:0;margin:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;gap:14px;overflow:hidden;padding:max(16px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
 .obd{display:flex;gap:5px;max-width:560px;width:100%;margin:0 auto}
 .obd i{height:3px;flex:1;border-radius:2px;background:var(--line)}.obd i.on{background:var(--fg)}
 .obm{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:16px;max-width:560px;width:100%;margin:0 auto}
@@ -197,7 +197,7 @@ body{transition:background .35s ease,color .35s ease}
 .card,.btn,.seg button,.chips button,.ico,input,select,textarea{transition:background .35s ease,border-color .35s ease,color .35s ease,transform .12s ease,box-shadow .2s}
 .di{animation:popIn .34s cubic-bezier(.32,.72,0,1) both}
 /* ---------- intro cinematografica ---------- */
-#intro{position:fixed;inset:0;z-index:80;background:#000;color:#fff;overflow:hidden;touch-action:manipulation}
+#intro{position:fixed;inset:0;margin:0;z-index:80;background:#000;color:#fff;overflow:hidden;touch-action:manipulation}
 #intro canvas{position:absolute;inset:0;width:100%;height:100%}
 #inW{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;will-change:transform}
 #intro .inN{width:88px;height:88px;border-radius:23px;background:#fff;color:#000;display:grid;place-items:center;font-size:46px;font-weight:800;letter-spacing:-.03em;opacity:0;transform:scale(.6);filter:blur(8px);transition:opacity .9s ease,transform 1s cubic-bezier(.16,1,.3,1),filter .9s ease;box-shadow:0 0 60px rgba(255,255,255,.35)}
@@ -216,7 +216,7 @@ body{transition:background .35s ease,color .35s ease}
 #intro .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
 #intro .lbx{position:absolute;left:0;right:0;height:0;background:#000;z-index:3;transition:height 1.2s cubic-bezier(.16,1,.3,1)}
 #intro .lbx.t{top:0}#intro .lbx.b{bottom:0}
-#intro.lb .lbx{height:11vh}
+#intro.lbxon .lbx{height:11vh}
 #intro .hint{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,.45);z-index:4;opacity:0;animation:hintIn 1s 2s forwards}
 @keyframes hintIn{to{opacity:1}}
 #intro.zoom #inW{animation:inZoom 1.3s cubic-bezier(.55,.06,.68,.19) forwards}
@@ -561,14 +561,14 @@ function intro(){
   anim(glow,[{opacity:.9,transform:'scale(.7)'},{opacity:0,transform:'scale(1.5)'}],{duration:900,easing:'ease-out'});
   if(i>=4)anim(ring,[{opacity:.85,transform:'scale(.2)'},{opacity:0,transform:'scale(4)'}],{duration:700,easing:'cubic-bezier(.1,.8,.2,1)'});
   if(i===6){anim(fl,[{opacity:.55},{opacity:0}],{duration:420});if(!RM){el.classList.add('shake');later(()=>el.classList.remove('shake'),340)}}};
- const zoom=()=>{ln.classList.add('out');lg.classList.remove('on');el.classList.add('zoom');el.classList.remove('lb','cd','go');warp=1;tgt=1.8;
+ const zoom=()=>{ln.classList.add('out');lg.classList.remove('on');el.classList.add('zoom');el.classList.remove('lbxon','cd','go');warp=1;tgt=1.8;
   later(()=>anim(fl,[{opacity:0},{opacity:.9,offset:.55},{opacity:0}],{duration:900}),500)};
  const fallback=()=>{if(started)return;started=1;let t=0;
   [2050,3690,5500,1340,755,625,445].forEach((d,i)=>{later(()=>{cue(i);haptic(i>=4?'heavy':'medium')},t);t+=d});
   later(()=>{zoom();haptic('rumble')},t);later(cleanup,t+1700)};
  window.__novaIntro=(event,i)=>{if(dead)return;if(event==='cue'){started=1;cue(i)}else if(event==='zoom')zoom();else if(event==='end')cleanup();else if(event==='fallback')fallback()};
  el.hidden=false;el.addEventListener('pointerdown',cleanup);
- later(()=>el.classList.add('lb'),60);
+ later(()=>el.classList.add('lbxon'),60);
  later(()=>lg.classList.add('on'),350);
  later(()=>{if(window.webkit?.messageHandlers?.nova)post({t:'intro'});else fallback()},1000);
  // Safety only: a missing bridge must not trap the user behind the intro.
