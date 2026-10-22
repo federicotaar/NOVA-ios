@@ -848,8 +848,10 @@ enum TT {
 // MARK: - Groq (chatbot): api.groq.com, NON Grok di xAI
 
 enum Groq {
-    static let models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b"]
-    static let visionModels = ["meta-llama/llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct"]
+    // Groq depreca in fretta: llama-4 vision spenti a meta 2026, llama-3.x chat spenti ago 2026.
+    // Vivi ora (ott 2026): gpt-oss per chat, qwen3.8-27b per vision. Controlla console.groq.com/docs/deprecations.
+    static let models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
+    static let visionModels = ["qwen/qwen3.8-27b"]
     static let base = "https://api.groq.com/openai/v1"
 
     static func handle(_ msg: [String: Any]) async -> [String: Any] {
@@ -883,7 +885,7 @@ enum Groq {
                 req.timeoutInterval = 60
                 req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                let body: [String: Any] = ["model": model, "messages": msgs, "temperature": 0.5, "max_tokens": 900]
+                let body: [String: Any] = ["model": model, "messages": msgs, "temperature": 0.5, "max_tokens": 2500, "reasoning_effort": "low"]
                 req.httpBody = try? JSONSerialization.data(withJSONObject: body)
                 do {
                     let (data, resp) = try await URLSession.shared.data(for: req)
@@ -907,6 +909,7 @@ enum Groq {
                 ["type": "text", "text": prompt],
                 ["type": "image_url", "image_url": ["url": img]]
             ]
+            var lastInfo = ""
             for model in visionModels {
                 var req = URLRequest(url: URL(string: base + "/chat/completions")!)
                 req.httpMethod = "POST"
@@ -918,6 +921,7 @@ enum Groq {
                     "messages": [["role": "user", "content": content]],
                     "temperature": 0,
                     "max_tokens": 3000,
+                    "reasoning_effort": "none",
                     "response_format": ["type": "json_object"]
                 ]
                 req.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -931,9 +935,10 @@ enum Groq {
                        let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model] }
                     if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
                     if status == 429 { return ["ok": 0, "err": "limite"] }
+                    if let txt = String(data: data, encoding: .utf8) { lastInfo = String(txt.prefix(300)) }
                 } catch { return ["ok": 0, "err": "rete"] }
             }
-            return ["ok": 0, "err": "modello"]
+            return ["ok": 0, "err": "modello", "info": lastInfo]
         default:
             return ["ok": 0, "err": "op"]
         }
