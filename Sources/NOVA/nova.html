@@ -496,19 +496,25 @@ function intro(){
  const go=()=>{if(S.ob!==2)obStart()};
  if(S.introOff){el.remove();go();return}
  const lg=$('#inL'),ln=$('#inT');
- let dead=0;const T=[],later=(f,ms)=>T.push(setTimeout(()=>{if(!dead)f()},ms));
- const cleanup=()=>{if(dead)return;dead=1;T.forEach(clearTimeout);post({t:'speak',stop:true});
+ let dead=0,started=0;const T=[],later=(f,ms)=>T.push(setTimeout(()=>{if(!dead)f()},ms));
+ const cleanup=()=>{if(dead)return;dead=1;T.forEach(clearTimeout);post({t:'intro',stop:true});delete window.__novaIntro;
+  document.removeEventListener('visibilitychange',hide);
   el.style.transition='opacity .4s ease';el.style.opacity='0';el.style.pointerEvents='none';
   setTimeout(()=>{el.remove();go()},430)};
+ const hide=()=>{if(document.hidden)cleanup()};document.addEventListener('visibilitychange',hide);
+ const lines=['This is NOVA.','Your entire school day, in one place.','Homework, tests, grades, music.','All handled.','Ready','Set','GO.'];
+ const cue=i=>{ln.classList.remove('on');el.classList.toggle('fast',i>=4);later(()=>{ln.textContent=lines[i]||'';ln.classList.add('on')},i>=4?25:60)};
+ const zoom=()=>{ln.classList.remove('on');el.classList.add('zoom')};
+ const fallback=()=>{if(started)return;started=1;let t=0;
+  [2050,3690,5500,1340,755,625,445].forEach((d,i)=>{later(()=>{cue(i);haptic(i>=4?'heavy':'medium')},t);t+=d});
+  later(()=>{zoom();haptic('rumble')},t);later(cleanup,t+1350)};
+ window.__novaIntro=(event,i)=>{if(dead)return;if(event==='cue'){started=1;cue(i)}else if(event==='zoom')zoom();else if(event==='end')cleanup();else if(event==='fallback')fallback()};
  el.hidden=false;el.addEventListener('pointerdown',cleanup);
  later(()=>lg.classList.add('on'),250);
- const lines=[['This is NOVA.',2000],['Your entire school day, in one place.',2200],['Homework, tests, grades, music.',1900],['All handled.',1200]];
- let t=1100;
- lines.forEach(([s,d])=>{later(()=>{ln.classList.remove('on');later(()=>{ln.textContent=s;ln.classList.add('on')},240);haptic('selection');post({t:'speak',text:s})},t);t+=d});
- let iv=540;
- ['Ready','Set','GO.'].forEach(s=>{later(()=>{el.classList.add('fast');ln.classList.remove('on');later(()=>{ln.textContent=s;ln.classList.add('on')},70);haptic('medium')},t);t+=iv;iv=Math.max(200,iv-160)});
- later(()=>{post({t:'speak',stop:true});ln.classList.remove('on');el.classList.add('zoom');haptic('rumble')},t+120);
- later(cleanup,t+1400);
+ later(()=>{if(window.webkit?.messageHandlers?.nova)post({t:'intro'});else fallback()},1000);
+ // Safety only: a missing bridge must not trap the user behind the intro.
+ later(()=>{if(!started)fallback()},3000);
+ later(cleanup,24000);
 }
 
 /* ---------- onboarding ---------- */
