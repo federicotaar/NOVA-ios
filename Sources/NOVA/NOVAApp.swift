@@ -8,6 +8,7 @@ import AuthenticationServices
 import CryptoKit
 import CoreHaptics
 import AVFoundation
+import WidgetKit
 
 @main
 struct NOVAApp: App {
@@ -179,7 +180,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         guard introRunning else { return }
         guard introIndex < introClips.count else {
             introEvent("zoom"); rumble()
-            queueIntro(after: 1.35) { [weak self] in
+            queueIntro(after: 1.7) { [weak self] in
                 self?.stopIntro(); self?.introEvent("end")
             }
             return
@@ -249,34 +250,78 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         }
     }
 
+    // Layered haptics per narration line: an accent hit when the line lands, a swelling low
+    // "underscore", an accelerating heartbeat (lub-dub) and one soft tick per revealed word
+    // (words appear every 0.16 s in the web layer). Countdown lines hit progressively harder.
     func introBeat(index: Int, duration: Double) {
-        let countdown = index >= 4
-        var times = [0.0, countdown ? 0.1 : 0.14]
-        if !countdown {
-            var t = 0.62
-            while t < min(duration - 0.15, 5.0) { times.append(t); t += 0.65 }
+        let wordCounts = [3, 7, 4, 2, 1, 1, 1]
+        let n = wordCounts[min(index, wordCounts.count - 1)]
+        let build = Float(index) / 6
+        var events: [CHHapticEvent] = []
+        var curves: [CHHapticParameterCurve] = []
+        var times: [Double] = [0]
+        if index >= 4 {
+            let power: Float = index == 4 ? 0.85 : (index == 5 ? 0.95 : 1.0)
+            events.append(transient(0, power, 0.9))
+            events.append(transient(0.09, power, 0.6))
+            let burst = max(0.3, min(duration, index == 6 ? 0.7 : 0.4))
+            events.append(CHHapticEvent(eventType: .hapticContinuous, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: power),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+            ], relativeTime: 0.02, duration: burst))
+            curves.append(CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [
+                .init(relativeTime: 0, value: 1.0),
+                .init(relativeTime: burst, value: 0.2)
+            ], relativeTime: 0.02))
+            times.append(0.09)
+        } else {
+            events.append(transient(0, 0.8 + 0.04 * Float(index), 0.5))
+            let span = max(0.4, duration)
+            events.append(CHHapticEvent(eventType: .hapticContinuous, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.3 + 0.08 * Float(index)),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
+            ], relativeTime: 0.05, duration: span))
+            curves.append(CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [
+                .init(relativeTime: 0, value: 0.5),
+                .init(relativeTime: span, value: 1.0)
+            ], relativeTime: 0.05))
+            for w in 1..<max(n, 2) where w < n {
+                let t = Double(w) * 0.16
+                events.append(transient(t, min(0.9, 0.42 + 0.07 * Float(w)), 0.75))
+                times.append(t)
+            }
+            let period = 0.85 - 0.05 * Double(index)
+            var t = 0.4
+            while t < duration - 0.2 {
+                events.append(transient(t, 0.55 + 0.1 * build, 0.3))
+                events.append(transient(t + 0.13, 0.4 + 0.1 * build, 0.25))
+                times.append(t)
+                t += period
+            }
         }
-        let events = times.enumerated().map { i, t in
-            transient(t, countdown ? 1.0 : (i == 0 ? 0.9 : 0.65), countdown ? 0.85 : 0.45)
-        }
-        playHaptics(events, fallback: times)
+        playHaptics(events, curves: curves, fallback: times)
     }
 
-    // Full-scale carrier matters: the previous 0.3 carrier capped the whole ramp.
+    // Final push: rising full-scale rumble, accelerating impacts, then a double landing hit.
     func rumble() {
         let continuous = CHHapticEvent(eventType: .hapticContinuous, parameters: [
             CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
-            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.7)
-        ], relativeTime: 0, duration: 1.03)
+            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+        ], relativeTime: 0, duration: 1.3)
         let curve = CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [
-            .init(relativeTime: 0, value: 0.5),
-            .init(relativeTime: 0.35, value: 0.75),
-            .init(relativeTime: 0.75, value: 1.0),
-            .init(relativeTime: 1.03, value: 1.0)
+            .init(relativeTime: 0, value: 0.4),
+            .init(relativeTime: 0.45, value: 0.7),
+            .init(relativeTime: 0.95, value: 1.0),
+            .init(relativeTime: 1.3, value: 1.0)
         ], relativeTime: 0)
-        let times = [0.0, 0.28, 0.5, 0.68, 0.82, 0.93, 1.08, 1.2]
+        let sharp = CHHapticParameterCurve(parameterID: .hapticSharpnessControl, controlPoints: [
+            .init(relativeTime: 0, value: -0.3),
+            .init(relativeTime: 1.0, value: 0.6),
+            .init(relativeTime: 1.3, value: 0.0)
+        ], relativeTime: 0)
+        let times = [0.0, 0.26, 0.46, 0.62, 0.75, 0.86, 0.95, 1.03, 1.12, 1.24, 1.36]
         let hits = times.map { transient($0, 1.0, 0.9) }
-        playHaptics([continuous] + hits, curves: [curve], fallback: times)
+        playHaptics([continuous] + hits, curves: [curve, sharp], fallback: times)
     }
 
     // Link esterni (es. console.groq.com) si aprono in Safari, non dentro l'app.
@@ -320,6 +365,10 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
                 let result = await Spotify.handle(body)
                 self.replyClasseViva(reqId, result)
             }
+        } else if t == "tt" {
+            let reqId = body["id"] as? Int ?? 0
+            let shared = TT.save(body["json"] as? String ?? "")
+            replyClasseViva(reqId, ["ok": 1, "shared": shared])
         } else if t == "groq" {
             let reqId = body["id"] as? Int ?? 0
             Task {
@@ -748,10 +797,40 @@ enum Secret {
     static func clear(_ account: String) { SecItemDelete(base(account) as CFDictionary) }
 }
 
+// MARK: - Orario personale condiviso con i widget (App Group)
+
+enum TT {
+    static func groupIDs() -> [String] {
+        var ids: [String] = []
+        if let a = Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] { ids += a }
+        ids.append("group.it.tuonome.nova")
+        return ids
+    }
+
+    static func fileURL() -> URL? {
+        for id in groupIDs() {
+            if let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) {
+                return u.appendingPathComponent("timetable.json")
+            }
+        }
+        return nil
+    }
+
+    static func save(_ json: String) -> Bool {
+        guard let u = fileURL() else { return false }
+        do {
+            try json.write(to: u, atomically: true, encoding: .utf8)
+            WidgetCenter.shared.reloadAllTimelines()
+            return true
+        } catch { return false }
+    }
+}
+
 // MARK: - Groq (chatbot): api.groq.com, NON Grok di xAI
 
 enum Groq {
     static let models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b"]
+    static let visionModels = ["meta-llama/llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct"]
     static let base = "https://api.groq.com/openai/v1"
 
     static func handle(_ msg: [String: Any]) async -> [String: Any] {
@@ -786,6 +865,42 @@ enum Groq {
                 req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 let body: [String: Any] = ["model": model, "messages": msgs, "temperature": 0.5, "max_tokens": 900]
+                req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                do {
+                    let (data, resp) = try await URLSession.shared.data(for: req)
+                    let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                    if status == 200,
+                       let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let ch = (j["choices"] as? [[String: Any]])?.first,
+                       let m = ch["message"] as? [String: Any],
+                       let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model] }
+                    if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
+                    if status == 429 { return ["ok": 0, "err": "limite"] }
+                } catch { return ["ok": 0, "err": "rete"] }
+            }
+            return ["ok": 0, "err": "modello"]
+        case "vision":
+            guard let key = Secret.get("groq") else { return ["ok": 0, "err": "nokey"] }
+            let prompt = msg["prompt"] as? String ?? ""
+            let img = msg["img"] as? String ?? ""
+            guard img.hasPrefix("data:image/") else { return ["ok": 0, "err": "img"] }
+            let content: [[String: Any]] = [
+                ["type": "text", "text": prompt],
+                ["type": "image_url", "image_url": ["url": img]]
+            ]
+            for model in visionModels {
+                var req = URLRequest(url: URL(string: base + "/chat/completions")!)
+                req.httpMethod = "POST"
+                req.timeoutInterval = 90
+                req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                let body: [String: Any] = [
+                    "model": model,
+                    "messages": [["role": "user", "content": content]],
+                    "temperature": 0,
+                    "max_tokens": 3000,
+                    "response_format": ["type": "json_object"]
+                ]
                 req.httpBody = try? JSONSerialization.data(withJSONObject: body)
                 do {
                     let (data, resp) = try await URLSession.shared.data(for: req)
