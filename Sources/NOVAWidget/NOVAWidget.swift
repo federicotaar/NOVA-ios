@@ -20,27 +20,76 @@ struct Slot: Identifiable {
 
 enum Orario {
     // L'orario e' quello dell'utente: NOVA lo scrive in un file condiviso (App Group).
-    static var lessons: [Lesson] {
+    // AltStore/SideStore rinominano il gruppo in group.<id>.<TEAMID> e lo pubblicano in ALTAppGroups,
+    // ma non sempre nel bundle del widget: come ridondanza ricaviamo il nome anche dal bundle ID
+    // resigned del widget (it.tuonome.nova.<TEAMID>.NOVAWidget).
+    static func groupIDs() -> [String] {
         var ids: [String] = []
         if let a = Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] { ids += a }
         let host = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Info.plist")
         if let d = NSDictionary(contentsOf: host), let a = d["ALTAppGroups"] as? [String] { ids += a }
+        if let bid = Bundle.main.bundleIdentifier {
+            var comps = bid.split(separator: ".").map(String.init)
+            while comps.count > 3 {
+                ids.append("group." + comps.joined(separator: "."))
+                comps.removeLast()
+            }
+        }
         ids.append("group.it.tuonome.nova")
-        for id in ids {
+        var seen = Set<String>()
+        return ids.filter { seen.insert($0).inserted }
+    }
+
+    // Orario incorporato, come prima del ponte app-widget: i widget funzionano sempre,
+    // anche quando l'App Group non e' accessibile (sideload con ID gratuito).
+    // Stesso orario di TTSEED in nova.html.
+    static let builtin: [Lesson] = [
+        Lesson(weekday: 2, start: 490, end: 590, subject: "INFO"),
+        Lesson(weekday: 2, start: 590, end: 640, subject: "IRC"),
+        Lesson(weekday: 2, start: 640, end: 690, subject: "SR"),
+        Lesson(weekday: 2, start: 690, end: 740, subject: "ING"),
+        Lesson(weekday: 2, start: 740, end: 840, subject: "TELECOM"),
+        Lesson(weekday: 3, start: 490, end: 590, subject: "ING"),
+        Lesson(weekday: 3, start: 590, end: 640, subject: "TPSIT"),
+        Lesson(weekday: 3, start: 640, end: 740, subject: "ITA"),
+        Lesson(weekday: 3, start: 740, end: 790, subject: "MAT"),
+        Lesson(weekday: 4, start: 490, end: 540, subject: "STO"),
+        Lesson(weekday: 4, start: 540, end: 590, subject: "ITA"),
+        Lesson(weekday: 4, start: 590, end: 690, subject: "MAT"),
+        Lesson(weekday: 4, start: 690, end: 740, subject: "SR"),
+        Lesson(weekday: 4, start: 740, end: 840, subject: "INFO"),
+        Lesson(weekday: 5, start: 490, end: 540, subject: "TELECOM"),
+        Lesson(weekday: 5, start: 540, end: 640, subject: "TPSIT"),
+        Lesson(weekday: 5, start: 640, end: 740, subject: "SMS"),
+        Lesson(weekday: 5, start: 740, end: 840, subject: "AG"),
+        Lesson(weekday: 6, start: 490, end: 590, subject: "INFO"),
+        Lesson(weekday: 6, start: 590, end: 640, subject: "STO"),
+        Lesson(weekday: 6, start: 640, end: 690, subject: "ITA"),
+        Lesson(weekday: 6, start: 690, end: 740, subject: "MAT"),
+        Lesson(weekday: 6, start: 740, end: 840, subject: "SR"),
+    ]
+
+    // linked = l'app ha condiviso un orario via App Group; false = solo orario incorporato.
+    // Se la condivisione funziona, l'orario modificato nell'app vince; altrimenti vale builtin.
+    static func load() -> (lessons: [Lesson], linked: Bool) {
+        for id in groupIDs() {
             guard let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id)?
                 .appendingPathComponent("timetable.json"),
                   let data = try? Data(contentsOf: u),
                   let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let arr = j["lessons"] as? [[String: Any]] else { continue }
-            return arr.compactMap { o in
+            let lessons = arr.compactMap { o -> Lesson? in
                 guard let d = o["d"] as? Int, let s = o["s"] as? Int, let e = o["e"] as? Int,
                       let n = o["n"] as? String, e > s else { return nil }
                 return Lesson(weekday: d, start: s, end: e, subject: n)
             }
+            return (lessons.isEmpty ? builtin : lessons, true)
         }
-        return []
+        return (builtin, false)
     }
+
+    static var lessons: [Lesson] { load().lessons }
 
     static var calendar: Calendar {
         var c = Calendar(identifier: .gregorian)
@@ -201,6 +250,7 @@ struct NOVAOrarioWidget: Widget {
 struct DayEntry: TimelineEntry {
     let date: Date
     let slots: [Slot]
+    var linked: Bool = true
 }
 
 struct DayProvider: TimelineProvider {
@@ -211,13 +261,14 @@ struct DayProvider: TimelineProvider {
 
     func getSnapshot(in context: Context, completion: @escaping (DayEntry) -> Void) {
         let now = Date()
-        completion(DayEntry(date: now, slots: Orario.slots(from: now, days: 1)))
+        completion(DayEntry(date: now, slots: Orario.slots(from: now, days: 1), linked: Orario.load().linked))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DayEntry>) -> Void) {
         let now = Date()
+        let linked = Orario.load().linked
         let entries = Orario.boundaries(from: now, days: 2).map {
-            DayEntry(date: $0, slots: Orario.slots(from: $0, days: 1))
+            DayEntry(date: $0, slots: Orario.slots(from: $0, days: 1), linked: linked)
         }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
