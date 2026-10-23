@@ -2,6 +2,9 @@ name: Build unsigned IPA
 
 on:
   push:
+    paths-ignore:
+      - '**.md'
+      - 'assets/1-icon1024.png'
   workflow_dispatch:
 
 permissions:
@@ -82,7 +85,13 @@ jobs:
           BUILD_TAG="$(grep -o 'NOVA build [0-9][0-9.-]*' Sources/NOVA/nova.html | head -n1 | sed 's/NOVA build //')"
           if [ -z "$BUILD_TAG" ]; then BUILD_TAG="dev.${{ github.run_number }}"; fi
           REL="v$BUILD_TAG"
+          # Immutabilita': una release pubblicata non viene MAI sovrascritta.
+          # Se il tag esiste gia', la build vale solo come controllo di compilazione.
+          if gh release view "$REL" >/dev/null 2>&1; then
+            echo "Release $REL gia' pubblicata: salto l'upload (immutabilita'). Incrementa il tag 'NOVA build' in nova.html per una nuova versione."
+            exit 0
+          fi
           cp "$IPA" "NOVA-$BUILD_TAG.ipa"
-          gh release view "$REL" >/dev/null 2>&1 || gh release create "$REL" --title "NOVA $BUILD_TAG (unsigned ipa)" --notes "NOVA.ipa non firmato, build $BUILD_TAG. Installa con AltStore o Sideloadly. Ultima build sempre qui: https://github.com/federicotaranudev/NOVA-ios/releases/latest/download/NOVA.ipa"
-          gh release upload "$REL" "$IPA" "NOVA-$BUILD_TAG.ipa" --clobber
+          gh release create "$REL" --title "NOVA $BUILD_TAG (unsigned ipa)" --notes "NOVA.ipa non firmato, build $BUILD_TAG. Installa con AltStore o Sideloadly. Ultima build sempre qui: https://github.com/federicotaranudev/NOVA-ios/releases/latest/download/NOVA.ipa"
+          gh release upload "$REL" "$IPA" "NOVA-$BUILD_TAG.ipa"
 
