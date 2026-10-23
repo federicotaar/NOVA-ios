@@ -275,7 +275,7 @@ body.ovli{background:#000}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.10</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.11</small>
 </div></dialog>
 
 <dialog id="dTT"><div class="sheet">
@@ -335,7 +335,8 @@ if(S.done&&!S.ttSeeded&&!S.tt.lessons.length&&/taranu|federico|fred/i.test((S.na
 const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
 const haptic=s=>post({t:'haptic',style:s||'light'});
 const bridge=()=>post({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))});
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge();acctPush()};
+const hwPush=()=>{const items=S.tasks.filter(t=>!t.done&&t.kind!=='test'&&t.due).map(t=>({t:t.title,s:t.subj||'',d:String(t.due).slice(0,10)}));nat('tt','hw',{json:JSON.stringify({v:1,items})})};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge();hwPush();acctPush()};
 let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
