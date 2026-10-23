@@ -75,7 +75,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
           IPA="$(ls xtool/*.ipa | head -n1)"
-          gh release view v1.0 >/dev/null 2>&1 || gh release create v1.0 --title "NOVA v1.0 (unsigned ipa)" --notes "NOVA.ipa non firmato. Installa con AltStore o Sideloadly."
-          gh release upload v1.0 "$IPA" --clobber
+          # Ogni build tag (da nova.html, es. 2026.10.23.3) diventa la SUA release:
+          # i vecchi pacchetti restano, niente viene sovrascritto tra versioni diverse.
+          BUILD_TAG="$(grep -o 'NOVA build [0-9][0-9.-]*' Sources/NOVA/nova.html | head -n1 | sed 's/NOVA build //')"
+          if [ -z "$BUILD_TAG" ]; then BUILD_TAG="dev.${{ github.run_number }}"; fi
+          REL="v$BUILD_TAG"
+          cp "$IPA" "NOVA-$BUILD_TAG.ipa"
+          gh release view "$REL" >/dev/null 2>&1 || gh release create "$REL" --title "NOVA $BUILD_TAG (unsigned ipa)" --notes "NOVA.ipa non firmato, build $BUILD_TAG. Installa con AltStore o Sideloadly. Ultima build sempre qui: https://github.com/federicotaranudev/NOVA-ios/releases/latest/download/NOVA.ipa"
+          gh release upload "$REL" "$IPA" "NOVA-$BUILD_TAG.ipa" --clobber
 
