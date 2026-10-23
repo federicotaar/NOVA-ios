@@ -401,9 +401,10 @@ main.pg{padding-bottom:112px}
  <div class="fl">Spotify<div class="spb"></div></div>
  <div class="sep"></div>
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
+ <div class="fl" id="fidRow" hidden>Blocco app<button class="btn" id="bFid">Face ID: spento</button><small>Quando è attivo, NOVA si blocca a ogni apertura e si sblocca con Face ID (o codice). Il volto resta sul telefono.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.20</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.21</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -501,7 +502,7 @@ const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge()
 let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
-const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d);
+const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
 rain:'<path d="M7 14a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
@@ -937,6 +938,12 @@ const OB=[
  {k:'Spotify',t:'Il Client ID di Spotify',w:'Per controllare la musica (play, pausa, brano successivo) senza uscire da NOVA serve una tua app Spotify, gratuita: 1. vai su developer.spotify.com/dashboard e crea un\'app 2. come Redirect URI scrivi esattamente nova://spotify-callback 3. spunta "Web API" e salva 4. incolla qui il Client ID. Serve anche Spotify Premium.',c:()=>'<div class="spObC"></div>',on:()=>spObCid(),skip:1,done:()=>sp.cid||sp.conn},
  {k:'Spotify',t:'Connetti il tuo account',w:'Ultimo passo: NOVA apre la pagina ufficiale di Spotify e tu autorizzi l\'app che hai creato. Il collegamento resta sul telefono.',c:()=>'<div class="spObL"></div>',on:()=>spObL(),skip:1,done:()=>sp.conn},
  {k:'Intro',t:'Intro a ogni avvio?',w:'La sequenza cinematografica all\'apertura di NOVA: solo la prima volta, oppure a ogni avvio.',c:()=>'<div class="seg" id="oI"><button data-v="first">Solo la prima volta</button><button data-v="every">A ogni avvio</button></div>',on:()=>{const f=()=>$$('#oI button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='every')===!!S.introEvery));f();$('#oI').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.introEvery=v==='every'?1:0;save();f()}}},
+ {k:'Sicurezza',t:'Blocchi NOVA con Face ID?',w:'Facoltativo: a ogni apertura NOVA chiede Face ID (o il codice) prima di mostrare i tuoi dati. Puoi cambiarlo quando vuoi dalle impostazioni.',c:()=>'<div class="seg" id="oFid"><button data-v="on">Attiva Face ID</button><button data-v="off">Ora no</button></div><small id="oFidS"></small>',on:()=>{const f=()=>$$('#oFid button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='on')===!!S.faceId));f();$('#oFid').onclick=async e=>{const v=e.target.dataset.v;if(!v)return;
+  if(v==='off'){S.faceId=0;save();f();$('#oFidS').textContent='Nessun blocco: puoi attivarlo dopo dalle impostazioni.';obRefresh();return}
+  const r=await fid('set',{on:true});
+  if(r&&r.err==='noauth'){$('#oFidS').textContent='Face ID o codice non disponibili su questo iPhone.';return}
+  if(r&&r.ok&&r.on){S.faceId=1;save();$('#oFidS').textContent='Blocco attivo da adesso.'}else{S.faceId=0;save();$('#oFidS').textContent='Verifica annullata: blocco non attivato.'}
+  f();obRefresh()}},skip:1,done:()=>true},
  {k:'Fine',t:'Tutto pronto',w:'Puoi cambiare ogni scelta dalle impostazioni, nella pagina Profilo.',c:()=>'<button class="btn pri" id="oDone">Apri NOVA</button>',on:()=>{$('#oDone').onclick=obEnd}}];
 let obI=0,obDir=1;
 function obDraw(){const s=OB[obI],o=$('#ob');
@@ -1237,7 +1244,16 @@ function profOpen(one){profOne=!!one;dTmp=Object.assign({username:'',avatar:'',s
  sheet();$('#dProf').showModal()}
 
 function introBtn(){const b=$('#bIntro'),on=!S.introOff;b.setAttribute('aria-pressed',on);b.textContent='Intro all\'avvio: '+(on?'attiva':'spenta')}
-function sheet(){$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
+async function fidSetupUI(){const row=$('#fidRow'),b=$('#bFid');if(!row||!b)return;
+ if(!(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova))return;
+ row.hidden=false;
+ const draw=()=>{b.textContent='Face ID: '+(S.faceId?'attivo':'spento');b.setAttribute('aria-pressed',!!S.faceId)};
+ draw();
+ b.onclick=async()=>{const want=!S.faceId;
+  const r=await fid('set',{on:want});
+  if(r&&r.err==='noauth'){toast('Face ID o codice non disponibili su questo iPhone');return}
+  if(r&&r.ok){S.faceId=r.on?1:0;save();draw();toast(r.on?'Blocco Face ID attivo':(want?'Blocco non attivato: verifica annullata':'Blocco Face ID spento'));haptic(r.on?'success':'light')}}}
+function sheet(){fidSetupUI();$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
  $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();introBtn();$('#ttSum').textContent=ttSum();acctUI();cvUI();gqUI();spUI()}
 function newTask(ds){const d=ds?dd0(ds):new Date();if(!ds)d.setDate(d.getDate()+1);d.setHours(18,0,0,0);$('#tT').value='';$('#tN').value='';$('#tD').value=iso(d);$('#tE').textContent='';$('#dTask').showModal();$('#tT').focus()}
 
