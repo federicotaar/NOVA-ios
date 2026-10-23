@@ -16,7 +16,7 @@
     <string>UIInterfaceOrientationLandscapeRight</string>
   </array>
   <key>NSLocationWhenInUseUsageDescription</key>
-  <string>NOVA usa la tua posizione per mostrare il meteo locale.</string>
+  <string>NOVA usa la tua posizione per il meteo locale e, solo se la attivi tu, per mostrarti sulla mappa dei tuoi amici.</string>
   <key>CFBundleIcons</key>
   <dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon60x60</string></array></dict></dict>
   <key>CFBundleIcons~ipad</key>
