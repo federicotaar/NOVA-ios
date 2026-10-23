@@ -80,13 +80,14 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         if locManager == nil {
             let m = CLLocationManager()
             m.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            m.delegate = self
             locManager = m
         }
         guard let m = locManager else { return }
         switch m.authorizationStatus {
         case .notDetermined:
             m.requestWhenInUseAuthorization()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.locRead(m) }
+            // didChangeAuthorization riprova da solo; il timer JS copre il caso in cui non arriva risposta
         case .authorizedWhenInUse, .authorizedAlways:
             locRead(m)
         default:
@@ -95,6 +96,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     }
 
     func locRead(_ m: CLLocationManager) {
+        // requestLocation() richiede il delegate impostato: senza, iOS termina l'app.
         m.requestLocation()
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             if let l = m.location {
@@ -1419,5 +1421,28 @@ enum Spotify {
         guard let (status, data) = await api(method, path) else { return ["ok": 0, "err": "rete"] }
         if status == 200 || status == 202 || status == 204 { return ["ok": 1] }
         return fail(status, data)
+    }
+}
+
+// Delegate posizione: senza questi metodi requestLocation() fa terminare l'app.
+extension Bridge: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let l = locations.last else { return }
+        web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(\(l.coordinate.latitude),\(l.coordinate.longitude),'ok')")
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'unavailable')")
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            locRead(manager)
+        case .denied, .restricted:
+            web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'denied')")
+        default:
+            break
+        }
     }
 }
