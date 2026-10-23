@@ -395,8 +395,13 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             }
         } else if t == "tt" {
             let reqId = body["id"] as? Int ?? 0
-            let written = TT.save(body["json"] as? String ?? "")
-            replyClasseViva(reqId, ["ok": 1, "shared": !written.isEmpty, "ping": TT.widgetPing(), "groups": written])
+            if (body["op"] as? String) == "hw" {
+                let written = TT.saveHomework(body["json"] as? String ?? "")
+                replyClasseViva(reqId, ["ok": 1, "shared": !written.isEmpty])
+            } else {
+                let written = TT.save(body["json"] as? String ?? "")
+                replyClasseViva(reqId, ["ok": 1, "shared": !written.isEmpty, "ping": TT.widgetPing(), "groups": written])
+            }
         } else if t == "groq" {
             let reqId = body["id"] as? Int ?? 0
             Task {
@@ -636,6 +641,17 @@ enum ClasseViva {
                 if let ddata = try? JSONSerialization.data(withJSONObject: ["v": 1, "dots": dots]),
                    let djson = String(data: ddata, encoding: .utf8) {
                     _ = TT.saveEvents(djson)
+                }
+                let todayStr = mdf.string(from: Date())
+                let hwItems = events.compactMap { e -> [String: String]? in
+                    guard (e["kind"] as? String) == "hw",
+                          let d = e["date"] as? String, d >= todayStr,
+                          let t = e["title"] as? String else { return nil }
+                    return ["t": t, "s": e["subj"] as? String ?? "", "d": d]
+                }
+                if let hdata = try? JSONSerialization.data(withJSONObject: ["v": 1, "items": hwItems]),
+                   let hjson = String(data: hdata, encoding: .utf8) {
+                    _ = TT.saveHomework(hjson)
                 }
                 await HomeNotifs.process(events, background: background)
                 return ["ok": 1, "name": name, "events": events, "grades": grades]
@@ -938,7 +954,7 @@ enum TT {
         }
         if !written.isEmpty {
             WidgetCenter.shared.reloadAllTimelines()
-            for kind in ["NOVAOrarioWidget", "NOVAOggiWidget", "NOVAFineWidget", "NOVAMeseWidget"] {
+            for kind in ["NOVAOrarioWidget", "NOVAOggiWidget", "NOVAFineWidget", "NOVAMeseWidget", "NOVACompitiWidget"] {
                 WidgetCenter.shared.reloadTimelines(ofKind: kind)
             }
         }
@@ -963,6 +979,20 @@ enum TT {
             } catch {}
         }
         if !written.isEmpty { WidgetCenter.shared.reloadTimelines(ofKind: "NOVAMeseWidget") }
+        return written
+    }
+
+    // Compiti aperti per il widget "Compiti di domani": li scrive l'app (rispetta
+    // i segnati come fatti) e il refresh ClasseViva (novita' dal registro).
+    static func saveHomework(_ json: String) -> [String] {
+        var written: [String] = []
+        for (id, u) in containers() {
+            do {
+                try json.write(to: u.appendingPathComponent("homework.json"), atomically: true, encoding: .utf8)
+                written.append(id)
+            } catch {}
+        }
+        if !written.isEmpty { WidgetCenter.shared.reloadTimelines(ofKind: "NOVACompitiWidget") }
         return written
     }
 }
