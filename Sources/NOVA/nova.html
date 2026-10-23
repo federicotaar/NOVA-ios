@@ -136,7 +136,8 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .cf input{flex:1}
 #aic{position:relative}
 #aiM{flex:none;white-space:nowrap;font-size:12px;padding:8px 10px}
-#pgChat .cf .ico{border-radius:50%;flex:none}
+#pgChat .cf .ico{border-radius:50%;flex:none;color:#fff}
+#pgChat .cf .ico svg{display:block}
 #pgChat #aiM{font-weight:800;font-size:16px;color:var(--mut)}
 .mimg{max-width:min(240px,60vw);border-radius:14px;display:block;margin-top:5px}
 #aiAt{position:absolute;bottom:calc(100% + 8px);left:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;display:flex;gap:7px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:7}
@@ -317,6 +318,7 @@ main.pg{padding-bottom:112px}
 <main class="pg" id="pgProf" hidden>
  <div class="pgh"><h2>Profilo</h2><button class="ico" id="bSet" aria-label="Impostazioni"></button></div>
  <section class="card" id="pfB"></section>
+ <section class="card" id="frB" hidden></section>
 </main>
 <nav id="tabbar"><i class="ind" id="tbInd"></i><button data-pg="pgDash" aria-pressed="true"></button><button data-pg="pgGr"></button><button data-pg="pgChat"></button><button data-pg="pgProf"></button></nav>
 </div>
@@ -348,7 +350,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.14</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.15</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -583,7 +585,7 @@ function runActs(mi){const m=S.chat[mi];if(!m||!m.acts)return;let ch=0;
  m.acts.forEach(a=>{if(a.st!=='go'&&a.st!=='wait')return;const r=execAct(a);a.st=r.ok?'done':'no';if(!r.ok)a.note=r.note;ch=1});
  if(ch){save();chatDraw()}}
 function aiMdraw(){const b=$('#aiM');if(!b)return;
- b.style.color={always:'var(--ok)',ask:'var(--mut)',deny:'var(--bad)'}[S.aiAct];
+ b.style.color={always:'#4cd964',ask:'#c7c7cc',deny:'#ff453a'}[S.aiAct];
  b.setAttribute('aria-label','Permessi azioni: '+({always:'sempre',ask:'chiedi prima',deny:'mai'}[S.aiAct]));
  $$('#aiMP button[data-m]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===S.aiAct?'true':'false'))}
 function chatDraw(){const el=$('#cm');
@@ -617,8 +619,8 @@ function openChat(){const d=$('#dDay');if(d&&d.open)d.close();pg(2,1);aiMic();if
 
 /* ---------- account & sync ---------- */
 const API='https://api.federicotaranu.site';
-async function api(p,m,b){const h={'content-type':'application/json'};if(S.acct&&S.acct.token)h.authorization='Bearer '+S.acct.token;
- const r=await fetch(API+p,{method:m,headers:h,body:b?JSON.stringify(b):undefined});
+async function api(p,m,b,qs){const h={'content-type':'application/json'};if(S.acct&&S.acct.token)h.authorization='Bearer '+S.acct.token;
+ const r=await fetch(API+p+(qs||''),{method:m,headers:h,body:b?JSON.stringify(b):undefined});
  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'HTTP '+r.status);return j}
 let acct={mode:'new',stage:'email',email:'',busy:0,err:''};
 const setupJson=()=>({v:1,name:S.name,theme:S.theme,sb:S.sb,hwn:S.hwn,w:S.w,cv:S.cv,tt:S.tt});
@@ -631,7 +633,7 @@ async function acctPull(){const r=await api('/sync','GET');if(!r.json)return fal
  save();theme();head();show();acctLast=JSON.stringify(setupJson());return true}
 async function acctDone(email,token,isNew){S.acct={email:email.toLowerCase(),token};save();
  acct={mode:'new',stage:'email',email:'',busy:0,err:''};
- const had=await acctPull().catch(()=>false);if(!had)acctPush();
+ const had=await acctPull().catch(()=>false);if(!had)acctPush();await profPull();
  const inOb=!$('#ob').hidden&&OB[obI]&&OB[obI].k==='Account';
  acctUI();
  if(isNew)welcomeAnim(email);
@@ -956,7 +958,7 @@ function pg(i,dir){i=Math.max(0,Math.min(PGS.length-1,i));const old=pgI;pgI=i;
   nu.style.transform='translateX(0)';ol.style.transform='translateX('+(dir>0?'-100%':'100%')+')';
   setTimeout(()=>{ol.hidden=true;ol.style.transition=ol.style.transform='';nu.style.transition=nu.style.transform=''},320)}
  tbLayout();const id=PGS[i];
- if(id==='pgGr')grades();if(id==='pgProf')pf();if(id==='pgChat')chatPg();
+ if(id==='pgGr')grades();if(id==='pgProf'){pf();frDraw()}if(id==='pgChat')chatPg();
  window.scrollTo(0,0)}
 (()=>{const bar=$('#tabbar'),bs=$$('#tabbar button');
  bs.forEach((b,i)=>{b.innerHTML=ic(TBD[i][0]);b.setAttribute('aria-label',TBD[i][1]);b.onclick=()=>{if(Date.now()<tbSup)return;pg(i,i>pgI?1:-1)}});
@@ -980,14 +982,70 @@ let pfAu=null,pfPlaying=false,dTmp=null,profOne=0,unLast='';
 function pfToggle(){const s=S.prof.song;if(!s||!s.prev)return;
  if(pfPlaying&&pfAu){pfAu.pause();pfPlaying=false;pf();return}
  if(!pfAu)pfAu=new Audio();pfAu.src=s.prev;pfAu.play().catch(()=>{});pfPlaying=true;pfAu.onended=()=>{pfPlaying=false;pf()};pf()}
+function rndHex(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function profPush(){
+ if(!S.acct||!S.acct.token)return;
+ try{
+  if(S.prof.username&&!S.prof.ntfy)S.prof.ntfy='nova-'+rndHex(12);
+  const b={username:S.prof.username||'',study:S.prof.study||'',skills:S.prof.skills||'',song:S.prof.song||null,badges:S.prof.badges||[],ntfy_topic:S.prof.ntfy||''};
+  if(S.prof.avatar&&S.prof.avatar.length<=8)b.avatar=S.prof.avatar;
+  const r=await api('/profile','PUT',b);
+  if(r&&r.error==='username taken'){toast('Questo username è già preso');return false}
+  save();return true
+ }catch(e){return true}
+}
+async function profPull(){
+ if(!S.acct||!S.acct.token)return;
+ try{const r=await api('/profile','GET');
+  if(r&&r.profile&&r.profile.username){
+   const sp=r.profile;
+   if(!S.prof.username||S.prof.username!==sp.username){S.prof.username=sp.username}
+   if(!S.prof.study&&sp.study)S.prof.study=sp.study;
+   if(!S.prof.skills&&sp.skills)S.prof.skills=sp.skills;
+   if(!S.prof.song&&sp.song)S.prof.song=sp.song;
+   if(sp.badges&&sp.badges.length)S.prof.badges=sp.badges;
+   if(sp.ntfy_topic)S.prof.ntfy=sp.ntfy_topic;
+   save()
+  }
+ }catch(e){}
+}
+let frData=null,frT=0;
+async function frLoad(force){
+ if(!S.acct||!S.acct.token){frData=null;return}
+ if(!force&&Date.now()-frT<15000&&frData)return;
+ try{const r=await api('/friends','GET');if(r&&r.ok){frData=r;frT=Date.now()}}catch(e){}
+}
+async function frDraw(){
+ const el=$('#frB');if(!el)return;
+ if(!S.acct||!S.acct.token){el.hidden=true;return}
+ el.hidden=false;
+ await frLoad(false);
+ const d=frData||{friends:[],incoming:[],outgoing:[]};
+ const row=(f,btn)=>'<div class="pfRow">'+ic('user','wi')+'<div><b>@'+esc(f.username||'?')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
+ el.innerHTML='<h3 style="margin:0 0 4px">Amici</h3>'
+  +'<div class="frS"><input id="frQ" placeholder="Cerca per username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"><div id="frL"></div></div>'
+  +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>')).join(''):'')
+  +(d.friends.length?d.friends.map(f=>row(f,'<button class="btn sm" data-rem="'+esc(f.username)+'">Rimuovi</button>')).join(''):(d.incoming.length?'':'<small class="mut">Nessun amico ancora: cerca uno username qui sopra.</small>'))
+  +(d.outgoing.length?'<small class="mut">In attesa</small>'+d.outgoing.map(f=>row(f,'<button class="btn sm" data-rem="'+esc(f.username)+'">Annulla</button>')).join(''):'');
+ $('#frQ').oninput=e=>{const q=e.target.value.trim();const L=$('#frL');
+  clearTimeout(L._t);if(q.length<2){L.innerHTML='';return}
+  L._t=setTimeout(async()=>{try{const r=await api('/users/search','GET',null,'?q='+encodeURIComponent(q));
+   L._rs=(r&&r.users)||[];
+   L.innerHTML=L._rs.length?L._rs.map((u,i)=>'<div class="sngR" data-i="'+i+'"><div class="pfA" style="width:30px;height:30px;font-size:13px">'+(u.avatar?esc(u.avatar):esc((u.username||'?')[0].toUpperCase()))+'</div><div style="min-width:0;flex:1"><div>@'+esc(u.username)+'</div></div><button class="btn sm" data-add="'+esc(u.username)+'">Aggiungi</button></div>').join(''):'<small class="mut">Nessun utente trovato.</small>';
+   L.querySelectorAll('[data-add]').forEach(b=>b.onclick=async()=>{const r2=await api('/friends/request','POST',{username:b.dataset.add});
+    if(r2&&r2.ok){toast('Richiesta inviata a @'+b.dataset.add);frLoad(true).then(frDraw)}else toast((r2&&r2.error)||'Errore')})}catch(e2){L.innerHTML='<small class="mut">Ricerca non disponibile.</small>'}},400)};
+ el.querySelectorAll('[data-acc]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{username:b.dataset.acc});haptic('success');await frLoad(true);frDraw()});
+ el.querySelectorAll('[data-rem]').forEach(b=>b.onclick=async()=>{await api('/friends/remove','POST',{username:b.dataset.rem});await frLoad(true);frDraw()});
+}
 function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
  const av=p.avatar?'<img src="'+p.avatar+'" alt="">':(S.name?esc(S.name[0].toUpperCase()):ic('user'));
- el.innerHTML='<div class="pfTop"><div class="pfA">'+av+'</div><h3 style="margin:0">'+esc(S.name||'Il tuo profilo')+'</h3><div class="pfU">'+(p.username?'@'+esc(p.username):'nessun username scelto')+'</div><button class="btn sm" id="pfE">Modifica</button></div>'
+ el.innerHTML='<div class="pfTop"><div class="pfA">'+av+'</div><h3 style="margin:0">'+esc(S.name||'Il tuo profilo')+'</h3><div class="pfU">'+(p.username?'@'+esc(p.username):'nessun username scelto')+'</div>'+(p.badges&&p.badges.length?'<div class="pfU" style="opacity:.7">'+p.badges.map(b=>'🏅 '+esc(b)).join(' · ')+'</div>':'')+'<button class="btn sm" id="pfE">Modifica</button></div>'
  +'<div class="pfRow">'+ic('book','wi')+'<div><b>Dove studi</b>'+esc(p.study||'Non impostato')+'</div></div>'
  +'<div class="pfRow">'+ic('spark','wi')+'<div><b>Punti forti</b>'+esc(p.skills||'Non impostato')+'</div></div>'
  +(p.song?'<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div><button class="ico" id="pfPl" aria-label="Anteprima">'+ic(pfPlaying?'pause':'play')+'</button></div>':'<div class="pfRow">'+ic('music','wi')+'<div><b>Canzone preferita</b>Nessuna canzone scelta</div></div>');
  $('#pfE').onclick=()=>profOpen(0);
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
+if(S.acct&&S.acct.token)profPull();
 function chatPg(){const b=$('#chatB'),a=$('#aic');if(!b||!a)return;
  if(!S.prof.username){a.hidden=true;b.hidden=false;b.innerHTML='<p class="mut">La chat è bloccata: scegli prima il tuo username (Profilo > Modifica). Serve per farti trovare dagli amici.</p>';return}
  a.hidden=false;chatDraw();
@@ -1048,7 +1106,9 @@ $('#dOk').onclick=()=>{const u=$('#dU').value.trim().toLowerCase();
  if(u&&!/^[a-z0-9_.]{3,20}$/.test(u)){$('#dE').textContent='Username: 3-20 caratteri, lettere minuscole, numeri, punto o trattino basso.';return}
  if(unLast==='no'){$('#dE').textContent='Questo username non va bene o è già preso.';return}
  dTmp.username=u;dTmp.study=$('#dSt').value.trim();dTmp.skills=$('#dSk').value.trim();
- S.prof=dTmp;S.profDone=1;save();pf();$('#dProf').close();haptic('success');if(profOne)toast('Profilo completato')};
+ dTmp.badges=dTmp.badges||S.prof.badges||[];dTmp.ntfy=S.prof.ntfy||'';
+ S.prof=dTmp;S.profDone=1;save();pf();$('#dProf').close();haptic('success');if(profOne)toast('Profilo completato');
+ if(S.acct&&S.acct.token&&u){$('#dE').textContent='';profPush().then(ok=>{if(ok===false){toast('Username già preso da un altro account: scegline un altro da Modifica profilo')}else if(!dTmp.badges.includes('pioniere')&&!S.prof._pio){S.prof.badges=S.prof.badges||[];if(!S.prof.badges.includes('pioniere')){S.prof.badges.push('pioniere');S.prof._pio=1;save();profPush()}}})}};
 $('#sOk').onclick=()=>$('#dSet').close();
 $('#bObR').onclick=()=>{$('#dSet').close();obStart()};
 $('#fN').oninput=e=>{S.name=e.target.value.trim();save();head()};
@@ -1084,7 +1144,7 @@ function aiMic(){const b=$('#aiS');if(!b)return;const t=$('#ai').value.trim();
  b.setAttribute('aria-label',t?'Invia':'Dettatura vocale')}
 $('#ai').addEventListener('input',aiMic);
 $('#aiS').onclick=()=>{if($('#ai').value.trim())chatSend($('#ai').value);else toast('Dettatura vocale in arrivo in un prossimo aggiornamento')};
-$('#aiP').onclick=()=>$('#aiPF').click();
+$('#aiP').innerHTML=ic('plus');$('#aiP').onclick=()=>$('#aiPF').click();aiMic();
 $('#aiPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
  try{atImg=await ttImg(f);aiAtDraw();$('#ai').focus()}catch(x){toast('Non riesco a leggere questa foto')}};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
