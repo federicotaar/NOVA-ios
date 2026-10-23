@@ -901,12 +901,10 @@ function pg(i,dir){i=Math.max(0,Math.min(PGS.length-1,i));const old=pgI;pgI=i;
   if(!drag.moved)return;
   const w=bs[0].offsetWidth,n=PGS.length,pos=Math.max(0,Math.min(n-1,drag.i-dx/w));
   const ind=$('#tbInd');ind.style.transition='none';ind.style.left=(bs[0].offsetLeft+pos*w)+'px';
-  const W=innerWidth;PGS.forEach((id,j)=>{const el=$('#'+id);
-   if(j===drag.i){el.hidden=false;el.style.transform='translateX('+dx+'px)'}
-   else if(j===drag.i-1||j===drag.i+1){el.hidden=false;el.style.transform='translateX('+(dx+(j>drag.i?W:-W))+'px)'}})});
+  const W=innerWidth;PGS.forEach((id,j)=>{const el=$('#'+id);el.hidden=false;el.style.transform='translateX('+(dx+(j-drag.i)*W)+'px)'})});
  const end=e=>{if(!drag)return;const mv=drag.moved,dx=e.clientX-drag.x,i0=drag.i;drag=null;
   $('#tbInd').style.transition='';if(!mv)return;tbSup=Date.now()+350;
-  const W=innerWidth;let t=i0;if(dx<-W*.18&&i0<PGS.length-1)t=i0+1;else if(dx>W*.18&&i0>0)t=i0-1;
+  const w=bs[0].offsetWidth||64,t=Math.max(0,Math.min(PGS.length-1,Math.round(i0-dx/w)));
   pg(t,t!==i0?Math.sign(t-i0):0)};
  bar.addEventListener('pointerup',end);bar.addEventListener('pointercancel',end)})();
 addEventListener('resize',tbLayout);
