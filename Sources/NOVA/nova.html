@@ -362,6 +362,7 @@ main.pg{padding-bottom:112px}
 <main class="pg" id="pgMap" hidden>
  <div class="pgh"><h2>Mappa</h2><button class="btn sm tgl" id="mapSh" aria-pressed="false">Fantasma: attivo</button></div>
  <section class="card" id="mapNote"></section>
+ <section class="card"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1"><b>Anche a app chiusa</b><br><small class="mut">Aggiorna la tua posizione solo ai grandi spostamenti e solo mentre la condivisione è attiva. Non è un tracciamento continuo: iOS decide quando svegliare NOVA. Fantasma la spegne subito. Batteria: impatto ridotto.</small></div><button class="btn sm" id="mapBg">Attiva</button></div></section>
  <section class="card" id="mapSt" hidden style="border-color:#a33"></section>
  <section class="card" id="mapSt2" hidden></section>
  <div id="mapDiv"></div>
@@ -395,6 +396,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Notifiche<button class="btn" id="bNot">Attiva notifiche</button><small id="nS"></small>
   <button class="btn tgl" id="bHw" aria-pressed="true">Avvisi compiti: attivi</button>
   <small>Quando aggiorni i compiti, l'assistente IA sceglie e programma i promemoria migliori (mattina presto, sera prima, preavviso per le verifiche), che suonano anche con l'app chiusa. Senza chiave Groq NOVA usa orari standard. I compiti nuovi li scopre quando l'app si aggiorna: iOS lo fa in background solo ogni tanto, quindi non è istantaneo.</small></div>
+ <div class="fl">Notifiche NOVA (ntfy)<div id="ntfyBox"></div><small>NOVA ti avvisa di richieste di amicizia e nuovi messaggi tramite l'app gratuita ntfy. Serve l'app ntfy installata e iscritta al tuo codice personale: NOVA non può verificarlo dal telefono. Chi conosce questo codice può leggere e inviare su quel canale: non condividerlo.</small></div>
  <div class="fl">Intro<button class="btn tgl" id="bIntro" aria-pressed="true">Intro all'avvio: attiva</button><small>La sequenza cinematografica quando apri NOVA, con voce in inglese. Puoi saltarla con un tocco.</small></div>
  <div class="sep"></div>
  <div class="fl">Orario e widget<button class="btn" id="bTT">Modifica orario</button><small id="ttSum"></small></div>
@@ -410,7 +412,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Se qualcosa si rompe, NOVA segnala solo il tipo di errore e la riga del codice (mai messaggi, contenuti o dati tuoi) così posso correggere i bug. Puoi spegnerla quando vuoi.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.28</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.29</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -518,7 +520,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: '+(e.message||'sconosciuto')+' (riga '+(e.lineno||'?')+') — fai uno screenshot e mandamelo';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.name)>=0?e.name:'Error';api('/client-error','POST',{build:'2026.10.23.28',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.name)>=0?e.name:'Error';api('/client-error','POST',{build:'2026.10.23.29',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -739,7 +741,7 @@ async function acctDone(email,token,isNew){S.acct={email:email.toLowerCase(),tok
 const mailOk=e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
 function acctUI(){$$('.acctb').forEach(b=>{
  if(S.acct&&S.acct.token){b.innerHTML='<small>Collegato come <b>'+esc(S.acct.email)+'</b>. La configurazione si sincronizza automaticamente.</small><div class="row" style="margin-top:8px"><button class="btn acO">Esci</button></div>';
-  b.querySelector('.acO').onclick=()=>{delete S.acct;save();acct={mode:'new',stage:'email',email:'',busy:0,err:''};acctUI();obRefresh()};return}
+  b.querySelector('.acO').onclick=()=>{bgLocStop();delete S.acct;save();acct={mode:'new',stage:'email',email:'',busy:0,err:''};acctUI();obRefresh()};return}
  const em='<input id="acE" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="La tua email" value="'+esc(acct.email)+'">';
  const codeIn='<input id="acC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Codice a 6 cifre">';
  const sent='<small>Codice inviato a <b>'+esc(acct.email)+'</b>. Controlla la posta (anche spam): vale 10 minuti.</small>';
@@ -1109,6 +1111,7 @@ async function profPull(){
    if(!S.prof.song&&sp.song)S.prof.song=sp.song;
    if(sp.badges&&sp.badges.length)S.prof.badges=sp.badges;
    if(sp.ntfy_topic)S.prof.ntfy=sp.ntfy_topic;
+   if(sp.privacy_msg!==undefined)S.prof.pvMsg=sp.privacy_msg?0:1;
    save();
    return true
   }
@@ -1162,6 +1165,7 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
   frLoad(false).then(()=>{const c=$('#pfNF');if(c&&frData)c.textContent=(frData.friends||[]).length}).catch(()=>{})}
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
 if(S.acct&&S.acct.token)profPull().then(had=>{if(had===false&&S.profDone&&S.prof.username)profPush()});
+if(S.bgLoc&&S.acct&&S.acct.token&&S.locShare){try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:1,token:S.acct.token,sharing:true})}catch(e){S.bgLoc=0;save()}}
 let convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
 function aiOpen(){const b=$('#chatB'),a=$('#aic');if(!a)return;
  $('#frc').hidden=true;$('#fcFab').hidden=true;a.hidden=false;chatDraw();
@@ -1327,7 +1331,7 @@ async function fidSetupUI(){const row=$('#fidRow'),b=$('#bFid');if(!row||!b)retu
   const r=await fid('set',{on:want});
   if(r&&r.err==='noauth'){toast('Face ID o codice non disponibili su questo iPhone');return}
   if(r&&r.ok){S.faceId=r.on?1:0;save();draw();toast(r.on?'Blocco Face ID attivo':(want?'Blocco non attivato: verifica annullata':'Blocco Face ID spento'));haptic(r.on?'success':'light')}}}
-function sheet(){diagUI();fidSetupUI();$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
+function sheet(){diagUI();ntfyUI();fidSetupUI();$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
  $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();introBtn();$('#ttSum').textContent=ttSum();acctUI();cvUI();gqUI();spUI()}
 function newTask(ds){const d=ds?dd0(ds):new Date();if(!ds)d.setDate(d.getDate()+1);d.setHours(18,0,0,0);$('#tT').value='';$('#tN').value='';$('#tD').value=iso(d);$('#tE').textContent='';$('#dTask').showModal();$('#tT').focus()}
 
@@ -1353,6 +1357,16 @@ $('#sOk').onclick=()=>$('#dSet').close();
 $('#bObR').onclick=()=>{$('#dSet').close();obStart()};
 const diagUI=()=>{const b=$('#bDiag');if(!b)return;const on=S.diag!==0;b.setAttribute('aria-pressed',on?'true':'false');b.textContent='Diagnostica errori: '+(on?'attiva':'spenta')};
 $('#bDiag').onclick=()=>{S.diag=S.diag===0?1:0;save();diagUI()};
+const ntfyUI=()=>{const el=$('#ntfyBox');if(!el)return;
+ if(!S.acct||!S.acct.token){el.innerHTML='<small class="mut">Collega il tuo account NOVA per attivare le notifiche.</small>';return}
+ if(!S.prof.ntfy){S.prof.ntfy='nova-'+rndHex(12);save();profPush()}
+ const pv=S.prof.pvMsg===undefined?0:S.prof.pvMsg;
+ el.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><code id="ntfyCode" style="font-size:12px;background:rgba(120,120,120,.15);padding:6px 8px;border-radius:8px;word-break:break-all">'+esc(S.prof.ntfy)+'</code><button class="btn sm" id="bNtfyCopy">Copia codice</button></div>'
+ +'<small class="mut" style="display:block;margin:6px 0">Come attivarle: apri ntfy, tocca +, incolla questo codice come topic, lascia il server standard (ntfy.sh), tocca Subscribe.</small>'
+ +'<button class="btn tgl" id="bNtfyPv" aria-pressed="'+(pv?'true':'false')+'">Anteprima messaggi: '+(pv?'attiva':'nascosta')+'</button>';
+ $('#bNtfyCopy').onclick=()=>{const t=S.prof.ntfy;const done=()=>{haptic('success');toast('Codice copiato: incollalo in ntfy')};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done));else fallbackCopy(t,done)};
+ $('#bNtfyPv').onclick=async()=>{S.prof.pvMsg=S.prof.pvMsg?0:1;save();ntfyUI();try{await api('/profile','PUT',{privacy_msg:S.prof.pvMsg?0:1})}catch(e){toast('Non riesco a salvare ora: riprovo al prossimo avvio')}}};
+function fallbackCopy(t,cb){try{const i=document.createElement('textarea');i.value=t;document.body.appendChild(i);i.select();document.execCommand('copy');i.remove();cb&&cb()}catch(e){toast('Copia non riuscita: tieni premuto sul codice')}}
 $('#fN').oninput=e=>{S.name=e.target.value.trim();save();head()};
 $('#fT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();sheet()};
 $('#fW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();sheet();if(k==='wx'&&S.w.wx)wx();if(k==='sp')spPoll()};
