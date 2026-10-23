@@ -15,6 +15,8 @@
     <string>UIInterfaceOrientationLandscapeLeft</string>
     <string>UIInterfaceOrientationLandscapeRight</string>
   </array>
+  <key>NSFaceIDUsageDescription</key>
+  <string>NOVA usa Face ID solo per sbloccare l'app quando lo attivi tu: il volto non lascia mai il telefono.</string>
   <key>NSMicrophoneUsageDescription</key>
   <string>NOVA usa il microfono solo per registrare i messaggi vocali che scegli di inviare in chat.</string>
   <key>NSCameraUsageDescription</key>
