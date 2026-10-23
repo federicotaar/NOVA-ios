@@ -468,6 +468,19 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         pushBattery()
+        // Converge la UI sullo stato nativo reale: attivo solo se autorizzato Sempre e mai spento.
+        if bgUd.bool(forKey: "nova.bgLoc.on"), let m = locManager ?? Optional(CLLocationManager()) {
+            if m.delegate == nil { m.delegate = self; m.desiredAccuracy = kCLLocationAccuracyHundredMeters }
+            locManager = m
+            if m.authorizationStatus == .authorizedAlways {
+                m.allowsBackgroundLocationUpdates = true
+                m.pausesLocationUpdatesAutomatically = true
+                m.startMonitoringSignificantLocationChanges()
+                webView.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('on')")
+            } else {
+                webView.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('wheninuse')")
+            }
+        }
         center.getNotificationSettings { s in
             let p = s.authorizationStatus == .authorized ? "granted" : (s.authorizationStatus == .denied ? "denied" : "default")
             DispatchQueue.main.async { webView.evaluateJavaScript("window.__novaPerm&&__novaPerm('\(p)')") }
