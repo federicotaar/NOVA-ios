@@ -21,6 +21,8 @@
   <string>NOVA usa il microfono solo per registrare i messaggi vocali che scegli di inviare in chat.</string>
   <key>NSCameraUsageDescription</key>
   <string>NOVA usa la fotocamera per scansionare i codici QR dei tuoi amici.</string>
+  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+  <string>Solo se attivi "Anche a app chiusa" nella mappa, NOVA aggiorna la tua posizione ai grandi spostamenti mentre la condivisione è attiva, così gli amici che autorizzi ti vedono. Non è un tracciamento continuo e la modalità Fantasma la spegne subito.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
   <string>NOVA usa la tua posizione per il meteo locale e, solo se la attivi tu, per mostrarti sulla mappa dei tuoi amici.</string>
   <key>CFBundleIcons</key>
@@ -28,7 +30,7 @@
   <key>CFBundleIcons~ipad</key>
   <dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon60x60</string><string>AppIcon76x76</string><string>AppIcon83.5x83.5</string></array></dict></dict>
   <key>UIBackgroundModes</key>
-  <array><string>fetch</string></array>
+  <array><string>fetch</string><string>location</string></array>
   <key>BGTaskSchedulerPermittedIdentifiers</key>
   <array><string>federicotaranu.site.refresh</string></array>
 </dict>
