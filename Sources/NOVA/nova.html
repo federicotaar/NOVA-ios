@@ -298,6 +298,9 @@ main.pg{padding-bottom:112px}
 .pfA{width:88px;height:88px;border-radius:50%;background:var(--fld);display:grid;place-items:center;font-size:32px;font-weight:700;color:var(--mut);overflow:hidden;border:1px solid var(--line)}
 .pfA img{width:100%;height:100%;object-fit:cover}
 .pfU{color:var(--mut);font-size:13.5px;margin-top:-4px}
+.pfStat{display:flex;justify-content:center;gap:18px;padding:8px 0 2px;font-size:13px;color:var(--mut)}
+.pfStat span{cursor:pointer}
+.pfStat b{color:var(--fg);margin-right:3px}
 .pfRow{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .pfRow .wi{width:22px;height:22px;flex:none}
 .pfRow b{font-size:12.5px;color:var(--mut);display:block;font-weight:600}
@@ -406,7 +409,7 @@ main.pg{padding-bottom:112px}
  <div class="fl" id="fidRow" hidden>Blocco app<button class="btn" id="bFid">Face ID: spento</button><small>Quando è attivo, NOVA si blocca a ogni apertura e si sblocca con Face ID (o codice). Il volto resta sul telefono.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.23</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.24</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -437,6 +440,14 @@ main.pg{padding-bottom:112px}
  <div class="row" style="margin-top:10px"><button class="btn" id="scC" style="flex:1">Annulla</button></div>
 </div></dialog>
 
+<dialog id="dFrL"><div class="sheet">
+ <div style="display:flex;align-items:center;gap:8px"><h2 id="frLT" style="flex:1;margin:0">Amici</h2><button class="btn sm" id="frLX">Chiudi</button></div>
+ <div id="frLL" style="display:flex;flex-direction:column;gap:8px;max-height:50dvh;overflow:auto;margin-top:8px"></div>
+</div></dialog>
+<dialog id="dFrP"><div class="sheet">
+ <div style="display:flex;align-items:center;gap:8px"><h2 id="frPT" style="flex:1;margin:0">Profilo</h2><button class="btn sm" id="frPX">Chiudi</button></div>
+ <div id="frPB" style="margin-top:8px"></div>
+</div></dialog>
 <dialog id="dNC"><div class="sheet">
  <h2>Nuova chat</h2>
  <small class="mut">Scegli uno o più amici. Con più di uno crei un gruppo.</small>
@@ -1109,7 +1120,7 @@ async function frDraw(){
  el.hidden=false;
  await frLoad(false);
  const d=frData||{friends:[],incoming:[],outgoing:[]};
- const row=(f,btn)=>'<div class="pfRow">'+ic('user','wi')+'<div><b>@'+esc(f.username||'?')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
+ const row=(f,btn)=>'<div class="pfRow" data-pu="'+esc(f.username||'')+'" style="cursor:pointer">'+ic('user','wi')+'<div><b>@'+esc(f.username||'?')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
  el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">Amici</h3><button class="btn sm" id="frQR">Il mio QR</button><button class="btn sm" id="frSC">Scansiona</button></div>'
   +'<div class="frS"><input id="frQ" placeholder="Cerca per username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"><div id="frL"></div></div>'
   +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>')).join(''):'')
@@ -1119,20 +1130,27 @@ async function frDraw(){
   clearTimeout(L._t);if(q.length<2){L.innerHTML='';return}
   L._t=setTimeout(async()=>{try{const r=await api('/users/search','GET',null,'?q='+encodeURIComponent(q));
    L._rs=(r&&r.users)||[];
-   L.innerHTML=L._rs.length?L._rs.map((u,i)=>'<div class="sngR" data-i="'+i+'"><div class="pfA" style="width:30px;height:30px;font-size:13px">'+(u.avatar?esc(u.avatar):esc((u.username||'?')[0].toUpperCase()))+'</div><div style="min-width:0;flex:1"><div>@'+esc(u.username)+'</div></div><button class="btn sm" data-add="'+esc(u.username)+'">Aggiungi</button></div>').join(''):'<small class="mut">Nessun utente trovato.</small>';
+   L.innerHTML=L._rs.length?L._rs.map((u,i)=>'<div class="sngR" data-pu="'+esc(u.username)+'" style="cursor:pointer" data-i="'+i+'"><div class="pfA" style="width:30px;height:30px;font-size:13px">'+(u.avatar?esc(u.avatar):esc((u.username||'?')[0].toUpperCase()))+'</div><div style="min-width:0;flex:1"><div>@'+esc(u.username)+'</div></div><button class="btn sm" data-add="'+esc(u.username)+'">Aggiungi</button></div>').join(''):'<small class="mut">Nessun utente trovato.</small>';
+   L.querySelectorAll('[data-pu]').forEach(rw=>rw.onclick=e=>{if(e.target.closest('[data-add]'))return;frProfOpen(rw.dataset.pu)});
    L.querySelectorAll('[data-add]').forEach(b=>b.onclick=async()=>{const r2=await api('/friends/request','POST',{username:b.dataset.add});
     if(r2&&r2.ok){toast('Richiesta inviata a @'+b.dataset.add);frLoad(true).then(frDraw)}else toast((r2&&r2.error)||'Errore')})}catch(e2){L.innerHTML='<small class="mut">Ricerca non disponibile.</small>'}},400)};
  const q1=$('#frQR');if(q1)q1.onclick=frQROpen;const q2=$('#frSC');if(q2)q2.onclick=frSCOpen;
  el.querySelectorAll('[data-acc]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{username:b.dataset.acc});haptic('success');await frLoad(true);frDraw()});
  el.querySelectorAll('[data-rem]').forEach(b=>b.onclick=async()=>{await api('/friends/remove','POST',{username:b.dataset.rem});await frLoad(true);frDraw()});
+ el.querySelectorAll('[data-pu]').forEach(r=>r.onclick=e=>{if(e.target.closest('[data-rem]')||e.target.closest('[data-acc]'))return;if(r.dataset.pu)frProfOpen(r.dataset.pu)});
 }
 function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
  const av=p.avatar?'<img src="'+p.avatar+'" alt="">':(S.name?esc(S.name[0].toUpperCase()):ic('user'));
  el.innerHTML='<div class="pfTop"><div class="pfA">'+av+'</div><h3 style="margin:0">'+esc(S.name||'Il tuo profilo')+'</h3><div class="pfU">'+(p.username?'@'+esc(p.username):'nessun username scelto')+'</div>'+(p.badges&&p.badges.length?'<div class="pfU" style="opacity:.7">'+p.badges.map(b=>'🏅 '+esc(b)).join(' · ')+'</div>':'')+'<button class="btn sm" id="pfE">Modifica</button></div>'
  +'<div class="pfRow">'+ic('book','wi')+'<div><b>Dove studi</b>'+esc(p.study||'Non impostato')+'</div></div>'
  +'<div class="pfRow">'+ic('spark','wi')+'<div><b>Punti forti</b>'+esc(p.skills||'Non impostato')+'</div></div>'
+ +(S.acct&&S.acct.token&&p.username?'<div class="pfStat"><span data-ls="amici"><b id="pfNF">-</b> amici</span><span data-ls="follower"><b id="pfNFr">-</b> follower</span><span data-ls="seguiti"><b id="pfNS">-</b> seguiti</span></div>':'')
  +(p.song?'<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div><button class="ico" id="pfPl" aria-label="Anteprima">'+ic(pfPlaying?'pause':'play')+'</button></div>':'<div class="pfRow">'+ic('music','wi')+'<div><b>Canzone preferita</b>Nessuna canzone scelta</div></div>');
  $('#pfE').onclick=()=>profOpen(0);
+ el.querySelectorAll('[data-ls]').forEach(sp=>sp.onclick=()=>frListOpen(sp.dataset.ls));
+ if(S.acct&&S.acct.token&&p.username){
+  api('/users/profile','GET',null,'?u='+encodeURIComponent(p.username)).then(r=>{if(r&&r.ok){const a=$('#pfNFr');if(a)a.textContent=r.followers||0;const b=$('#pfNS');if(b)b.textContent=r.following||0}}).catch(()=>{});
+  frLoad(false).then(()=>{const c=$('#pfNF');if(c&&frData)c.textContent=(frData.friends||[]).length}).catch(()=>{})}
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
 if(S.acct&&S.acct.token)profPull();
 let convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
@@ -1159,6 +1177,41 @@ async function frcDraw(){const el=$('#frc');if(!el)return;
   el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>convOpen(b.dataset.c,b.dataset.t,b.dataset.ex?+b.dataset.ex:0));
  }catch(e){el.innerHTML=aiRow+'<small class="mut" style="text-align:center;display:block;padding:8px">Chat non disponibile ora.</small>';bind()}
 }
+let frLKind='amici';
+async function frListOpen(kind){frLKind=kind;
+ const T={amici:'Amici',follower:'Follower',seguiti:'Seguiti'};$('#frLT').textContent=T[kind]||kind;
+ const L=$('#frLL');L.innerHTML='<small class="mut">Carico…</small>';$('#dFrL').showModal();
+ try{let users=[];
+  if(kind==='amici'){await frLoad(true);users=(frData&&frData.friends)||[]}
+  else{const r=await api('/follows','GET',null,'?kind='+(kind==='seguiti'?'following':'followers'));users=(r&&r.users)||[]}
+  L.innerHTML=users.length?users.map(u=>'<button class="fcR" data-px="'+esc(u.username)+'"><div class="pfA" style="width:36px;height:36px;font-size:14px">'+(u.avatar?esc(u.avatar):esc((u.username||'?')[0].toUpperCase()))+'</div><div class="tt"><b>@'+esc(u.username)+'</b></div></button>').join(''):'<small class="mut">Nessuno qui ancora.</small>';
+  L.querySelectorAll('[data-px]').forEach(b=>b.onclick=()=>frProfOpen(b.dataset.px));
+ }catch(e){L.innerHTML='<small class="mut">Non disponibile ora.</small>'}
+}
+async function frProfOpen(u){const B=$('#frPB');if(!B)return;
+ B.innerHTML='<small class="mut">Carico…</small>';$('#frPT').textContent='@'+u;$('#dFrP').showModal();
+ try{const r=await api('/users/profile','GET',null,'?u='+encodeURIComponent(u));
+  if(!r||!r.ok){B.innerHTML='<small class="mut">Profilo non disponibile.</small>';return}
+  const p=r.profile||{};
+  let h='<div class="pfTop"><div class="pfA">'+(p.avatar?esc(p.avatar):esc((u[0]||'?').toUpperCase()))+'</div><h3 style="margin:0">@'+esc(u)+'</h3></div>'
+   +'<div class="pfStat"><span><b>'+(r.followers||0)+'</b> follower</span><span><b>'+(r.following||0)+'</b> seguiti</span></div>';
+  if(r.limited){h+='<p class="mut" style="text-align:center;font-size:13px">Diventa amico di @'+esc(u)+' per vedere il suo profilo completo.</p>'}
+  else{
+   if(p.study)h+='<div class="pfRow">'+ic('book','wi')+'<div><b>Dove studia</b>'+esc(p.study)+'</div></div>';
+   if(p.skills)h+='<div class="pfRow">'+ic('spark','wi')+'<div><b>Punti forti</b>'+esc(p.skills)+'</div></div>';
+   if(p.song)h+='<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div></div>';
+   if(p.badges&&p.badges.length)h+='<div class="pfU" style="opacity:.7;text-align:center">'+p.badges.map(b=>'🏅 '+esc(b)).join(' · ')+'</div>';
+  }
+  h+='<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
+   +'<button class="btn sm" id="frPFol">'+(r.you_follow?'Smetti di seguire':'Segui')+'</button>'
+   +(r.is_friend?'':'<button class="btn sm pri" id="frPAdd">Aggiungi agli amici</button>')+'</div>';
+  B.innerHTML=h;
+  const fb=$('#frPFol');if(fb)fb.onclick=async()=>{try{const r2=await api(r.you_follow?'/unfollow':'/follow','POST',{username:u});if(r2&&r2.ok){haptic('light');frProfOpen(u)}else toast('Errore')}catch(e){toast('Errore')}};
+  const ab=$('#frPAdd');if(ab)ab.onclick=async()=>{try{const r2=await api('/friends/request','POST',{username:u});toast(r2&&r2.ok?'Richiesta inviata a @'+u:((r2&&r2.error)||'Errore'));frLoad(true)}catch(e){toast('Errore')}};
+ }catch(e){B.innerHTML='<small class="mut">Non disponibile ora.</small>'}
+}
+$('#frLX').onclick=()=>$('#dFrL').close();
+$('#frPX').onclick=()=>$('#dFrP').close();
 function ncOpen(){frLoad(true).then(()=>{const d=frData||{friends:[]};
  if(!d.friends.length){toast('Aggiungi prima un amico dalla pagina Profilo');return}
  $('#ncL').innerHTML=d.friends.map(f=>'<label class="pfRow" style="cursor:pointer"><input type="checkbox" data-u="'+esc(f.username)+'" style="width:20px;height:20px"><div><b>@'+esc(f.username)+'</b></div></label>').join('');
