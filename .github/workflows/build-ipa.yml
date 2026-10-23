@@ -65,6 +65,19 @@ jobs:
           sips -z 167 167 Resources/icon1024.png --out "Resources/AppIcon83.5x83.5@2x~ipad.png"
           ls -la Resources
 
+      - name: Stamp release version into Info plists
+        run: |
+          BUILD_TAG="$(grep -o 'NOVA build [0-9][0-9.-]*' Sources/NOVA/nova.html | head -n1 | sed 's/NOVA build //')"
+          if [ -n "$BUILD_TAG" ]; then
+            SHORT="$(echo "$BUILD_TAG" | cut -d. -f1-3)"
+            VINT="$(echo "$BUILD_TAG" | awk -F. '{printf "%02d%02d",$3,$4}')"
+            for P in NOVA-Info.plist NOVAWidget-Info.plist; do
+              /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SHORT" "$P"
+              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VINT" "$P"
+              /usr/libexec/PlistBuddy -c "Set :NOVAReleaseLabel $BUILD_TAG" "$P"
+            done
+          fi
+
       - name: Build unsigned IPA
         run: xtool dev build --ipa -c release
 
