@@ -275,7 +275,7 @@ body.ovli{background:#000}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.9</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.10</small>
 </div></dialog>
 
 <dialog id="dTT"><div class="sheet">
@@ -386,8 +386,9 @@ async function planGen(manual){if(!gqHas||!S.cv.on)return;
  for(const it of arr){if(!it||!it.title||!it.at)continue;const d=new Date(String(it.at).replace(' ','T'));if(isNaN(d)||d<=nowD)continue;
   items.push({title:String(it.title).slice(0,60),body:String(it.body||it.title).slice(0,300),at:d.getTime()});if(items.length>=15)break}
  items.sort((a,b)=>a.at-b.at);
- if(!items.length){if(manual)toast('L\'assistente non ha trovato promemoria utili da programmare.');return}
- post({t:'plan',items:items});
+ const seenP=new Set(),ded=[];for(const it of items){const k=it.title+'|'+it.at;if(seenP.has(k))continue;seenP.add(k);ded.push(it)}
+ if(!ded.length){if(manual)toast('L\'assistente non ha trovato promemoria utili da programmare.');return}
+ post({t:'plan',items:ded});
  if(manual)toast('NOVA ha programmato '+items.length+' promemoria')}
 async function cvLogin(u,p,ident){if(!u||!p){$$('.cvE').forEach(e=>e.textContent='Scrivi codice utente e password.');return}
  cvTmp={u:u,p:p};cvChoices=null;$$('.cvG').forEach(b=>{b.disabled=1;b.textContent='Collego…'});
