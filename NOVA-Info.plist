@@ -15,6 +15,10 @@
     <string>UIInterfaceOrientationLandscapeLeft</string>
     <string>UIInterfaceOrientationLandscapeRight</string>
   </array>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>NOVA usa il microfono solo per registrare i messaggi vocali che scegli di inviare in chat.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>NOVA usa la fotocamera per scansionare i codici QR dei tuoi amici.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
   <string>NOVA usa la tua posizione per il meteo locale e, solo se la attivi tu, per mostrarti sulla mappa dei tuoi amici.</string>
   <key>CFBundleIcons</key>
