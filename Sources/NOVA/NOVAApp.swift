@@ -765,7 +765,7 @@ enum ClasseViva {
 // MARK: - Aggiornamento in background (best effort: decide iOS quando farlo)
 
 enum BGHandler {
-    static let id = "it.tuonome.nova.refresh"
+    static let id = "federicotaranu.site.refresh"
 
     static func register() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: id, using: nil) { task in
@@ -899,18 +899,18 @@ enum Secret {
 enum TT {
     // AltStore/SideStore rinominano i gruppi come group.<id>.<TEAMID> e li pubblicano in ALTAppGroups,
     // ma non sempre in TUTTI i bundle (app si, widget no). Come ridondanza ricaviamo il nome anche
-    // dal bundle ID resigned: app = it.tuonome.nova.<TEAMID>, widget = it.tuonome.nova.<TEAMID>.NOVAWidget.
+    // dal bundle ID resigned: app = federicotaranu.site.<TEAMID>, widget = federicotaranu.site.<TEAMID>.NOVAWidget.
     static func groupIDs() -> [String] {
         var ids: [String] = []
         if let a = Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] { ids += a }
         if let bid = Bundle.main.bundleIdentifier {
             var comps = bid.split(separator: ".").map(String.init)
-            while comps.count > 3 {
+            while comps.count > 2 {
                 ids.append("group." + comps.joined(separator: "."))
                 comps.removeLast()
             }
         }
-        ids.append("group.it.tuonome.nova")
+        ids.append("group.federicotaranu.site")
         var seen = Set<String>()
         return ids.filter { seen.insert($0).inserted }
     }
