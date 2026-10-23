@@ -116,12 +116,18 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .di .b{white-space:pre-wrap;word-break:break-word;font-size:14.5px;line-height:1.5}
 .di .m{font-size:12.5px;color:var(--mut)}
 .di .ai{align-self:flex-start}
-#pgChat{display:flex;flex-direction:column;height:calc(100dvh - 32px);box-sizing:border-box}
-#aic{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+#pgChat{display:flex;flex-direction:column;height:100dvh;box-sizing:border-box;margin:0 -16px -32px;padding:0}
+#pgChat .pgh{margin:0;padding:14px 16px 10px;background:var(--bg);z-index:2}
+#pgChat #chatB{border:0;background:transparent;margin:0;padding:4px 16px}
+#pgChat #cm{padding:14px 16px 180px}
+#pgChat .cf{position:fixed;left:50%;transform:translateX(-50%);width:min(1068px,calc(100% - 32px));bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:41;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.14)}
+#pgChat .cf input{border:0;background:transparent}
+#pgChat #aiMP{position:fixed;left:16px;bottom:calc(142px + env(safe-area-inset-bottom,0px))}
+#aic{flex:1;min-height:0;display:flex;flex-direction:column}
 .ch{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
 .ch b{font-size:15px}
 #cm{flex:1;min-height:0;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.m1{max-width:88%;padding:9px 12px;border-radius:12px;font-size:14.5px;line-height:1.5;word-break:break-word}
+.m1{max-width:88%;padding:9px 12px;border-radius:19px;font-size:14.5px;line-height:1.5;word-break:break-word}
 .m1.u{align-self:flex-end;background:var(--fg);color:var(--bg)}
 .m1.a{align-self:flex-start;background:var(--fld)}
 .qs{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px}
@@ -130,6 +136,12 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .cf input{flex:1}
 #aic{position:relative}
 #aiM{flex:none;white-space:nowrap;font-size:12px;padding:8px 10px}
+#pgChat .cf .ico{border-radius:50%;flex:none}
+#pgChat #aiM{font-weight:800;font-size:16px;color:var(--mut)}
+.mimg{max-width:min(240px,60vw);border-radius:14px;display:block;margin-top:5px}
+#aiAt{position:absolute;bottom:calc(100% + 8px);left:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;display:flex;gap:7px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:7}
+#aiAt img{width:46px;height:46px;border-radius:10px;object-fit:cover;display:block}
+#aiAt button{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font-size:12px;line-height:20px}
 #aiMP{position:absolute;left:10px;bottom:56px;z-index:6;display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
 #aiMP button{background:none;border:0;color:var(--fg);font:inherit;font-size:13.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
 #aiMP button[aria-pressed="true"]{background:var(--accs);color:var(--acc)}
@@ -290,8 +302,7 @@ main.pg{padding-bottom:112px}
  <section class="card" id="chatB" hidden></section>
  <div id="aic">
   <div id="cm"></div>
-  <div class="qs" id="qs"></div>
-  <div class="cf"><button class="btn sm" id="aiM" type="button" aria-haspopup="true">Azioni: chiedi</button><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button></div>
+  <div class="cf"><div id="aiAt" hidden></div><button class="ico" id="aiP" aria-label="Aggiungi foto"></button><button class="ico" id="aiM" type="button" aria-haspopup="true" aria-label="Permessi azioni">/</button><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button><input type="file" id="aiPF" accept="image/*" hidden></div>
   <div id="aiMP" hidden><button data-m="always">Sempre — esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai — niente azioni</button></div>
  </div>
 </main>
@@ -337,7 +348,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.13</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.14</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -571,18 +582,29 @@ function execAct(a){
 function runActs(mi){const m=S.chat[mi];if(!m||!m.acts)return;let ch=0;
  m.acts.forEach(a=>{if(a.st!=='go'&&a.st!=='wait')return;const r=execAct(a);a.st=r.ok?'done':'no';if(!r.ok)a.note=r.note;ch=1});
  if(ch){save();chatDraw()}}
-function aiMdraw(){const b=$('#aiM');if(b)b.textContent='Azioni: '+({always:'sempre',ask:'chiedi',deny:'mai'}[S.aiAct]);
- $$('#aiMP button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===S.aiAct?'true':'false'))}
+function aiMdraw(){const b=$('#aiM');if(!b)return;
+ b.style.color={always:'var(--ok)',ask:'var(--mut)',deny:'var(--bad)'}[S.aiAct];
+ b.setAttribute('aria-label','Permessi azioni: '+({always:'sempre',ask:'chiedi prima',deny:'mai'}[S.aiAct]));
+ $$('#aiMP button[data-m]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===S.aiAct?'true':'false'))}
 function chatDraw(){const el=$('#cm');
- el.innerHTML=S.chat.length?S.chat.map((m,mi)=>`<div class="m1 ${m.r==='user'?'u':'a'}">${m.r==='user'?esc(m.c).replace(/\n/g,'<br>'):md(m.c)}</div>`+(m.acts&&m.acts.length?'<div class="acts">'+m.acts.map((a,ai)=>actHtml(a,mi,ai)).join('')+'</div>':'')).join(''):
+ el.innerHTML=S.chat.length?S.chat.map((m,mi)=>`<div class="m1 ${m.r==='user'?'u':'a'}">${m.img?'<img class="mimg" src="'+m.img+'" alt="Foto allegata">':''}${m.r==='user'?esc(m.c).replace(/\n/g,'<br>'):md(m.c)}</div>`+(m.acts&&m.acts.length?'<div class="acts">'+m.acts.map((a,ai)=>actHtml(a,mi,ai)).join('')+'</div>':'')).join(''):
  `<div class="m1 a">${gqHas?'Ciao'+(S.name?' '+esc(S.name):'')+'. Posso aiutarti con compiti, verifiche e studio. Scegli un suggerimento o scrivi.':'Per usare l\'assistente serve la tua chiave Groq. Mettila nelle impostazioni (non quella di Grok).'}</div>`;
  el.scrollTop=el.scrollHeight}
-async function chatSend(text){text=(text||'').trim();if(!text)return;
+let atImg=null;
+function aiAtDraw(){const w=$('#aiAt');if(!w)return;
+ if(atImg){w.hidden=false;w.innerHTML='<img src="'+atImg+'" alt="Allegato"><button type="button" id="aiAtX" aria-label="Rimuovi foto">×</button>';
+  $('#aiAtX').onclick=()=>{atImg=null;aiAtDraw()}}else{w.hidden=true;w.innerHTML=''}}
+async function chatSend(text){text=(text||'').trim();if(!text&&!atImg)return;
  if(!gqHas){toast('Prima salva la chiave Groq nelle impostazioni');return}
- S.chat.push({r:'user',c:text});S.chat=S.chat.slice(-40);chatDraw();$('#ai').value='';
+ const img=atImg;atImg=null;aiAtDraw();
+ S.chat.push(img?{r:'user',c:text,img}:{r:'user',c:text});S.chat=S.chat.slice(-40);
+ S.chat.forEach((m,i)=>{if(m.img&&i<S.chat.length-8)delete m.img});
+ chatDraw();$('#ai').value='';aiMic();
  const el=$('#cm');el.insertAdjacentHTML('beforeend','<div class="m1 a">…</div>');el.scrollTop=el.scrollHeight;
- const msgs=[{role:'system',content:ctx()}].concat(S.chat.slice(-12).map(m=>({role:m.r,content:m.c})));
- const r=await gq('chat',{messages:msgs});
+ let r;
+ if(img)r=await gq('vision',{img,prompt:(text?text+'\n\n':'')+'Rispondi come NOVA, l\'assistente di studio dentro l\'app, in italiano, tono amichevole e concreto.'});
+ else{const msgs=[{role:'system',content:ctx()}].concat(S.chat.slice(-12).map(m=>({role:m.r,content:m.c})));
+ r=await gq('chat',{messages:msgs})}
  let atxt=r.ok?r.text:r.err==='key'?'La chiave Groq non è valida. Controllala nelle impostazioni.':r.err==='limite'?'Hai raggiunto il limite di richieste di Groq. Riprova tra un minuto.':r.err==='rete'?'Non riesco a contattare Groq. Controlla la connessione.':r.err==='nokey'?'Manca la chiave Groq.':'Groq non ha risposto. Riprova tra poco.';
  let acts=null;
  if(r.ok){const ix=atxt.indexOf('###AZIONI###');if(ix>=0){const raw=atxt.slice(ix+12).trim();atxt=atxt.slice(0,ix).trim();
@@ -591,7 +613,7 @@ async function chatSend(text){text=(text||'').trim();if(!text)return;
  S.chat.push(Object.assign({r:'assistant',c:atxt},acts?{acts}:{}));
  save();chatDraw();
  if(acts&&S.aiAct==='always')runActs(S.chat.length-1)}
-function openChat(){const d=$('#dDay');if(d&&d.open)d.close();pg(2,1);if(!gqHas&&S.prof.username)toast('Serve la chiave Groq: impostazioni > Assistente AI')}
+function openChat(){const d=$('#dDay');if(d&&d.open)d.close();pg(2,1);aiMic();if(!gqHas&&S.prof.username)toast('Serve la chiave Groq: impostazioni > Assistente AI')}
 
 /* ---------- account & sync ---------- */
 const API='https://api.federicotaranu.site';
@@ -969,7 +991,6 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
 function chatPg(){const b=$('#chatB'),a=$('#aic');if(!b||!a)return;
  if(!S.prof.username){a.hidden=true;b.hidden=false;b.innerHTML='<p class="mut">La chat è bloccata: scegli prima il tuo username (Profilo > Modifica). Serve per farti trovare dagli amici.</p>';return}
  a.hidden=false;chatDraw();
- $('#qs').innerHTML=QS.map((q,i)=>`<button data-i="${i}">${q[0]}</button>`).join('');
  if(gqHas){b.hidden=true}
  else{b.hidden=false;b.innerHTML='<p class="mut" style="margin:0">Per parlare con l\'assistente serve la tua chiave Groq (gratuita, resta solo su questo telefono). <a href="#" id="cGK" style="color:var(--acc)">Apri le impostazioni</a></p>';const l=$('#cGK');if(l)l.onclick=e=>{e.preventDefault();sheet();$('#dSet').showModal()}}}
 function avPick(inp,cb){inp.onchange=()=>{const f=inp.files&&inp.files[0];if(!f)return;const img=new Image();
@@ -1047,18 +1068,30 @@ $('#tl').onclick=e=>{const li=e.target.closest('li[data-id]'),b=e.target.closest
  const a=b.dataset.a;if(a==='op')return openDay(t.due.slice(0,10),t.id);
  if(a==='ck'){t.done=t.done?0:1;haptic(t.done?'success':'medium')}else S.tasks=S.tasks.filter(x=>x!==t);save();tasks();cal();nxt()};
 $('#bAI').onclick=openChat;
-$('#qs').onclick=e=>{const b=e.target.closest('button');if(!b)return;const q=QS[+b.dataset.i][1];if(q.endsWith(': ')){$('#ai').value=q;$('#ai').focus()}else chatSend(q)};
 $('#cm').onclick=e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]');const k=ok?ok.dataset.ok:no&&no.dataset.no;if(!k)return;
  const [mi,ai]=k.split(':').map(Number),m=S.chat[mi];if(!m||!m.acts||!m.acts[ai])return;
  if(ok){haptic('light');const r=execAct(m.acts[ai]);m.acts[ai].st=r.ok?'done':'no';if(!r.ok)m.acts[ai].note=r.note}else m.acts[ai].st='no';
  save();chatDraw()};
-$('#aiM').onclick=()=>{const p=$('#aiMP');p.hidden=!p.hidden};
-$('#aiMP').onclick=e=>{const b=e.target.closest('button[data-m]');if(!b)return;S.aiAct=b.dataset.m;save();aiMdraw();$('#aiMP').hidden=true;haptic('light');toast({always:'L’assistente esegue le azioni subito.',ask:'L’assistente chiede prima di agire.',deny:'Azioni dell’assistente disattivate.'}[S.aiAct])};
+const aiMPpick='<button data-m="always">Sempre — esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai — niente azioni</button>';
+$('#aiM').onclick=()=>{const p=$('#aiMP');if(p.hidden){p.innerHTML=aiMPpick;aiMdraw()}p.hidden=!p.hidden};
+$('#aiMP').onclick=e=>{const b=e.target.closest('button');if(!b)return;const p=$('#aiMP');
+ if(b.id==='aiMW'){S.aiAct='always';save();aiMdraw();p.hidden=true;haptic('medium');toast('Azioni sempre attive: l\'assistente agisce senza chiedere.');return}
+ if(b.id==='aiMC'){p.hidden=true;return}
+ if(b.dataset.m==='always'&&S.aiAct!=='always'){p.innerHTML='<div style="padding:10px;max-width:240px"><b style="font-size:13.5px">Usa a tuo rischio</b><small class="mut" style="display:block;margin:5px 0 10px;line-height:1.4">Con "Sempre" l\'assistente può fare tutto da solo: aggiunge e apre senza chiederti conferma.</small><div class="row"><button class="btn sm" id="aiMC">Annulla</button><button class="btn sm pri" id="aiMW">Attiva</button></div></div>';haptic('light');return}
+ if(b.dataset.m){S.aiAct=b.dataset.m;save();aiMdraw();p.hidden=true;haptic('light');toast({ask:'L’assistente chiede prima di agire.',deny:'Azioni dell’assistente disattivate.'}[S.aiAct]||'')}};
+function aiMic(){const b=$('#aiS');if(!b)return;const t=$('#ai').value.trim();
+ b.innerHTML=t?ic('send'):'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>';
+ b.setAttribute('aria-label',t?'Invia':'Dettatura vocale')}
+$('#ai').addEventListener('input',aiMic);
+$('#aiS').onclick=()=>{if($('#ai').value.trim())chatSend($('#ai').value);else toast('Dettatura vocale in arrivo in un prossimo aggiornamento')};
+$('#aiP').onclick=()=>$('#aiPF').click();
+$('#aiPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+ try{atImg=await ttImg(f);aiAtDraw();$('#ai').focus()}catch(x){toast('Non riesco a leggere questa foto')}};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
 $('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
 $('#mdS').onclick=()=>{S.agentMd=$('#mdT').value.trim().slice(0,4000);save();$('#dMD').close();toast(S.agentMd?'agent.md salvata: l’assistente la segue dalla prossima risposta.':'agent.md vuota')};
 $('#mdX').onclick=()=>{S.agentMd='';save();$('#dMD').close();toast('agent.md rimossa')};
-$('#aiS').onclick=()=>chatSend($('#ai').value);$('#ai').onkeydown=e=>{if(e.key==='Enter')chatSend($('#ai').value)};
+$('#ai').onkeydown=e=>{if(e.key==='Enter'&&$('#ai').value.trim())chatSend($('#ai').value)};
 $('#aiX').onclick=()=>{S.chat=[];save();chatDraw()};
 $$('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
 
