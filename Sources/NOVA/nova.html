@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>NOVA</title>
@@ -147,6 +149,11 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 #aiAt button{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font-size:12px;line-height:20px}
 #mapDiv{height:calc(100dvh - 320px);min-height:320px;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin:0 -4px}
 .mkP{width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#cvR.rec{background:var(--bad)!important;border-color:var(--bad)!important;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.55}}
+.m1 audio{max-width:210px;height:36px;display:block}
+#dQR .qrbox{display:flex;justify-content:center;padding:14px;background:#fff;border-radius:16px;margin:8px 0}
+#dSC video{width:100%;border-radius:14px;background:#000}
 #chatSeg{margin:0 0 10px}
 #frc{display:flex;flex-direction:column;gap:8px}
 .fcR{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;text-align:left}
@@ -363,7 +370,7 @@ main.pg{padding-bottom:112px}
  <div class="cvh"><button class="ico" id="cvB" aria-label="Indietro" style="background:var(--bg3);color:var(--tx)">&#8249;</button><b id="cvT"></b><span class="cvExam" id="cvE" hidden></span></div>
  <div id="cvM"></div>
  <div id="cvTy"></div>
- <div class="cf cvfP"><button class="ico" id="cvP" aria-label="Invia foto"></button><input id="cvI" placeholder="Scrivi un messaggio" maxlength="4000" autocomplete="off"><button class="ico" id="cvS" aria-label="Invia"></button><input type="file" id="cvPF" accept="image/*" hidden></div>
+ <div class="cf cvfP"><button class="ico" id="cvP" aria-label="Invia foto"></button><input id="cvI" placeholder="Scrivi un messaggio" maxlength="4000" autocomplete="off"><button class="ico" id="cvR" aria-label="Messaggio vocale"></button><button class="ico" id="cvS" aria-label="Invia"></button><input type="file" id="cvPF" accept="image/*" hidden></div>
 </div>
 <div id="cvAct" hidden></div>
 <div id="intro" hidden><canvas id="inC"></canvas><div class="glow" id="inG"></div><div id="inW"><div class="inN" id="inL">N</div><div id="inT"></div></div><i class="ring" id="inR"></i><i class="flash" id="inF"></i><div class="dim" id="inD"></div><div class="lbx t"></div><div class="lbx b"></div><span class="hint">Tocca per saltare</span></div>
@@ -393,7 +400,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.17</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.18</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -407,6 +414,21 @@ main.pg{padding-bottom:112px}
   <div id="dSoS" hidden><input id="dSoQ" placeholder="Cerca canzone o artista" autocomplete="off"><div id="dSoL"></div><small>Anteprima di 30 secondi da Apple Music/iTunes.</small></div></div>
  <small class="err" id="dE"></small>
  <div class="row"><button class="btn" id="dC">Annulla</button><button class="btn pri" id="dOk">Salva</button></div>
+</div></dialog>
+
+<dialog id="dQR"><div class="sheet">
+ <h2>Il tuo codice amico</h2>
+ <small class="mut">Fai inquadrare questo QR per farti aggiungere, oppure condividi il tuo username.</small>
+ <div class="qrbox" id="qrB"></div>
+ <p style="text-align:center;margin:4px 0 12px"><b id="qrU"></b></p>
+ <div class="row"><button class="btn pri" id="qrC" style="flex:1">Chiudi</button></div>
+</div></dialog>
+
+<dialog id="dSC"><div class="sheet">
+ <h2>Scansiona un codice amico</h2>
+ <video id="scV" playsinline muted></video>
+ <small class="mut">Inquadra il QR NOVA di un amico.</small>
+ <div class="row" style="margin-top:10px"><button class="btn" id="scC" style="flex:1">Annulla</button></div>
 </div></dialog>
 
 <dialog id="dNC"><div class="sheet">
@@ -1074,7 +1096,7 @@ async function frDraw(){
  await frLoad(false);
  const d=frData||{friends:[],incoming:[],outgoing:[]};
  const row=(f,btn)=>'<div class="pfRow">'+ic('user','wi')+'<div><b>@'+esc(f.username||'?')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
- el.innerHTML='<h3 style="margin:0 0 4px">Amici</h3>'
+ el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">Amici</h3><button class="btn sm" id="frQR">Il mio QR</button><button class="btn sm" id="frSC">Scansiona</button></div>'
   +'<div class="frS"><input id="frQ" placeholder="Cerca per username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"><div id="frL"></div></div>'
   +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>')).join(''):'')
   +(d.friends.length?d.friends.map(f=>row(f,'<button class="btn sm" data-rem="'+esc(f.username)+'">Rimuovi</button>')).join(''):(d.incoming.length?'':'<small class="mut">Nessun amico ancora: cerca uno username qui sopra.</small>'))
@@ -1086,6 +1108,7 @@ async function frDraw(){
    L.innerHTML=L._rs.length?L._rs.map((u,i)=>'<div class="sngR" data-i="'+i+'"><div class="pfA" style="width:30px;height:30px;font-size:13px">'+(u.avatar?esc(u.avatar):esc((u.username||'?')[0].toUpperCase()))+'</div><div style="min-width:0;flex:1"><div>@'+esc(u.username)+'</div></div><button class="btn sm" data-add="'+esc(u.username)+'">Aggiungi</button></div>').join(''):'<small class="mut">Nessun utente trovato.</small>';
    L.querySelectorAll('[data-add]').forEach(b=>b.onclick=async()=>{const r2=await api('/friends/request','POST',{username:b.dataset.add});
     if(r2&&r2.ok){toast('Richiesta inviata a @'+b.dataset.add);frLoad(true).then(frDraw)}else toast((r2&&r2.error)||'Errore')})}catch(e2){L.innerHTML='<small class="mut">Ricerca non disponibile.</small>'}},400)};
+ const q1=$('#frQR');if(q1)q1.onclick=frQROpen;const q2=$('#frSC');if(q2)q2.onclick=frSCOpen;
  el.querySelectorAll('[data-acc]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{username:b.dataset.acc});haptic('success');await frLoad(true);frDraw()});
  el.querySelectorAll('[data-rem]').forEach(b=>b.onclick=async()=>{await api('/friends/remove','POST',{username:b.dataset.rem});await frLoad(true);frDraw()});
 }
@@ -1128,7 +1151,7 @@ function cvDraw(scroll){const el=$('#cvM');const nearBottom=el.scrollHeight-el.s
  el.innerHTML=cvMsgs.map(m=>{const own=m.sender===(S.acct&&S.acct.email);
   const rx=(cvReacts[m.id]||[]);const rxS=rx.length?'<div class="rx'+(own?' rxU':'')+'" style="'+(own?'align-self:flex-end':'')+'">'+rx.map(r=>esc(r.emoji)).join('')+'</div>':'';
   if(m.deleted)return '<div class="m1 '+(own?'u':'a')+'" style="opacity:.5;font-style:italic">Messaggio eliminato</div>';
-  return '<div class="m1 '+(own?'u':'a')+'" data-mid="'+m.id+'">'+(own?'':'<span class="sn">'+esc(cvSenders[m.sender]||'?')+'</span>')+(m.kind==='image'&&m.media_key?'<img class="mimg" src="'+(m.media_key[0]==='/'?API:'')+esc(m.media_key)+'">':'')+esc(m.body).replace(/\n/g,'<br>')+(m.edited?' <small style="opacity:.55;font-size:10px">modificato</small>':'')+'</div>'+rxS}).join('');
+  return '<div class="m1 '+(own?'u':'a')+'" data-mid="'+m.id+'">'+(own?'':'<span class="sn">'+esc(cvSenders[m.sender]||'?')+'</span>')+(m.kind==='image'&&m.media_key?'<img class="mimg" src="'+(m.media_key[0]==='/'?API:'')+esc(m.media_key)+'">':'')+(m.kind==='voice'&&m.media_key?'<audio controls preload="none" src="'+(m.media_key[0]==='/'?API:'')+esc(m.media_key)+'"></audio>':'')+esc(m.body).replace(/\n/g,'<br>')+(m.edited?' <small style="opacity:.55;font-size:10px">modificato</small>':'')+'</div>'+rxS}).join('');
  el.querySelectorAll('[data-mid]').forEach(b=>{
   let t=null;b.addEventListener('touchstart',()=>{t=setTimeout(()=>cvActSheet(+b.dataset.mid),500)},{passive:true});
   b.addEventListener('touchend',()=>clearTimeout(t));b.addEventListener('touchmove',()=>clearTimeout(t));
@@ -1281,10 +1304,56 @@ $('#cvPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target
   await api('/chats/'+convId+'/messages','POST',{kind:'image',media_key:up.url});
   haptic('success');convPoll(true)}catch(x){toast(x.message||'Foto non inviata')}};
 
+// ---- voce + QR ----
+let mr=null,mrChunks=[];
+$('#cvR').innerHTML='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+$('#cvR').onclick=async()=>{
+ if(mr&&mr.state==='recording'){mr.stop();return}
+ if(!convId)return;
+ if(typeof MediaRecorder==='undefined'||!navigator.mediaDevices){toast('Audio non supportato su questo dispositivo');return}
+ try{const st=await navigator.mediaDevices.getUserMedia({audio:true});
+  let mime='audio/mp4';if(!MediaRecorder.isTypeSupported(mime))mime='audio/webm';if(!MediaRecorder.isTypeSupported(mime))mime='';
+  mr=new MediaRecorder(st,mime?{mimeType:mime}:undefined);mrChunks=[];
+  mr.ondataavailable=e=>{if(e.data.size)mrChunks.push(e.data)};
+  mr.onstop=async()=>{st.getTracks().forEach(t=>t.stop());$('#cvR').classList.remove('rec');
+   const blob=new Blob(mrChunks,{type:mr.mimeType||'audio/mp4'});
+   if(blob.size<500){toast('Registrazione troppo corta');return}
+   if(blob.size>900000){toast('Massimo 60 secondi');return}
+   toast('Invio il vocale…');
+   const fr=new FileReader();fr.onload=async()=>{try{
+    const up=await api('/media','POST',{data:String(fr.result).split(',')[1],mime:blob.type});
+    await api('/chats/'+convId+'/messages','POST',{kind:'voice',media_key:up.url});haptic('success');convPoll(true)}catch(x){toast(x.message||'Vocale non inviato')}};
+   fr.readAsDataURL(blob)};
+  mr.start();$('#cvR').classList.add('rec');haptic('medium');toast('Registrazione: tocca di nuovo per fermare (max 60s)');
+  setTimeout(()=>{if(mr&&mr.state==='recording')mr.stop()},60000);
+ }catch(e){toast('Microfono non disponibile: controlla il permesso nelle impostazioni')}};
+let scSt=null,scRAF=0;
+function frQROpen(){if(!S.prof.username){toast('Scegli prima lo username');return}
+ $('#qrB').innerHTML='';$('#dQR').showModal();
+ const mk=()=>{if(typeof QRCode==='undefined'){setTimeout(mk,400);return}
+  new QRCode($('#qrB'),{text:'nova:add:'+S.prof.username.toLowerCase(),width:200,height:200,correctLevel:QRCode.CorrectLevel.M})};mk();
+ $('#qrU').textContent='@'+S.prof.username}
+$('#qrC').onclick=()=>$('#dQR').close();
+async function frSCOpen(){
+ if(!navigator.mediaDevices){toast('Fotocamera non supportata qui');return}
+ try{scSt=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){toast('Fotocamera non disponibile: controlla il permesso');return}
+ $('#dSC').showModal();const v=$('#scV');v.srcObject=scSt;v.play();
+ const cv=document.createElement('canvas');
+ const tick=()=>{if($('#dSC').open===false)return;
+  if(v.readyState===v.HAVE_ENOUGH_DATA&&typeof jsQR!=='undefined'){cv.width=v.videoWidth;cv.height=v.videoHeight;
+   cv.getContext('2d').drawImage(v,0,0);
+   const d=jsQR(cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height);
+   if(d&&/^nova:add:[a-z0-9_.]{3,20}$/.test(d.data)){scClose();
+    const u=d.data.slice(9);
+    api('/friends/request','POST',{username:u}).then(r=>{toast(r&&r.ok?'Richiesta inviata a @'+u:((r&&r.error)||'Errore'));frLoad(true).then(frDraw)});return}}
+  scRAF=requestAnimationFrame(tick)};tick()};
+function scClose(){$('#dSC').close();cancelAnimationFrame(scRAF);if(scSt){scSt.getTracks().forEach(t=>t.stop());scSt=null}}
+$('#scC').onclick=scClose;
+
 // ---- mappa amici ----
 let mapO=null,mkMe=null,mkFr={},mapT=null;
 function mapNoteDraw(){const el=$('#mapNote');if(!el)return;const on=!!S.locShare;
- el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici. Tocca "Fantasma" per sparire dalla loro mappa.':'Modalità fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi.')+'</p>';
+ el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici: si aggiorna solo quando apri la mappa, non ti segue in background. Tocca "Fantasma" per sparire subito dalla loro mappa.':'Modalità fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi; gli amici vedono solo la tua ultima posizione recente (max 30 minuti), niente tracciamento continuo.')+'</p>';
  const b=$('#mapSh');b.setAttribute('aria-pressed',on?'true':'false');b.textContent=on?'Condivisione: attiva':'Fantasma: attivo'}
 async function mapLoc(){return new Promise(res=>{let done=0;const fin=(lat,lon,err)=>{if(done)return;done=1;res(err?null:{lat,lon})};
  window.__novaLoc=fin;setTimeout(()=>fin(0,0,'timeout'),9000);
@@ -1303,12 +1372,14 @@ async function mapInit(){
  try{const r=await api('/map','GET');const seen=new Set();
   for(const f of (r&&r.friends)||[]){seen.add(f.username);
    const html='<div class="mkP">'+esc((f.username||'?')[0].toUpperCase())+'</div>';
-   if(!mkFr[f.username])mkFr[f.username]=L.marker([f.lat,f.lon],{icon:L.divIcon({className:'',html,iconSize:[34,34]})}).addTo(mapO).bindPopup('@'+esc(f.username));
-   else mkFr[f.username].setLatLng([f.lat,f.lon])}
+   const ago=Math.max(1,Math.round((Date.now()-f.ts)/60000));const agoS=ago<60?ago+' min fa':Math.round(ago/60)+' h fa';
+   if(!mkFr[f.username])mkFr[f.username]=L.marker([f.lat,f.lon],{icon:L.divIcon({className:'',html,iconSize:[34,34]})}).addTo(mapO);
+   else mkFr[f.username].setLatLng([f.lat,f.lon]);
+   mkFr[f.username].bindPopup('@'+esc(f.username)+' · '+agoS)}
   for(const u of Object.keys(mkFr))if(!seen.has(u)){mapO.removeLayer(mkFr[u]);delete mkFr[u]}}catch(e){}
  clearTimeout(mapT);mapT=setTimeout(()=>{if(!$('#pgMap').hidden)mapInit()},30000)}
 $('#mapSh').onclick=()=>{S.locShare=!S.locShare;save();mapNoteDraw();haptic('light');
- if(S.locShare)mapInit();else{if(S.acct&&S.acct.token)mapLoc().then(me=>{if(me)api('/location','PUT',{lat:me.lat,lon:me.lon,sharing:false}).catch(()=>{})});toast('Modalità fantasma: gli amici non ti vedono più')}};
+ if(S.locShare)mapInit();else{if(S.acct&&S.acct.token)api('/location','PUT',{sharing:false}).catch(()=>{});toast('Modalità fantasma: gli amici non ti vedono più')}};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
 $('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
 $('#mdS').onclick=()=>{S.agentMd=$('#mdT').value.trim().slice(0,4000);save();$('#dMD').close();toast(S.agentMd?'agent.md salvata: l’assistente la segue dalla prossima risposta.':'agent.md vuota')};
