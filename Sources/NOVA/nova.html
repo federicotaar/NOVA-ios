@@ -409,7 +409,7 @@ main.pg{padding-bottom:112px}
  <div class="fl" id="fidRow" hidden>Blocco app<button class="btn" id="bFid">Face ID: spento</button><small>Quando è attivo, NOVA si blocca a ogni apertura e si sblocca con Face ID (o codice). Il volto resta sul telefono.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.24</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.25</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -419,6 +419,7 @@ main.pg{padding-bottom:112px}
  <small>Lettere minuscole, numeri, punto e trattino basso (3-20). E' come ti trovano gli amici nella chat.</small>
  <label class="fl">Dove studi<input id="dSt" maxlength="60" placeholder="Es. ITI Copernico, Bologna"></label>
  <label class="fl">Punti forti<input id="dSk" maxlength="80" placeholder="Es. informatica, calcio, meme"></label>
+ <label class="fl">Hobby<input id="dHb" maxlength="80" placeholder="Es. calcio, disegno, gaming"></label>
  <div class="fl">La tua canzone<div id="dSo"></div>
   <div id="dSoS" hidden><input id="dSoQ" placeholder="Cerca canzone o artista" autocomplete="off"><div id="dSoL"></div><small>Anteprime di 30 secondi dal catalogo Deezer, gratis e senza account.</small></div></div>
  <small class="err" id="dE"></small>
@@ -524,7 +525,7 @@ snow:'<path d="M7 14a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 14z"/>
 storm:'<path d="M7 14a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 14z"/><path d="M12 14l-2 3h3l-2 3"/>',
 plus:'<path d="M12 5v14M5 12h14"/>',sl:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
 sb:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',ck:'<path d="M5 12.5l4.2 4.2L19 7"/>',tr:'<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>',
-spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
+game:'<rect x="2" y="7" width="20" height="11" rx="5.5"/><path d="M7 11v4M5 13h4M15.5 11.5h.01M18 14h.01"/>',spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
 send:'<path d="M12 19V5M5 12l7-7 7 7"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',cl:'<path d="M15 6l-6 6 6 6"/>',cr:'<path d="M9 6l6 6-6 6"/>',
 book:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 19v2H6"/>',
 award:'<circle cx="12" cy="9" r="6"/><path d="M8.5 14.5L7 21l5-3 5 3-1.5-6.5"/>',music:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
@@ -1086,7 +1087,7 @@ async function profPush(){
  if(!S.acct||!S.acct.token)return;
  try{
   if(S.prof.username&&!S.prof.ntfy)S.prof.ntfy='nova-'+rndHex(12);
-  const b={username:S.prof.username||'',study:S.prof.study||'',skills:S.prof.skills||'',song:S.prof.song||null,badges:S.prof.badges||[],ntfy_topic:S.prof.ntfy||''};
+  const b={username:S.prof.username||'',study:S.prof.study||'',skills:S.prof.skills||'',hobbies:S.prof.hobbies||'',song:S.prof.song||null,badges:S.prof.badges||[],ntfy_topic:S.prof.ntfy||''};
   if(S.prof.avatar&&S.prof.avatar.length<=8)b.avatar=S.prof.avatar;
   const r=await api('/profile','PUT',b);
   if(r&&r.error==='username taken'){toast('Questo username è già preso');return false}
@@ -1144,6 +1145,7 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
  el.innerHTML='<div class="pfTop"><div class="pfA">'+av+'</div><h3 style="margin:0">'+esc(S.name||'Il tuo profilo')+'</h3><div class="pfU">'+(p.username?'@'+esc(p.username):'nessun username scelto')+'</div>'+(p.badges&&p.badges.length?'<div class="pfU" style="opacity:.7">'+p.badges.map(b=>'🏅 '+esc(b)).join(' · ')+'</div>':'')+'<button class="btn sm" id="pfE">Modifica</button></div>'
  +'<div class="pfRow">'+ic('book','wi')+'<div><b>Dove studi</b>'+esc(p.study||'Non impostato')+'</div></div>'
  +'<div class="pfRow">'+ic('spark','wi')+'<div><b>Punti forti</b>'+esc(p.skills||'Non impostato')+'</div></div>'
+ +(p.hobbies?'<div class="pfRow">'+ic('game','wi')+'<div><b>Hobby</b>'+esc(p.hobbies)+'</div></div>':'')
  +(S.acct&&S.acct.token&&p.username?'<div class="pfStat"><span data-ls="amici"><b id="pfNF">-</b> amici</span><span data-ls="follower"><b id="pfNFr">-</b> follower</span><span data-ls="seguiti"><b id="pfNS">-</b> seguiti</span></div>':'')
  +(p.song?'<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div><button class="ico" id="pfPl" aria-label="Anteprima">'+ic(pfPlaying?'pause':'play')+'</button></div>':'<div class="pfRow">'+ic('music','wi')+'<div><b>Canzone preferita</b>Nessuna canzone scelta</div></div>');
  $('#pfE').onclick=()=>profOpen(0);
@@ -1199,19 +1201,26 @@ async function frProfOpen(u){const B=$('#frPB');if(!B)return;
   else{
    if(p.study)h+='<div class="pfRow">'+ic('book','wi')+'<div><b>Dove studia</b>'+esc(p.study)+'</div></div>';
    if(p.skills)h+='<div class="pfRow">'+ic('spark','wi')+'<div><b>Punti forti</b>'+esc(p.skills)+'</div></div>';
-   if(p.song)h+='<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div></div>';
+   if(p.hobbies)h+='<div class="pfRow">'+ic('game','wi')+'<div><b>Hobby</b>'+esc(p.hobbies)+'</div></div>';
+   if(p.song)h+='<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div>'+(p.song.prev?'<button class="ico" id="frPPl" aria-label="Anteprima">'+ic('play')+'</button>':'')+'</div>';
    if(p.badges&&p.badges.length)h+='<div class="pfU" style="opacity:.7;text-align:center">'+p.badges.map(b=>'🏅 '+esc(b)).join(' · ')+'</div>';
   }
   h+='<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
    +'<button class="btn sm" id="frPFol">'+(r.you_follow?'Smetti di seguire':'Segui')+'</button>'
    +(r.is_friend?'':'<button class="btn sm pri" id="frPAdd">Aggiungi agli amici</button>')+'</div>';
   B.innerHTML=h;
+  const plb=$('#frPPl');if(plb&&p.song&&p.song.prev)plb.onclick=()=>fpToggle(plb,p.song.prev);
   const fb=$('#frPFol');if(fb)fb.onclick=async()=>{try{const r2=await api(r.you_follow?'/unfollow':'/follow','POST',{username:u});if(r2&&r2.ok){haptic('light');frProfOpen(u)}else toast('Errore')}catch(e){toast('Errore')}};
   const ab=$('#frPAdd');if(ab)ab.onclick=async()=>{try{const r2=await api('/friends/request','POST',{username:u});toast(r2&&r2.ok?'Richiesta inviata a @'+u:((r2&&r2.error)||'Errore'));frLoad(true)}catch(e){toast('Errore')}};
  }catch(e){B.innerHTML='<small class="mut">Non disponibile ora.</small>'}
 }
+let fpAu=null,fpPlaying=false;
+function fpToggle(btn,url){try{if(pfPlaying&&pfAu){pfAu.pause();pfPlaying=false;pf()}}catch(e){}
+ if(fpPlaying&&fpAu){fpAu.pause();fpPlaying=false;btn.innerHTML=ic('play');return}
+ if(!fpAu)fpAu=new Audio();fpAu.src=url;fpAu.play().catch(()=>{});fpPlaying=true;btn.innerHTML=ic('pause');
+ fpAu.onended=()=>{fpPlaying=false;if(btn.isConnected)btn.innerHTML=ic('play')}}
 $('#frLX').onclick=()=>$('#dFrL').close();
-$('#frPX').onclick=()=>$('#dFrP').close();
+$('#frPX').onclick=()=>{if(fpPlaying&&fpAu){fpAu.pause();fpPlaying=false}$('#dFrP').close()};
 function ncOpen(){frLoad(true).then(()=>{const d=frData||{friends:[]};
  if(!d.friends.length){toast('Aggiungi prima un amico dalla pagina Profilo');return}
  $('#ncL').innerHTML=d.friends.map(f=>'<label class="pfRow" style="cursor:pointer"><input type="checkbox" data-u="'+esc(f.username)+'" style="width:20px;height:20px"><div><b>@'+esc(f.username)+'</b></div></label>').join('');
@@ -1291,9 +1300,9 @@ function unWire(inp,st,onOk){const re=/^[a-z0-9_.]{3,20}$/;let t=null;
 function dSoDraw(){const s=dTmp.song,box=$('#dSo');
  box.innerHTML=s?'<div class="pfSong" style="margin:0"><img src="'+s.art+'"><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(s.t)+'</div><small class="mut">'+esc(s.a)+'</small></div><button class="btn sm" id="dSoC">Cambia</button></div>':'<button class="btn" id="dSoC">Scegli la tua canzone</button>';
  $('#dSoC').onclick=()=>{const w=$('#dSoS');w.hidden=!w.hidden;if(!w.hidden)$('#dSoQ').focus()}}
-function profOpen(one){profOne=!!one;dTmp=Object.assign({username:'',avatar:'',study:'',skills:'',song:null},S.prof);
+function profOpen(one){profOne=!!one;dTmp=Object.assign({username:'',avatar:'',study:'',skills:'',hobbies:'',song:null},S.prof);
  $('#dAv').innerHTML=dTmp.avatar?'<img src="'+dTmp.avatar+'">':(S.name?esc(S.name[0].toUpperCase()):ic('user'));
- $('#dU').value=dTmp.username;$('#dSt').value=dTmp.study;$('#dSk').value=dTmp.skills;
+ $('#dU').value=dTmp.username;$('#dSt').value=dTmp.study;$('#dSk').value=dTmp.skills;$('#dHb').value=dTmp.hobbies||'';
  $('#dSoS').hidden=true;$('#dSoQ').value='';$('#dSoL').innerHTML='';
  dSoDraw();$('#dE').textContent='';$('#dC').style.visibility=one?'hidden':'visible';
  unWire($('#dU'),$('#dUs'));
@@ -1329,7 +1338,7 @@ $('#dC').onclick=()=>$('#dProf').close();
 $('#dOk').onclick=()=>{const u=$('#dU').value.trim().toLowerCase();
  if(u&&!/^[a-z0-9_.]{3,20}$/.test(u)){$('#dE').textContent='Username: 3-20 caratteri, lettere minuscole, numeri, punto o trattino basso.';return}
  if(unLast==='no'){$('#dE').textContent='Questo username non va bene o è già preso.';return}
- dTmp.username=u;dTmp.study=$('#dSt').value.trim();dTmp.skills=$('#dSk').value.trim();
+ dTmp.username=u;dTmp.study=$('#dSt').value.trim();dTmp.skills=$('#dSk').value.trim();dTmp.hobbies=$('#dHb').value.trim();
  dTmp.badges=dTmp.badges||S.prof.badges||[];dTmp.ntfy=S.prof.ntfy||'';
  S.prof=dTmp;S.profDone=1;save();pf();$('#dProf').close();haptic('success');if(profOne)toast('Profilo completato');
  if(S.acct&&S.acct.token&&u){$('#dE').textContent='';profPush().then(ok=>{if(ok===false){toast('Username già preso da un altro account: scegline un altro da Modifica profilo')}else if(!dTmp.badges.includes('pioniere')&&!S.prof._pio){S.prof.badges=S.prof.badges||[];if(!S.prof.badges.includes('pioniere')){S.prof.badges.push('pioniere');S.prof._pio=1;save();profPush()}}})}};
