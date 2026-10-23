@@ -143,6 +143,31 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 #aiAt{position:absolute;bottom:calc(100% + 8px);left:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;display:flex;gap:7px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:7}
 #aiAt img{width:46px;height:46px;border-radius:10px;object-fit:cover;display:block}
 #aiAt button{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font-size:12px;line-height:20px}
+#chatSeg{margin:0 0 10px}
+#frc{display:flex;flex-direction:column;gap:8px}
+.fcR{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;text-align:left}
+.fcR .tt{flex:1;min-width:0}
+.fcR .tt b{display:block;font-size:15px}
+.fcR .tt small{color:var(--mut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcUn{background:var(--acc);color:#fff;border-radius:999px;min-width:20px;height:20px;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px}
+#conv{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column}
+.cvh{display:flex;align-items:center;gap:10px;padding:12px 12px calc(10px);padding-top:calc(10px + env(safe-area-inset-top))}
+.cvh b{flex:1;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cvExam{font-size:11.5px;background:var(--bg3);border-radius:999px;padding:3px 9px;color:var(--mut)}
+#cvM{flex:1;overflow-y:auto;padding:6px 14px 10px;display:flex;flex-direction:column;gap:6px}
+#cvTy{font-size:12px;color:var(--mut);min-height:16px;padding:0 16px 4px;font-style:italic}
+.cvf{display:flex;align-items:center;gap:8px;padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+.cvf input{flex:1;background:var(--bg3);border-radius:999px;padding:11px 15px;font-size:15px;border:1px solid transparent}
+.cvf .ico{border-radius:50%;flex:none}
+.cvf .ico svg{display:block}
+.m1 .sn{display:block;font-size:11px;color:var(--acc);font-weight:600;margin-bottom:2px}
+.rx{display:inline-flex;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 7px;font-size:12px;margin-top:-10px;margin-bottom:6px;align-self:flex-start;z-index:2}
+.rxU{position:relative}
+#cvAct{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center}
+#cvAct .sh{background:var(--card);border-radius:20px 20px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));width:100%;max-width:480px;display:flex;flex-direction:column;gap:4px}
+#cvAct .em{display:flex;gap:6px;font-size:24px;margin-bottom:8px}
+#cvAct .em button{background:var(--bg3);border-radius:12px;padding:6px 10px;font-size:22px}
+#cvAct .sh>button{text-align:left;padding:11px 8px;font-size:15.5px;border-radius:10px}
 #aiMP{position:absolute;left:10px;bottom:56px;z-index:6;display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
 #aiMP button{background:none;border:0;color:var(--fg);font:inherit;font-size:13.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
 #aiMP button[aria-pressed="true"]{background:var(--accs);color:var(--acc)}
@@ -301,6 +326,8 @@ main.pg{padding-bottom:112px}
 <main class="pg" id="pgChat" hidden>
  <div class="pgh"><h2>Chat</h2><span style="display:flex;gap:6px"><button class="btn sm" id="aiMD">agent.md</button><button class="btn sm" id="aiX">Nuova chat</button></span></div>
  <section class="card" id="chatB" hidden></section>
+ <div class="seg" id="chatSeg"><button data-v="ai" aria-pressed="true">AI</button><button data-v="amici" aria-pressed="false">Amici</button></div>
+ <div id="frc" hidden></div>
  <div id="aic">
   <div id="cm"></div>
   <div class="cf"><div id="aiAt" hidden></div><button class="ico" id="aiP" aria-label="Aggiungi foto"></button><button class="ico" id="aiM" type="button" aria-haspopup="true" aria-label="Permessi azioni">/</button><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button><input type="file" id="aiPF" accept="image/*" hidden></div>
@@ -323,6 +350,13 @@ main.pg{padding-bottom:112px}
 <nav id="tabbar"><i class="ind" id="tbInd"></i><button data-pg="pgDash" aria-pressed="true"></button><button data-pg="pgGr"></button><button data-pg="pgChat"></button><button data-pg="pgProf"></button></nav>
 </div>
 
+<div id="conv" hidden>
+ <div class="cvh"><button class="ico" id="cvB" aria-label="Indietro" style="background:var(--bg3);color:var(--tx)">&#8249;</button><b id="cvT"></b><span class="cvExam" id="cvE" hidden></span></div>
+ <div id="cvM"></div>
+ <div id="cvTy"></div>
+ <div class="cvf"><input id="cvI" placeholder="Scrivi un messaggio" maxlength="4000" autocomplete="off"><button class="ico" id="cvS" aria-label="Invia"></button></div>
+</div>
+<div id="cvAct" hidden></div>
 <div id="intro" hidden><canvas id="inC"></canvas><div class="glow" id="inG"></div><div id="inW"><div class="inN" id="inL">N</div><div id="inT"></div></div><i class="ring" id="inR"></i><i class="flash" id="inF"></i><div class="dim" id="inD"></div><div class="lbx t"></div><div class="lbx b"></div><span class="hint">Tocca per saltare</span></div>
 <div id="ob" hidden></div>
 
@@ -350,7 +384,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.15</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.16</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -364,6 +398,14 @@ main.pg{padding-bottom:112px}
   <div id="dSoS" hidden><input id="dSoQ" placeholder="Cerca canzone o artista" autocomplete="off"><div id="dSoL"></div><small>Anteprima di 30 secondi da Apple Music/iTunes.</small></div></div>
  <small class="err" id="dE"></small>
  <div class="row"><button class="btn" id="dC">Annulla</button><button class="btn pri" id="dOk">Salva</button></div>
+</div></dialog>
+
+<dialog id="dNC"><div class="sheet">
+ <h2>Nuova chat</h2>
+ <small class="mut">Scegli uno o più amici. Con più di uno crei un gruppo.</small>
+ <div id="ncL" style="margin:8px 0"></div>
+ <label class="fl" id="ncG" hidden>Nome del gruppo<input id="ncN" maxlength="40" placeholder="Es. Studio matematica"></label>
+ <div class="row"><button class="btn" id="ncC">Annulla</button><button class="btn pri" id="ncOk">Crea</button></div>
 </div></dialog>
 
 <dialog id="dTT"><div class="sheet">
@@ -1046,6 +1088,69 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
  $('#pfE').onclick=()=>profOpen(0);
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
 if(S.acct&&S.acct.token)profPull();
+let chatMode='ai',convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
+function chatSegDraw(){$$('#chatSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===chatMode?'true':'false'));
+ $('#aic').hidden=chatMode!=='ai';$('#frc').hidden=chatMode!=='amici';
+ $('#aiMD').style.display=chatMode==='ai'?'':'none';$('#aiX').style.display=chatMode==='ai'?'':'none'}
+async function frcDraw(){const el=$('#frc');if(!el||chatMode!=='amici')return;
+ if(!S.acct||!S.acct.token){el.innerHTML='<p class="mut" style="text-align:center;padding:20px">Collega il tuo account NOVA (Impostazioni) per chattare con gli amici.</p>';return}
+ if(!S.prof.username){el.innerHTML='<p class="mut" style="text-align:center;padding:20px">Scegli prima il tuo username (Profilo › Modifica): è come ti trovano gli amici.</p>';return}
+ el.innerHTML='<div style="display:flex;justify-content:flex-end"><button class="btn sm" id="fcN">+ Nuova chat</button></div><small class="mut" style="text-align:center">Carico le chat…</small>';
+ try{const r=await api('/chats','GET');
+  const cs=(r&&r.chats)||[];
+  el.innerHTML='<div style="display:flex;justify-content:flex-end"><button class="btn sm" id="fcN">+ Nuova chat</button></div>'
+   +(cs.length?cs.map(c=>'<button class="fcR" data-c="'+c.id+'" data-t="'+esc(c.title||'Chat')+'"><div class="pfA" style="width:40px;height:40px;font-size:16px">'+esc((c.title||'?')[0].toUpperCase())+'</div><div class="tt"><b>'+esc(c.title||'Chat')+'</b><small>'+(c.last?esc(c.last.kind==='text'?c.last.body.slice(0,60):(c.last.kind==='image'?'📷 Foto':'🎤 Vocale')):'Nessun messaggio')+'</small></div>'+(c.unread?'<span class="fcUn">'+c.unread+'</span>':'')+'</button>').join(''):'<small class="mut" style="text-align:center;padding:14px">Nessuna chat ancora: creane una e invita i tuoi amici.</small>');
+  $('#fcN').onclick=ncOpen;
+  el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>convOpen(b.dataset.c,b.dataset.t));
+ }catch(e){el.innerHTML='<div style="display:flex;justify-content:flex-end"><button class="btn sm" id="fcN">+ Nuova chat</button></div><small class="mut" style="text-align:center">Chat non disponibile ora.</small>';$('#fcN').onclick=ncOpen}
+}
+function ncOpen(){frLoad(true).then(()=>{const d=frData||{friends:[]};
+ if(!d.friends.length){toast('Aggiungi prima un amico dalla pagina Profilo');return}
+ $('#ncL').innerHTML=d.friends.map(f=>'<label class="pfRow" style="cursor:pointer"><input type="checkbox" data-u="'+esc(f.username)+'" style="width:20px;height:20px"><div><b>@'+esc(f.username)+'</b></div></label>').join('');
+ $('#ncG').hidden=true;$('#ncN').value='';$('#dNC').showModal()})}
+async function ncCreate(){const us=$$('#ncL input:checked').map(c=>c.dataset.u);
+ if(!us.length){toast('Seleziona almeno un amico');return}
+ const grp=us.length>1;
+ try{const r=await api('/chats','POST',{type:grp?'group':'dm',members:us,name:grp?($('#ncN').value.trim()||'Gruppo'):undefined});
+  if(r&&r.ok){$('#dNC').close();convOpen(r.chat_id,grp?($('#ncN').value.trim()||'Gruppo'):'@'+us[0])}else toast((r&&r.error)||'Errore')}catch(e){toast(e.message||'Errore')}}
+function cvDraw(scroll){const el=$('#cvM');const nearBottom=el.scrollHeight-el.scrollTop-el.clientHeight<120;
+ el.innerHTML=cvMsgs.map(m=>{const own=m.sender===(S.acct&&S.acct.email);
+  const rx=(cvReacts[m.id]||[]);const rxS=rx.length?'<div class="rx'+(own?' rxU':'')+'" style="'+(own?'align-self:flex-end':'')+'">'+rx.map(r=>esc(r.emoji)).join('')+'</div>':'';
+  if(m.deleted)return '<div class="m1 '+(own?'u':'a')+'" style="opacity:.5;font-style:italic">Messaggio eliminato</div>';
+  return '<div class="m1 '+(own?'u':'a')+'" data-mid="'+m.id+'">'+(own?'':'<span class="sn">'+esc(cvSenders[m.sender]||'?')+'</span>')+(m.kind==='image'&&m.media_key?'<img class="mimg" src="'+esc(m.media_key)+'">':'')+esc(m.body).replace(/\n/g,'<br>')+(m.edited?' <small style="opacity:.55;font-size:10px">modificato</small>':'')+'</div>'+rxS}).join('');
+ el.querySelectorAll('[data-mid]').forEach(b=>{
+  let t=null;b.addEventListener('touchstart',()=>{t=setTimeout(()=>cvActSheet(+b.dataset.mid),500)},{passive:true});
+  b.addEventListener('touchend',()=>clearTimeout(t));b.addEventListener('touchmove',()=>clearTimeout(t));
+  b.oncontextmenu=e=>{e.preventDefault();cvActSheet(+b.dataset.mid)}});
+ if(scroll||nearBottom)el.scrollTop=el.scrollHeight}
+function cvActSheet(mid){const m=cvMsgs.find(x=>x.id===mid);if(!m||m.deleted)return;const own=m.sender===(S.acct&&S.acct.email);
+ const w=$('#cvAct');
+ w.innerHTML='<div class="sh"><div class="em">'+['👍','❤️','😂','😮','🎉'].map(e=>'<button data-e="'+e+'">'+e+'</button>').join('')+'</div>'
+  +(own&&m.kind==='text'?'<button data-a="edit">Modifica</button>':'')+(own?'<button data-a="del" style="color:var(--bad)">Elimina</button>':'')+'<button data-a="x">Chiudi</button></div>';
+ w.hidden=false;
+ w.onclick=async e=>{const b=e.target.closest('button');if(!b||e.target===w&&!b){if(e.target===w){w.hidden=true}if(!b)return}
+  if(b.dataset.e){try{await api('/messages/'+mid+'/react','POST',{emoji:b.dataset.e})}catch(x){}w.hidden=true;convPoll(true);return}
+  if(b.dataset.a==='del'){try{await api('/messages/'+mid+'/delete','POST',{})}catch(x){}w.hidden=true;convPoll(true);return}
+  if(b.dataset.a==='edit'){w.hidden=true;const t=prompt('Modifica messaggio',m.body);if(t&&t.trim()&&t!==m.body){try{await api('/messages/'+mid+'/edit','POST',{body:t.trim()})}catch(x){}convPoll(true)}return}
+  w.hidden=true};
+ haptic('light')}
+async function convPoll(force){if(!convId)return;
+ try{const r=await api('/chats/'+convId+'/messages','GET',null,convLast?'?since='+convLast:'?limit=50');
+  if(r&&r.ok){cvSenders=Object.assign(cvSenders,r.senders||{});
+   if(r.reactions)cvReacts=r.reactions;
+   if(r.messages&&r.messages.length){const ni=cvMsgs.length;
+    if(convLast){const ids=new Set(cvMsgs.map(m=>m.id));r.messages.forEach(m=>{if(ids.has(m.id)){const i=cvMsgs.findIndex(x=>x.id===m.id);cvMsgs[i]=m}else cvMsgs.push(m)})}
+    else cvMsgs=r.messages;
+    convLast=cvMsgs.length?cvMsgs[cvMsgs.length-1].id:convLast;
+    cvDraw(cvMsgs.length!==ni);
+    const mx=convLast;if(mx)api('/chats/'+convId+'/read','POST',{last_msg_id:mx}).catch(()=>{})}}
+  const t=await api('/chats/'+convId+'/typing','GET');
+  $('#cvTy').textContent=(t&&t.typing&&t.typing.length)?t.typing.join(', ')+' sta scrivendo…':''}catch(e){}}
+function convOpen(id,title){convId=id;convLast=0;cvMsgs=[];cvSenders={};cvReacts={};
+ $('#cvT').textContent=title||'Chat';$('#cvM').innerHTML='';$('#cvTy').textContent='';
+ $('#conv').hidden=false;
+ convPoll(true);clearInterval(convTimer);convTimer=setInterval(convPoll,4000)}
+function convClose(){convId=null;clearInterval(convTimer);$('#conv').hidden=true;frcDraw()}
 function chatPg(){const b=$('#chatB'),a=$('#aic');if(!b||!a)return;
  if(!S.prof.username){a.hidden=true;b.hidden=false;b.innerHTML='<p class="mut">La chat è bloccata: scegli prima il tuo username (Profilo > Modifica). Serve per farti trovare dagli amici.</p>';return}
  a.hidden=false;chatDraw();
@@ -1147,6 +1252,16 @@ $('#aiS').onclick=()=>{if($('#ai').value.trim())chatSend($('#ai').value);else to
 $('#aiP').innerHTML=ic('plus');$('#aiP').onclick=()=>$('#aiPF').click();aiMic();
 $('#aiPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
  try{atImg=await ttImg(f);aiAtDraw();$('#ai').focus()}catch(x){toast('Non riesco a leggere questa foto')}};
+$('#chatSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;chatMode=b.dataset.v;chatSegDraw();if(chatMode==='amici')frcDraw();haptic('light')};
+$('#cvB').onclick=convClose;
+$('#cvS').innerHTML=ic('send');
+$('#cvS').onclick=()=>{const v=$('#cvI').value.trim();if(!v||!convId)return;$('#cvI').value='';
+ api('/chats/'+convId+'/messages','POST',{body:v}).then(()=>convPoll(true)).catch(e=>toast(e.message||'Non inviato'))};
+$('#cvI').onkeydown=e=>{if(e.key==='Enter')$('#cvS').click()};
+$('#cvI').oninput=()=>{const n=Date.now();if(convId&&n-typingLast>3000){typingLast=n;api('/chats/'+convId+'/typing','POST',{}).catch(()=>{})}};
+$('#ncOk').onclick=ncCreate;
+$('#ncC').onclick=()=>$('#dNC').close();
+$('#ncL').onchange=()=>{$('#ncG').hidden=$$('#ncL input:checked').length<2};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
 $('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
 $('#mdS').onclick=()=>{S.agentMd=$('#mdT').value.trim().slice(0,4000);save();$('#dMD').close();toast(S.agentMd?'agent.md salvata: l’assistente la segue dalla prossima risposta.':'agent.md vuota')};
