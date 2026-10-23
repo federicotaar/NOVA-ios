@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>NOVA</title>
@@ -143,6 +145,8 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 #aiAt{position:absolute;bottom:calc(100% + 8px);left:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;display:flex;gap:7px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:7}
 #aiAt img{width:46px;height:46px;border-radius:10px;object-fit:cover;display:block}
 #aiAt button{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font-size:12px;line-height:20px}
+#mapDiv{height:calc(100dvh - 320px);min-height:320px;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin:0 -4px}
+.mkP{width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 #chatSeg{margin:0 0 10px}
 #frc{display:flex;flex-direction:column;gap:8px}
 .fcR{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;text-align:left}
@@ -156,10 +160,10 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .cvExam{font-size:11.5px;background:var(--bg3);border-radius:999px;padding:3px 9px;color:var(--mut)}
 #cvM{flex:1;overflow-y:auto;padding:6px 14px 10px;display:flex;flex-direction:column;gap:6px}
 #cvTy{font-size:12px;color:var(--mut);min-height:16px;padding:0 16px 4px;font-style:italic}
-.cvf{display:flex;align-items:center;gap:8px;padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
-.cvf input{flex:1;background:var(--bg3);border-radius:999px;padding:11px 15px;font-size:15px;border:1px solid transparent}
-.cvf .ico{border-radius:50%;flex:none}
-.cvf .ico svg{display:block}
+.cvfP{margin:8px 10px calc(10px + env(safe-area-inset-bottom));padding:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.14);align-items:center}
+.cvfP input{border:0;background:transparent;padding:11px 4px;font-size:15px}
+.cvfP .ico{border-radius:50%;flex:none}
+.cvfP .ico svg{display:block}
 .m1 .sn{display:block;font-size:11px;color:var(--acc);font-weight:600;margin-bottom:2px}
 .rx{display:inline-flex;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 7px;font-size:12px;margin-top:-10px;margin-bottom:6px;align-self:flex-start;z-index:2}
 .rxU{position:relative}
@@ -342,19 +346,24 @@ main.pg{padding-bottom:112px}
  <small class="err" id="mdE"></small>
  <div class="row"><button class="btn" id="mdX">Rimuovi</button><button class="btn pri" id="mdS">Salva</button></div>
 </div></dialog>
+<main class="pg" id="pgMap" hidden>
+ <div class="pgh"><h2>Mappa</h2><button class="btn sm tgl" id="mapSh" aria-pressed="false">Fantasma: attivo</button></div>
+ <section class="card" id="mapNote"></section>
+ <div id="mapDiv"></div>
+</main>
 <main class="pg" id="pgProf" hidden>
  <div class="pgh"><h2>Profilo</h2><button class="ico" id="bSet" aria-label="Impostazioni"></button></div>
  <section class="card" id="pfB"></section>
  <section class="card" id="frB" hidden></section>
 </main>
-<nav id="tabbar"><i class="ind" id="tbInd"></i><button data-pg="pgDash" aria-pressed="true"></button><button data-pg="pgGr"></button><button data-pg="pgChat"></button><button data-pg="pgProf"></button></nav>
+<nav id="tabbar"><i class="ind" id="tbInd"></i><button data-pg="pgDash" aria-pressed="true"></button><button data-pg="pgGr"></button><button data-pg="pgChat"></button><button data-pg="pgMap"></button><button data-pg="pgProf"></button></nav>
 </div>
 
 <div id="conv" hidden>
  <div class="cvh"><button class="ico" id="cvB" aria-label="Indietro" style="background:var(--bg3);color:var(--tx)">&#8249;</button><b id="cvT"></b><span class="cvExam" id="cvE" hidden></span></div>
  <div id="cvM"></div>
  <div id="cvTy"></div>
- <div class="cvf"><input id="cvI" placeholder="Scrivi un messaggio" maxlength="4000" autocomplete="off"><button class="ico" id="cvS" aria-label="Invia"></button></div>
+ <div class="cf cvfP"><button class="ico" id="cvP" aria-label="Invia foto"></button><input id="cvI" placeholder="Scrivi un messaggio" maxlength="4000" autocomplete="off"><button class="ico" id="cvS" aria-label="Invia"></button><input type="file" id="cvPF" accept="image/*" hidden></div>
 </div>
 <div id="cvAct" hidden></div>
 <div id="intro" hidden><canvas id="inC"></canvas><div class="glow" id="inG"></div><div id="inW"><div class="inN" id="inL">N</div><div id="inT"></div></div><i class="ring" id="inR"></i><i class="flash" id="inF"></i><div class="dim" id="inD"></div><div class="lbx t"></div><div class="lbx b"></div><span class="hint">Tocca per saltare</span></div>
@@ -384,7 +393,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.16</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.17</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -485,7 +494,8 @@ chat:'<path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/>',
 user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/>',
 gear:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6A7 7 0 0 0 19 12z"/>',
 cam:'<path d="M4 8h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/>',
-search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-3.5-3.5"/>'};
+search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-3.5-3.5"/>',
+pin:'<path d="M12 21s-6-5.1-6-10a6 6 0 0 1 12 0c0 4.9-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>'};
 const ic=(n,c='')=>`<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
 const WX=[[[0,1],'sun','Sereno'],[[2,3],'cloud','Nuvoloso'],[[45,48],'fog','Nebbia'],[[51,53,55,56,57,61,63,65,66,67,80,81,82],'rain','Pioggia'],[[71,73,75,77,85,86],'snow','Neve'],[[95,96,99],'storm','Temporale']];
 const RK={alta:0,media:1,bassa:2},mq=matchMedia('(orientation:landscape) and (max-height:540px)');
@@ -987,7 +997,7 @@ function show(){[['wx','#wWx'],['bat','#wBat'],['cal','#wCal'],['task','#wTask']
 function nstat(){$('#nS').textContent='Stato: '+(!('Notification' in window)?'non supportate.':{granted:'attive.',denied:'bloccate, riattivale da Impostazioni di iOS.',default:'non ancora attive.'}[Notification.permission])}
 function hwBtn(){const b=$('#bHw');b.setAttribute('aria-pressed',!!S.hwn);b.textContent='Avvisi compiti: '+(S.hwn?'attivi':'spenti')}
 /* ---------- tab bar + pagine ---------- */
-const PGS=['pgDash','pgGr','pgChat','pgProf'],TBD=[['home','Home'],['chart','Voti'],['chat','Chat'],['user','Profilo']];
+const PGS=['pgDash','pgGr','pgChat','pgMap','pgProf'],TBD=[['home','Home'],['chart','Voti'],['chat','Chat'],['pin','Mappa'],['user','Profilo']];
 let pgI=0,tbSup=0;
 function tbLayout(){const bs=$$('#tabbar button'),b=bs[pgI],ind=$('#tbInd');if(!b||!ind)return;ind.style.left=b.offsetLeft+'px';ind.style.width=b.offsetWidth+'px'}
 function pg(i,dir){i=Math.max(0,Math.min(PGS.length-1,i));const old=pgI;pgI=i;
@@ -1000,7 +1010,7 @@ function pg(i,dir){i=Math.max(0,Math.min(PGS.length-1,i));const old=pgI;pgI=i;
   nu.style.transform='translateX(0)';ol.style.transform='translateX('+(dir>0?'-100%':'100%')+')';
   setTimeout(()=>{ol.hidden=true;ol.style.transition=ol.style.transform='';nu.style.transition=nu.style.transform=''},320)}
  tbLayout();const id=PGS[i];
- if(id==='pgGr')grades();if(id==='pgProf'){pf();frDraw()}if(id==='pgChat')chatPg();
+ if(id==='pgGr')grades();if(id==='pgProf'){pf();frDraw()}if(id==='pgChat')chatPg();if(id==='pgMap')mapInit();
  window.scrollTo(0,0)}
 (()=>{const bar=$('#tabbar'),bs=$$('#tabbar button');
  bs.forEach((b,i)=>{b.innerHTML=ic(TBD[i][0]);b.setAttribute('aria-label',TBD[i][1]);b.onclick=()=>{if(Date.now()<tbSup)return;pg(i,i>pgI?1:-1)}});
@@ -1091,6 +1101,7 @@ if(S.acct&&S.acct.token)profPull();
 let chatMode='ai',convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
 function chatSegDraw(){$$('#chatSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===chatMode?'true':'false'));
  $('#aic').hidden=chatMode!=='ai';$('#frc').hidden=chatMode!=='amici';
+ if(chatMode==='amici'){const b=$('#chatB');if(b)b.hidden=true}
  $('#aiMD').style.display=chatMode==='ai'?'':'none';$('#aiX').style.display=chatMode==='ai'?'':'none'}
 async function frcDraw(){const el=$('#frc');if(!el||chatMode!=='amici')return;
  if(!S.acct||!S.acct.token){el.innerHTML='<p class="mut" style="text-align:center;padding:20px">Collega il tuo account NOVA (Impostazioni) per chattare con gli amici.</p>';return}
@@ -1117,7 +1128,7 @@ function cvDraw(scroll){const el=$('#cvM');const nearBottom=el.scrollHeight-el.s
  el.innerHTML=cvMsgs.map(m=>{const own=m.sender===(S.acct&&S.acct.email);
   const rx=(cvReacts[m.id]||[]);const rxS=rx.length?'<div class="rx'+(own?' rxU':'')+'" style="'+(own?'align-self:flex-end':'')+'">'+rx.map(r=>esc(r.emoji)).join('')+'</div>':'';
   if(m.deleted)return '<div class="m1 '+(own?'u':'a')+'" style="opacity:.5;font-style:italic">Messaggio eliminato</div>';
-  return '<div class="m1 '+(own?'u':'a')+'" data-mid="'+m.id+'">'+(own?'':'<span class="sn">'+esc(cvSenders[m.sender]||'?')+'</span>')+(m.kind==='image'&&m.media_key?'<img class="mimg" src="'+esc(m.media_key)+'">':'')+esc(m.body).replace(/\n/g,'<br>')+(m.edited?' <small style="opacity:.55;font-size:10px">modificato</small>':'')+'</div>'+rxS}).join('');
+  return '<div class="m1 '+(own?'u':'a')+'" data-mid="'+m.id+'">'+(own?'':'<span class="sn">'+esc(cvSenders[m.sender]||'?')+'</span>')+(m.kind==='image'&&m.media_key?'<img class="mimg" src="'+(m.media_key[0]==='/'?API:'')+esc(m.media_key)+'">':'')+esc(m.body).replace(/\n/g,'<br>')+(m.edited?' <small style="opacity:.55;font-size:10px">modificato</small>':'')+'</div>'+rxS}).join('');
  el.querySelectorAll('[data-mid]').forEach(b=>{
   let t=null;b.addEventListener('touchstart',()=>{t=setTimeout(()=>cvActSheet(+b.dataset.mid),500)},{passive:true});
   b.addEventListener('touchend',()=>clearTimeout(t));b.addEventListener('touchmove',()=>clearTimeout(t));
@@ -1240,9 +1251,9 @@ $('#cm').onclick=e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest(
 const aiMPpick='<button data-m="always">Sempre — esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai — niente azioni</button>';
 $('#aiM').onclick=()=>{const p=$('#aiMP');if(p.hidden){p.innerHTML=aiMPpick;aiMdraw()}p.hidden=!p.hidden};
 $('#aiMP').onclick=e=>{const b=e.target.closest('button');if(!b)return;const p=$('#aiMP');
- if(b.id==='aiMW'){S.aiAct='always';save();aiMdraw();p.hidden=true;haptic('medium');toast('Azioni sempre attive: l\'assistente agisce senza chiedere.');return}
+ if(b.id==='aiMW'){S.aiAct='always';save();aiMdraw();p.hidden=true;haptic('medium');toast('Azioni sempre attive: compiti e promemoria vengono aggiunti senza conferma');return}
  if(b.id==='aiMC'){p.hidden=true;return}
- if(b.dataset.m==='always'&&S.aiAct!=='always'){p.innerHTML='<div style="padding:10px;max-width:240px"><b style="font-size:13.5px">Usa a tuo rischio</b><small class="mut" style="display:block;margin:5px 0 10px;line-height:1.4">Con "Sempre" l\'assistente può fare tutto da solo: aggiunge e apre senza chiederti conferma.</small><div class="row"><button class="btn sm" id="aiMC">Annulla</button><button class="btn sm pri" id="aiMW">Attiva</button></div></div>';haptic('light');return}
+ if(b.dataset.m==='always'&&S.aiAct!=='always'){p.innerHTML='<div style="padding:10px;max-width:240px"><b style="font-size:13.5px">Usa a tuo rischio</b><small class="mut" style="display:block;margin:5px 0 10px;line-height:1.4">Con "Sempre" l\'assistente agisce da solo: può aggiungere compiti e promemoria al tuo elenco e aprire le schermate dell\'app senza chiederti conferma ogni volta.</small><div class="row"><button class="btn sm" id="aiMC">Annulla</button><button class="btn sm pri" id="aiMW">Attiva</button></div></div>';haptic('light');return}
  if(b.dataset.m){S.aiAct=b.dataset.m;save();aiMdraw();p.hidden=true;haptic('light');toast({ask:'L’assistente chiede prima di agire.',deny:'Azioni dell’assistente disattivate.'}[S.aiAct]||'')}};
 function aiMic(){const b=$('#aiS');if(!b)return;const t=$('#ai').value.trim();
  b.innerHTML=t?ic('send'):'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>';
@@ -1262,6 +1273,42 @@ $('#cvI').oninput=()=>{const n=Date.now();if(convId&&n-typingLast>3000){typingLa
 $('#ncOk').onclick=ncCreate;
 $('#ncC').onclick=()=>$('#dNC').close();
 $('#ncL').onchange=()=>{$('#ncG').hidden=$$('#ncL input:checked').length<2};
+$('#cvP').innerHTML=ic('plus');
+$('#cvP').onclick=()=>$('#cvPF').click();
+$('#cvPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||!convId)return;
+ try{toast('Carico la foto…');const img=await ttImg(f);
+  const up=await api('/media','POST',{data:img.split(',')[1],mime:'image/jpeg'});
+  await api('/chats/'+convId+'/messages','POST',{kind:'image',media_key:up.url});
+  haptic('success');convPoll(true)}catch(x){toast(x.message||'Foto non inviata')}};
+
+// ---- mappa amici ----
+let mapO=null,mkMe=null,mkFr={},mapT=null;
+function mapNoteDraw(){const el=$('#mapNote');if(!el)return;const on=!!S.locShare;
+ el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici. Tocca "Fantasma" per sparire dalla loro mappa.':'Modalità fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi.')+'</p>';
+ const b=$('#mapSh');b.setAttribute('aria-pressed',on?'true':'false');b.textContent=on?'Condivisione: attiva':'Fantasma: attivo'}
+async function mapLoc(){return new Promise(res=>{let done=0;const fin=(lat,lon,err)=>{if(done)return;done=1;res(err?null:{lat,lon})};
+ window.__novaLoc=fin;setTimeout(()=>fin(0,0,'timeout'),9000);
+ try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'loc'});else fin(0,0,'nonative')}catch(e){fin(0,0,'nonative')}})}
+async function mapInit(){
+ if(!S.acct||!S.acct.token){$('#mapDiv').innerHTML='<p class="mut" style="text-align:center;padding:30px 16px">Collega il tuo account NOVA per vedere gli amici sulla mappa.</p>';return}
+ mapNoteDraw();
+ if(typeof L==='undefined'){setTimeout(mapInit,600);return}
+ if(!mapO){mapO=L.map('mapDiv',{attributionControl:true}).setView([44.65,10.93],12);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapO)}
+ setTimeout(()=>mapO.invalidateSize(),300);
+ const me=await mapLoc();
+ if(me){if(!mkMe){mkMe=L.marker([me.lat,me.lon],{icon:L.divIcon({className:'',html:'<div class="mkP" style="background:var(--fg)">•</div>',iconSize:[34,34]})}).addTo(mapO).bindPopup('Tu')}else mkMe.setLatLng([me.lat,me.lon]);
+  mapO.setView([me.lat,me.lon],14);
+  api('/location','PUT',{lat:me.lat,lon:me.lon,sharing:!!S.locShare}).catch(()=>{})}
+ try{const r=await api('/map','GET');const seen=new Set();
+  for(const f of (r&&r.friends)||[]){seen.add(f.username);
+   const html='<div class="mkP">'+esc((f.username||'?')[0].toUpperCase())+'</div>';
+   if(!mkFr[f.username])mkFr[f.username]=L.marker([f.lat,f.lon],{icon:L.divIcon({className:'',html,iconSize:[34,34]})}).addTo(mapO).bindPopup('@'+esc(f.username));
+   else mkFr[f.username].setLatLng([f.lat,f.lon])}
+  for(const u of Object.keys(mkFr))if(!seen.has(u)){mapO.removeLayer(mkFr[u]);delete mkFr[u]}}catch(e){}
+ clearTimeout(mapT);mapT=setTimeout(()=>{if(!$('#pgMap').hidden)mapInit()},30000)}
+$('#mapSh').onclick=()=>{S.locShare=!S.locShare;save();mapNoteDraw();haptic('light');
+ if(S.locShare)mapInit();else{if(S.acct&&S.acct.token)mapLoc().then(me=>{if(me)api('/location','PUT',{lat:me.lat,lon:me.lon,sharing:false}).catch(()=>{})});toast('Modalità fantasma: gli amici non ti vedono più')}};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
 $('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
 $('#mdS').onclick=()=>{S.agentMd=$('#mdT').value.trim().slice(0,4000);save();$('#dMD').close();toast(S.agentMd?'agent.md salvata: l’assistente la segue dalla prossima risposta.':'agent.md vuota')};
