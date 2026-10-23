@@ -10,6 +10,7 @@ import CoreLocation
 import CoreHaptics
 import AVFoundation
 import WidgetKit
+import LocalAuthentication
 
 @main
 struct NOVAApp: App {
@@ -126,6 +127,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     }
 
     func start() {
+        faceIdSetup()
         center.delegate = self
         UIDevice.current.isBatteryMonitoringEnabled = true
         for n in [UIDevice.batteryLevelDidChangeNotification, UIDevice.batteryStateDidChangeNotification] {
@@ -413,6 +415,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
                     self.center.removePendingNotificationRequests(withIdentifiers: ids)
                 }
             }
+        } else if t == "faceid" {
+            faceIdHandle(body)
         } else if t == "loc" {
             locGet()
         } else if t == "haptic" {
@@ -447,6 +451,120 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             Task {
                 let result = await ClasseViva.handle(body)
                 self.replyClasseViva(reqId, result)
+            }
+        }
+    }
+
+    // Blocco app con Face ID / codice (impostazione facoltativa, salvata in UserDefaults)
+    private var lockView: UIView?
+    private var unlocking = false
+
+    func faceIdSetup() {
+        NotificationCenter.default.addObserver(self, selector: #selector(appBackgrounded), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(appActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+        if UserDefaults.standard.bool(forKey: "nova.faceid") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { self.showLock(); self.tryUnlock() }
+        }
+    }
+
+    @objc private func appBackgrounded() {
+        if UserDefaults.standard.bool(forKey: "nova.faceid") { showLock() }
+    }
+
+    @objc private func appActive() {
+        guard UserDefaults.standard.bool(forKey: "nova.faceid") else { return }
+        if lockView == nil { showLock() }
+        tryUnlock()
+    }
+
+    private func showLock() {
+        guard lockView == nil, let web = web else { return }
+        let parent: UIView = web.superview ?? web
+        let v = UIView(frame: parent.bounds)
+        v.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        v.backgroundColor = .black
+        let l = UILabel()
+        l.text = "NOVA è bloccata"
+        l.textColor = .white
+        l.font = .systemFont(ofSize: 20, weight: .semibold)
+        l.translatesAutoresizingMaskIntoConstraints = false
+        v.addSubview(l)
+        let b = UIButton(type: .system)
+        b.setTitle("Sblocca con Face ID", for: .normal)
+        b.titleLabel?.font = .systemFont(ofSize: 17, weight: .medium)
+        b.tintColor = .white
+        b.translatesAutoresizingMaskIntoConstraints = false
+        b.addTarget(self, action: #selector(unlockTapped), for: .touchUpInside)
+        v.addSubview(b)
+        NSLayoutConstraint.activate([
+            l.centerXAnchor.constraint(equalTo: v.centerXAnchor),
+            l.centerYAnchor.constraint(equalTo: v.centerYAnchor, constant: -30),
+            b.centerXAnchor.constraint(equalTo: v.centerXAnchor),
+            b.topAnchor.constraint(equalTo: l.bottomAnchor, constant: 20)
+        ])
+        parent.addSubview(v)
+        v.alpha = 0
+        UIView.animate(withDuration: 0.15) { v.alpha = 1 }
+        lockView = v
+    }
+
+    @objc private func unlockTapped() { tryUnlock() }
+
+    private func tryUnlock() {
+        if unlocking { return }
+        unlocking = true
+        let ctx = LAContext()
+        var err: NSError?
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) else {
+            // Nessun Face ID/codice configurato: non intrappolare l'utente fuori dalla sua app.
+            unlocking = false
+            hideLock()
+            return
+        }
+        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Sblocca NOVA") { ok, _ in
+            DispatchQueue.main.async {
+                self.unlocking = false
+                if ok { self.hideLock() }
+            }
+        }
+    }
+
+    private func hideLock() {
+        guard let v = lockView else { return }
+        lockView = nil
+        UIView.animate(withDuration: 0.2, animations: { v.alpha = 0 }) { _ in v.removeFromSuperview() }
+    }
+
+    private func faceIdHandle(_ body: [String: Any]) {
+        let op = body["op"] as? String ?? ""
+        let reqId = body["id"] as? Int ?? 0
+        if op == "has" {
+            let ctx = LAContext()
+            var e: NSError?
+            let avail = ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &e)
+            replyClasseViva(reqId, ["ok": 1, "on": UserDefaults.standard.bool(forKey: "nova.faceid"), "avail": avail])
+            return
+        }
+        if op == "set" {
+            let on = body["on"] as? Bool ?? false
+            if !on {
+                UserDefaults.standard.set(false, forKey: "nova.faceid")
+                hideLock()
+                replyClasseViva(reqId, ["ok": 1, "on": false])
+                return
+            }
+            let ctx = LAContext()
+            var e: NSError?
+            guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &e) else {
+                replyClasseViva(reqId, ["ok": 0, "err": "noauth"])
+                return
+            }
+            // Verifica subito: il blocco si attiva solo se Face ID/codice passa una prima volta.
+            ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Attiva il blocco di NOVA") { ok, _ in
+                DispatchQueue.main.async {
+                    UserDefaults.standard.set(ok, forKey: "nova.faceid")
+                    self.replyClasseViva(reqId, ["ok": 1, "on": ok])
+                }
             }
         }
     }
