@@ -409,7 +409,7 @@ main.pg{padding-bottom:112px}
  <div class="fl" id="fidRow" hidden>Blocco app<button class="btn" id="bFid">Face ID: spento</button><small>Quando è attivo, NOVA si blocca a ogni apertura e si sblocca con Face ID (o codice). Il volto resta sul telefono.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.25</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.26</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -516,7 +516,8 @@ const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge()
 let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
-window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: '+(e.message||'sconosciuto')+' (riga '+(e.lineno||'?')+') — fai uno screenshot e mandamelo';b.onclick=()=>b.remove()}catch(_){}});
+window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: '+(e.message||'sconosciuto')+' (riga '+(e.lineno||'?')+') — fai uno screenshot e mandamelo';b.onclick=()=>b.remove();
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.acct&&S.acct.token)api('/client-error','POST',{build:'2026.10.23.26',msg:String(e.message||'').slice(0,280),line:e.lineno||0}).catch(()=>{})}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -727,7 +728,8 @@ async function acctPull(){const r=await api('/sync','GET');if(!r.json)return fal
  save();theme();head();show();acctLast=JSON.stringify(setupJson());return true}
 async function acctDone(email,token,isNew){S.acct={email:email.toLowerCase(),token};save();
  acct={mode:'new',stage:'email',email:'',busy:0,err:''};
- const had=await acctPull().catch(()=>false);if(!had)acctPush();await profPull();
+ const had=await acctPull().catch(()=>false);if(!had)acctPush();
+ const hadP=await profPull();if(S.profDone&&S.prof.username&&hadP===false)profPush();
  const inOb=!$('#ob').hidden&&OB[obI]&&OB[obI].k==='Account';
  acctUI();
  if(isNew)welcomeAnim(email);
@@ -1095,19 +1097,22 @@ async function profPush(){
  }catch(e){return true}
 }
 async function profPull(){
- if(!S.acct||!S.acct.token)return;
+ if(!S.acct||!S.acct.token)return null;
  try{const r=await api('/profile','GET');
   if(r&&r.profile&&r.profile.username){
    const sp=r.profile;
    if(!S.prof.username||S.prof.username!==sp.username){S.prof.username=sp.username}
    if(!S.prof.study&&sp.study)S.prof.study=sp.study;
    if(!S.prof.skills&&sp.skills)S.prof.skills=sp.skills;
+   if(!S.prof.hobbies&&sp.hobbies)S.prof.hobbies=sp.hobbies;
    if(!S.prof.song&&sp.song)S.prof.song=sp.song;
    if(sp.badges&&sp.badges.length)S.prof.badges=sp.badges;
    if(sp.ntfy_topic)S.prof.ntfy=sp.ntfy_topic;
-   save()
+   save();
+   return true
   }
- }catch(e){}
+  return false
+ }catch(e){return null}
 }
 let frData=null,frT=0;
 async function frLoad(force){
@@ -1121,10 +1126,10 @@ async function frDraw(){
  el.hidden=false;
  await frLoad(false);
  const d=frData||{friends:[],incoming:[],outgoing:[]};
- const row=(f,btn)=>'<div class="pfRow" data-pu="'+esc(f.username||'')+'" style="cursor:pointer">'+ic('user','wi')+'<div><b>@'+esc(f.username||'?')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
+ const row=(f,btn)=>'<div class="pfRow"'+(f.username?' data-pu="'+esc(f.username)+'" style="cursor:pointer"':'')+'>'+ic('user','wi')+'<div><b>'+(f.username?'@'+esc(f.username):esc(f.email||'?'))+'</b></div><span style="flex:1"></span>'+btn+'</div>';
  el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">Amici</h3><button class="btn sm" id="frQR">Il mio QR</button><button class="btn sm" id="frSC">Scansiona</button></div>'
   +'<div class="frS"><input id="frQ" placeholder="Cerca per username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"><div id="frL"></div></div>'
-  +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>')).join(''):'')
+  +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,f.username?'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>':'<button class="btn sm pri" data-acce="'+esc(f.email||'')+'">Accetta</button>')).join(''):'')
   +(d.friends.length?d.friends.map(f=>row(f,'<button class="btn sm" data-rem="'+esc(f.username)+'">Rimuovi</button>')).join(''):(d.incoming.length?'':'<small class="mut">Nessun amico ancora: cerca uno username qui sopra.</small>'))
   +(d.outgoing.length?'<small class="mut">In attesa</small>'+d.outgoing.map(f=>row(f,'<button class="btn sm" data-rem="'+esc(f.username)+'">Annulla</button>')).join(''):'');
  $('#frQ').oninput=e=>{const q=e.target.value.trim();const L=$('#frL');
@@ -1137,6 +1142,7 @@ async function frDraw(){
     if(r2&&r2.ok){toast('Richiesta inviata a @'+b.dataset.add);frLoad(true).then(frDraw)}else toast((r2&&r2.error)||'Errore')})}catch(e2){L.innerHTML='<small class="mut">Ricerca non disponibile.</small>'}},400)};
  const q1=$('#frQR');if(q1)q1.onclick=frQROpen;const q2=$('#frSC');if(q2)q2.onclick=frSCOpen;
  el.querySelectorAll('[data-acc]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{username:b.dataset.acc});haptic('success');await frLoad(true);frDraw()});
+ el.querySelectorAll('[data-acce]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{email:b.dataset.acce});haptic('success');await frLoad(true);frDraw()});
  el.querySelectorAll('[data-rem]').forEach(b=>b.onclick=async()=>{await api('/friends/remove','POST',{username:b.dataset.rem});await frLoad(true);frDraw()});
  el.querySelectorAll('[data-pu]').forEach(r=>r.onclick=e=>{if(e.target.closest('[data-rem]')||e.target.closest('[data-acc]'))return;if(r.dataset.pu)frProfOpen(r.dataset.pu)});
 }
@@ -1154,7 +1160,7 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
   api('/users/profile','GET',null,'?u='+encodeURIComponent(p.username)).then(r=>{if(r&&r.ok){const a=$('#pfNFr');if(a)a.textContent=r.followers||0;const b=$('#pfNS');if(b)b.textContent=r.following||0}}).catch(()=>{});
   frLoad(false).then(()=>{const c=$('#pfNF');if(c&&frData)c.textContent=(frData.friends||[]).length}).catch(()=>{})}
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
-if(S.acct&&S.acct.token)profPull();
+if(S.acct&&S.acct.token)profPull().then(had=>{if(had===false&&S.profDone&&S.prof.username)profPush()});
 let convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
 function aiOpen(){const b=$('#chatB'),a=$('#aic');if(!a)return;
  $('#frc').hidden=true;$('#fcFab').hidden=true;a.hidden=false;chatDraw();
