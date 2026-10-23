@@ -4,7 +4,7 @@
 <dict>
     <key>com.apple.security.application-groups</key>
     <array>
-        <string>group.it.tuonome.nova</string>
+        <string>group.federicotaranu.site</string>
     </array>
 </dict>
 </plist>
