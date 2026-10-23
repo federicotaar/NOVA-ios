@@ -52,7 +52,7 @@ Quattro widget, su home screen e (dove indicato) lock screen:
 | **Fine scuola** | Quanto manca all'ultima campanella | Home + lock screen |
 | **Calendario del mese** | Il mese con pallino rosso sulle verifiche e blu sui compiti | Home screen |
 
-L'orario settimanale è modificabile nell'app, con un campo **aula** per ogni lezione: i widget seguono le modifiche e mostrano dove andare.
+L'orario settimanale è modificabile nell'app, con un campo **aula** per ogni lezione: i widget seguono le modifiche e mostrano dove andare. La sincronizzazione app → widget richiede che l'App Group sia accessibile: con la firma gratuita può non esserlo (vedi **Limiti noti**), e in quel caso i widget usano l'orario incorporato senza le tue modifiche.
 
 ### E in più
 
