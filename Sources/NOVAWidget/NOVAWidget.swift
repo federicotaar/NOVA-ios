@@ -24,7 +24,7 @@ enum Orario {
     // L'orario e' quello dell'utente: NOVA lo scrive in un file condiviso (App Group).
     // AltStore/SideStore rinominano il gruppo in group.<id>.<TEAMID> e lo pubblicano in ALTAppGroups,
     // ma non sempre nel bundle del widget: come ridondanza ricaviamo il nome anche dal bundle ID
-    // resigned del widget (it.tuonome.nova.<TEAMID>.NOVAWidget).
+    // resigned del widget (federicotaranu.site.<TEAMID>.NOVAWidget).
     static func groupIDs() -> [String] {
         var ids: [String] = []
         if let a = Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] { ids += a }
@@ -33,12 +33,12 @@ enum Orario {
         if let d = NSDictionary(contentsOf: host), let a = d["ALTAppGroups"] as? [String] { ids += a }
         if let bid = Bundle.main.bundleIdentifier {
             var comps = bid.split(separator: ".").map(String.init)
-            while comps.count > 3 {
+            while comps.count > 2 {
                 ids.append("group." + comps.joined(separator: "."))
                 comps.removeLast()
             }
         }
-        ids.append("group.it.tuonome.nova")
+        ids.append("group.federicotaranu.site")
         var seen = Set<String>()
         return ids.filter { seen.insert($0).inserted }
     }
@@ -651,6 +651,7 @@ struct MeseProvider: TimelineProvider {
 
 struct NOVAMeseView: View {
     var entry: MeseEntry
+    @Environment(\.widgetFamily) var family
 
     private func dayString(_ day: Int, year: Int, month: Int) -> String {
         let d = Orario.calendar.date(from: DateComponents(year: year, month: month, day: day)) ?? entry.date
@@ -666,21 +667,23 @@ struct NOVAMeseView: View {
         let offset = (cal.component(.weekday, from: first) + 5) % 7 // lunedi = 0
         let todayStr = MeseStore.dayFmt.string(from: entry.date)
         let letters = ["M", "T", "W", "T", "F", "S", "S"] // lunedi prima, come da richiesta
-        VStack(spacing: 4) {
+        let big = family == .systemLarge
+        let sc: CGFloat = big ? 1.7 : 1
+        VStack(spacing: big ? 10 : 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(MeseStore.monthFmt.string(from: entry.date).capitalized)
-                    .font(.headline)
+                    .font(big ? .title3 : .headline)
                     .lineLimit(1)
                 Spacer()
-                Circle().fill(.red).frame(width: 6, height: 6)
-                Text("verifiche").font(.caption2).foregroundStyle(.secondary)
-                Circle().fill(Color(red: 0.35, green: 0.6, blue: 1)).frame(width: 6, height: 6)
-                Text("compiti").font(.caption2).foregroundStyle(.secondary)
+                Circle().fill(.red).frame(width: 6*sc, height: 6*sc)
+                Text("verifiche").font(big ? .caption : .caption2).foregroundStyle(.secondary)
+                Circle().fill(Color(red: 0.35, green: 0.6, blue: 1)).frame(width: 6*sc, height: 6*sc)
+                Text("compiti").font(big ? .caption : .caption2).foregroundStyle(.secondary)
             }
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 3) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: big ? 8 : 3) {
                 ForEach(0..<7, id: \.self) { i in
                     Text(letters[i])
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 9*sc, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
                 }
@@ -692,22 +695,22 @@ struct NOVAMeseView: View {
                     let isToday = ds == todayStr
                     VStack(spacing: 1) {
                         Text("\(d)")
-                            .font(.system(size: 9, weight: isToday ? .bold : .regular))
+                            .font(.system(size: 9*sc, weight: isToday ? .bold : .regular))
                             .foregroundStyle(isToday ? Color.black : Color.white)
-                            .frame(width: 14, height: 14)
+                            .frame(width: 14*sc, height: 14*sc)
                             .background(Circle().fill(isToday ? Color.white : Color.clear))
                         HStack(spacing: 2) {
-                            if entry.tests.contains(ds) { Circle().fill(.red).frame(width: 4, height: 4) }
-                            if entry.hw.contains(ds) { Circle().fill(Color(red: 0.35, green: 0.6, blue: 1)).frame(width: 4, height: 4) }
+                            if entry.tests.contains(ds) { Circle().fill(.red).frame(width: 4*sc, height: 4*sc) }
+                            if entry.hw.contains(ds) { Circle().fill(Color(red: 0.35, green: 0.6, blue: 1)).frame(width: 4*sc, height: 4*sc) }
                         }
-                        .frame(height: 4)
+                        .frame(height: 4*sc)
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
             if !entry.linked {
                 Text("Apri NOVA e tocca Aggiorna per vedere compiti e verifiche")
-                    .font(.system(size: 8))
+                    .font(.system(size: 8*sc))
                     .foregroundStyle(.secondary)
             }
         }
@@ -730,6 +733,142 @@ struct NOVAMeseWidget: Widget {
     }
 }
 
+
+// MARK: - Widget compiti del prossimo giorno di scuola (ven-dom mostra lunedi)
+
+struct CompitiEntry: TimelineEntry {
+    let date: Date
+    let targetLabel: String
+    let items: [(title: String, subj: String)]
+    let linked: Bool
+}
+
+enum CompitiStore {
+    // lun-gio -> domani; ven/dom/sab -> lunedi (niente giorni vuoti nel weekend)
+    static func targetDate(from now: Date) -> Date {
+        let cal = Orario.calendar
+        let wd = cal.component(.weekday, from: now) // 1=dom ... 7=sab
+        let add = (wd >= 2 && wd <= 5) ? 1 : (9 - wd) % 7
+        let midnight = cal.date(bySettingHour: 0, minute: 0, second: 0, of: now) ?? now
+        return cal.date(byAdding: .day, value: add, to: midnight) ?? now
+    }
+
+    static func load() -> (items: [(title: String, subj: String, date: String)], linked: Bool) {
+        for id in Orario.groupIDs() {
+            guard let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id)?
+                .appendingPathComponent("homework.json"),
+                  let data = try? Data(contentsOf: u),
+                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let arr = j["items"] as? [[String: Any]] else { continue }
+            let items = arr.compactMap { o -> (title: String, subj: String, date: String)? in
+                guard let t = o["t"] as? String, let d = o["d"] as? String else { return nil }
+                return (t, o["s"] as? String ?? "", d)
+            }
+            return (items, true)
+        }
+        return ([], false)
+    }
+}
+
+struct CompitiProvider: TimelineProvider {
+    func placeholder(in context: Context) -> CompitiEntry {
+        CompitiEntry(date: .now, targetLabel: "domani", items: [(title: "Compito di esempio", subj: "Materia")], linked: true)
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (CompitiEntry) -> Void) {
+        completion(currentEntry())
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<CompitiEntry>) -> Void) {
+        let now = Date()
+        let cal = Orario.calendar
+        let midnight = cal.date(bySettingHour: 0, minute: 0, second: 0, of: now) ?? now
+        let next = cal.date(byAdding: .day, value: 1, to: midnight) ?? now.addingTimeInterval(3600)
+        completion(Timeline(entries: [currentEntry()], policy: .after(next)))
+    }
+
+    private func currentEntry() -> CompitiEntry {
+        let now = Date()
+        let cal = Orario.calendar
+        let target = CompitiStore.targetDate(from: now)
+        let tstr = MeseStore.dayFmt.string(from: target)
+        let names = ["", "domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
+        let isTomorrow = cal.date(byAdding: .day, value: 1, to: cal.date(bySettingHour: 0, minute: 0, second: 0, of: now) ?? now).map { MeseStore.dayFmt.string(from: $0) } == tstr
+        let label = isTomorrow ? "domani" : names[cal.component(.weekday, from: target)]
+        let l = CompitiStore.load()
+        let items = l.items.filter { $0.date == tstr }.map { (title: $0.title, subj: $0.subj) }
+        return CompitiEntry(date: now, targetLabel: label, items: items, linked: l.linked)
+    }
+}
+
+struct NOVACompitiView: View {
+    var entry: CompitiEntry
+    @Environment(\.widgetFamily) var family
+
+    var body: some View {
+        let maxRows = family == .systemSmall ? 3 : 5
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Compiti")
+                    .font(.headline)
+                Spacer()
+                Text(entry.targetLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if !entry.linked {
+                Spacer(minLength: 0)
+                Text("Apri NOVA e tocca Aggiorna per vedere i compiti")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            } else if entry.items.isEmpty {
+                Spacer(minLength: 0)
+                Text("Niente compiti per " + entry.targetLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            } else {
+                ForEach(Array(entry.items.prefix(maxRows).enumerated()), id: \.offset) { _, it in
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(it.title)
+                            .font(.system(size: 12, weight: .medium))
+                            .lineLimit(2)
+                        if !it.subj.isEmpty {
+                            Text(it.subj)
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                if entry.items.count > maxRows {
+                    Text("+\(entry.items.count - maxRows) altri")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .containerBackground(Color.black, for: .widget)
+        .foregroundStyle(.white)
+    }
+}
+
+struct NOVACompitiWidget: Widget {
+    let kind = "NOVACompitiWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: CompitiProvider()) { entry in
+            NOVACompitiView(entry: entry)
+        }
+        .configurationDisplayName("Compiti di domani")
+        .description("I compiti per il prossimo giorno di scuola: da venerdi a domenica mostra quelli di lunedi.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
 @main
 struct NOVAWidgetBundle: WidgetBundle {
     var body: some Widget {
@@ -737,5 +876,6 @@ struct NOVAWidgetBundle: WidgetBundle {
         NOVAOggiWidget()
         NOVAFineWidget()
         NOVAMeseWidget()
+        NOVACompitiWidget()
     }
 }
