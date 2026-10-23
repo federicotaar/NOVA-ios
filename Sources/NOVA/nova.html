@@ -116,8 +116,8 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .di .b{white-space:pre-wrap;word-break:break-word;font-size:14.5px;line-height:1.5}
 .di .m{font-size:12.5px;color:var(--mut)}
 .di .ai{align-self:flex-start}
-#dAI{width:min(560px,calc(100% - 16px));height:min(720px,calc(100% - 16px))}
-#dAI[open]{display:flex;flex-direction:column}
+#pgChat{display:flex;flex-direction:column;height:calc(100dvh - 32px);box-sizing:border-box}
+#aic{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
 .ch{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
 .ch b{font-size:15px}
 #cm{flex:1;min-height:0;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
@@ -128,6 +128,13 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .qs button{flex:none;font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;white-space:nowrap}
 .cf{display:flex;gap:8px;padding:0 16px 14px}
 .cf input{flex:1}
+#aic{position:relative}
+#aiM{flex:none;white-space:nowrap;font-size:12px;padding:8px 10px}
+#aiMP{position:absolute;left:10px;bottom:56px;z-index:6;display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
+#aiMP button{background:none;border:0;color:var(--fg);font:inherit;font-size:13.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+#aiMP button[aria-pressed="true"]{background:var(--accs);color:var(--acc)}
+.acts{display:flex;flex-direction:column;gap:6px;align-self:flex-start;max-width:100%;width:100%}
+.act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;background:var(--fld)}
 .cf .ico{width:42px;height:42px;background:var(--fg);color:var(--bg);border-color:var(--fg)}
 #ob{position:fixed;inset:0;margin:0;z-index:60;background:var(--bg);box-shadow:0 0 0 120px var(--bg);display:flex;flex-direction:column;gap:14px;overflow:hidden;padding:max(16px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
 .obd{display:flex;gap:5px;max-width:560px;width:100%;margin:0 auto}
@@ -229,11 +236,11 @@ body.ovli{background:#000}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}#inT .w{opacity:1!important;transform:none!important;filter:none!important}}
 main.pg{padding-bottom:112px}
 .pg[hidden]{display:none!important}
-#tabbar{position:fixed;touch-action:none;user-select:none;-webkit-user-select:none;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;padding:6px;border-radius:28px;background:color-mix(in srgb,var(--card) 68%,transparent);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);border:1px solid color-mix(in srgb,var(--line) 75%,transparent);box-shadow:0 10px 32px rgba(0,0,0,.16)}
-#tabbar .ind{position:absolute;top:6px;bottom:6px;border-radius:22px;background:var(--accs);transition:left .3s cubic-bezier(.5,.05,.2,1),width .3s cubic-bezier(.5,.05,.2,1);pointer-events:none}
-#tabbar button{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:var(--mut);font-size:10px;font-weight:600;padding:7px 16px;cursor:pointer;font-family:inherit}
+#tabbar{position:fixed;touch-action:none;user-select:none;-webkit-user-select:none;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;padding:6px;border-radius:999px;background:color-mix(in srgb,var(--card) 68%,transparent);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);border:1px solid color-mix(in srgb,var(--line) 75%,transparent);box-shadow:0 10px 32px rgba(0,0,0,.16)}
+#tabbar .ind{position:absolute;top:6px;bottom:6px;border-radius:999px;background:var(--accs);transition:left .3s cubic-bezier(.5,.05,.2,1),width .3s cubic-bezier(.5,.05,.2,1);pointer-events:none}
+#tabbar button{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;background:none;border:0;color:var(--mut);padding:12px 20px;cursor:pointer;font-family:inherit}
 #tabbar button[aria-pressed="true"]{color:var(--acc)}
-#tabbar button svg{width:22px;height:22px}
+#tabbar button svg{width:24px;height:24px}
 .pgh{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 12px}
 .pgh h2{margin:0;font-size:22px}
 .pfTop{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0 4px}
@@ -279,9 +286,23 @@ main.pg{padding-bottom:112px}
  <section class="card"><div id="grB"></div></section>
 </main>
 <main class="pg" id="pgChat" hidden>
- <div class="pgh"><h2>Chat</h2></div>
- <section class="card" id="chatB"></section>
+ <div class="pgh"><h2>Chat</h2><span style="display:flex;gap:6px"><button class="btn sm" id="aiMD">agent.md</button><button class="btn sm" id="aiX">Nuova chat</button></span></div>
+ <section class="card" id="chatB" hidden></section>
+ <div id="aic">
+  <div id="cm"></div>
+  <div class="qs" id="qs"></div>
+  <div class="cf"><button class="btn sm" id="aiM" type="button" aria-haspopup="true">Azioni: chiedi</button><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button></div>
+  <div id="aiMP" hidden><button data-m="always">Sempre — esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai — niente azioni</button></div>
+ </div>
 </main>
+<dialog id="dMD"><div class="sheet" style="display:flex;flex-direction:column;gap:10px">
+ <h3 style="margin:0">agent.md</h3>
+ <small class="mut">Un file che dice all'assistente come comportarsi: personalità, tono, regole. Resta solo su questo telefono e l'assistente lo legge a ogni chat.</small>
+ <input type="file" id="mdF" accept=".md,.txt,text/markdown,text/plain">
+ <textarea id="mdT" rows="8" style="resize:vertical" placeholder="# agent.md&#10;Esempio: Rispondi in dialetto ferrarese, tono da coach, frasi corte."></textarea>
+ <small class="err" id="mdE"></small>
+ <div class="row"><button class="btn" id="mdX">Rimuovi</button><button class="btn pri" id="mdS">Salva</button></div>
+</div></dialog>
 <main class="pg" id="pgProf" hidden>
  <div class="pgh"><h2>Profilo</h2><button class="ico" id="bSet" aria-label="Impostazioni"></button></div>
  <section class="card" id="pfB"></section>
@@ -316,7 +337,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.12</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.13</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -362,12 +383,6 @@ main.pg{padding-bottom:112px}
  <div class="row"><button class="btn" id="dyA">Aggiungi compito</button><button class="btn pri" id="dyC">Chiudi</button></div>
 </div></dialog>
 
-<dialog id="dAI">
- <div class="ch"><b>Assistente NOVA</b><span style="display:flex;gap:6px"><button class="btn sm" id="aiX">Nuova chat</button><button class="ico" id="aiC" aria-label="Chiudi"></button></span></div>
- <div id="cm"></div>
- <div class="qs" id="qs"></div>
- <div class="cf"><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button></div>
-</dialog>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -381,6 +396,7 @@ try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 if(S.sb==='on')S.sb='auto';
 S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};
 S.prof=Object.assign({username:'',avatar:'',study:'',skills:'',song:null},S.prof||{});
+S.aiAct=['always','ask','deny'].includes(S.aiAct)?S.aiAct:'ask';S.agentMd=typeof S.agentMd==='string'?S.agentMd:'';
 // Orario personale: i nuovi utenti partono vuoti. Solo l'installazione di Federico (gia' configurata) tiene il suo orario storico.
 if(!S.tt)S.tt={lessons:[]};
 // Orario di Federico: dopo una reinstallazione localStorage e' vuoto. Lo ripristina una sola volta,
@@ -529,14 +545,36 @@ function spCard(){$('#spL').innerHTML=ic('music')+'Spotify';const el=$('#spB');
 /* ---------- chat ---------- */
 const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^[-*] (.+)$/gm,'• $1').replace(/\n/g,'<br>');
 const QS=[['Piano di studio per domani','Fammi un piano di studio per domani, in base ai miei compiti e alle verifiche in arrivo.'],['Cosa ho questa settimana?','Riassumi cosa devo fare questa settimana, giorno per giorno.'],['Come preparo la prossima verifica?','Come mi consigli di preparare la mia prossima verifica? Dammi passi concreti.'],['Spiegami un argomento','Spiegami in modo semplice: ']];
+const agMd=()=>S.agentMd?'\nPERSONALITÀ E REGOLE da agent.md (priorità su tono e stile, mai sui dati reali):\n'+String(S.agentMd).slice(0,2000):'';
+const agAct=()=>S.aiAct==='deny'?'\nNon proporre azioni automatiche.':'\nAZIONI IN-APP: solo quando è davvero utile, proponi fino a 3 azioni scrivendo ALLA FINE della risposta una riga con solo ###AZIONI### e poi un array JSON. Tipi: {"a":"task","title":"...","due":"YYYY-MM-DDTHH:MM","subj":"materia opzionale","rem":0} (rem = minuti di preavviso) oppure {"a":"open","page":"home|voti|chat|profilo"}. Niente testo dopo il JSON. Se non serve, non scrivere ###AZIONI###.';
 function ctx(){const now=new Date(),open=S.tasks.filter(t=>!t.done&&kindOf(t)!=='test').sort((a,b)=>a.due<b.due?-1:1).slice(0,40),
  tst=S.tasks.filter(t=>kindOf(t)==='test'&&t.due.slice(0,10)>=dstr(now)).sort((a,b)=>a.due<b.due?-1:1).slice(0,12),
  f=t=>`- ${dd0(t.due.slice(0,10)).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})}${t.subj?' ['+t.subj+']':''}: ${String(t.title).slice(0,220)}`;
  const by={};S.gr.forEach(g=>{(by[g.subj]=by[g.subj]||[]).push(g.v)});
  const med=Object.keys(by).map(s=>`${s} ${(by[s].reduce((a,b)=>a+b,0)/by[s].length).toFixed(1)}`).join(', ');
- return `Sei NOVA, l'assistente di studio dentro l'app di ${S.name||'uno studente'}, che frequenta le superiori in Italia. Rispondi sempre in italiano, in modo chiaro, breve e concreto, con un tono diretto e amichevole. Oggi è ${now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}. Usa solo i dati qui sotto per parlare di compiti, verifiche e voti: se non li trovi non inventarli. Se ti chiede aiuto con un compito, guidalo passo passo senza dargli solo la soluzione.\nCOMPITI APERTI:\n${open.map(f).join('\n')||'- nessuno'}\nVERIFICHE E ANNOTAZIONI:\n${tst.map(f).join('\n')||'- nessuna'}\nMEDIE VOTI: ${med||'non disponibili'}`}
+ return `Sei NOVA, l'assistente di studio dentro l'app di ${S.name||'uno studente'}, che frequenta le superiori in Italia. Rispondi sempre in italiano, in modo chiaro, breve e concreto, con un tono diretto e amichevole. Oggi è ${now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}. Usa solo i dati qui sotto per parlare di compiti, verifiche e voti: se non li trovi non inventarli. Se ti chiede aiuto con un compito, guidalo passo passo senza dargli solo la soluzione.\nCOMPITI APERTI:\n${open.map(f).join('\n')||'- nessuno'}\nVERIFICHE E ANNOTAZIONI:\n${tst.map(f).join('\n')||'- nessuna'}\nMEDIE VOTI: ${med||'non disponibili'}${agMd()}${agAct()}`}
+function actHtml(a,mi,ai){const d=a.a==='open'?'Apri la pagina "'+({home:'Home',voti:'Voti',chat:'Chat',profilo:'Profilo'}[a.page]||a.page)+'"':'Aggiungi: '+esc(String(a.title).slice(0,60))+(a.due?' · '+dd0(String(a.due).slice(0,10)).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'}):'');
+ const side=a.st==='wait'?'<button class="btn sm pri" data-ok="'+mi+':'+ai+'">Conferma</button><button class="btn sm" data-no="'+mi+':'+ai+'">Annulla</button>':a.st==='done'?'<small style="font-weight:700;color:var(--ok)">Fatto</small>':a.st==='no'?'<small class="mut">'+esc(a.note||'Annullata')+'</small>':'<small class="mut">Azioni disattivate</small>';
+ return '<div class="act"><span style="flex:1;min-width:120px">'+d+'</span>'+side+'</div>'}
+function normAct(x){if(!x||typeof x!=='object')return null;
+ if(x.a==='open')return ({home:1,voti:1,chat:1,profilo:1})[x.page]?{a:'open',page:x.page}:null;
+ if(x.a==='task'||x.a==='reminder'){const t=String(x.title||'').trim();if(!t)return null;
+  let due=String(x.due||x.at||'');if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(due))return null;
+  return {a:'task',title:t.slice(0,200),subj:String(x.subj||'').slice(0,40),due:due.slice(0,16),rem:Math.min(1440,Math.max(0,+x.rem||0))}}
+ return null}
+function execAct(a){
+ if(a.a==='open'){const i={home:0,voti:1,chat:2,profilo:3}[a.page];if(i==null)return{ok:0,note:'Pagina sconosciuta'};pg(i,i>pgI?1:-1);return{ok:1}}
+ const due=a.due;if(!due)return{ok:0,note:'Data mancante'};
+ if(S.tasks.some(x=>!x.done&&x.due===due&&x.title.toLowerCase()===String(a.title).toLowerCase()))return{ok:0,note:'Già in elenco'};
+ S.tasks.push({id:uid(),title:String(a.title).slice(0,200),note:'Aggiunto dall’assistente',due,pr:'media',rem:a.rem||0,done:0,fired:0,src:'ai',kind:'man',subj:a.subj||''});
+ save();tasks();cal();nxt();rem();return{ok:1}}
+function runActs(mi){const m=S.chat[mi];if(!m||!m.acts)return;let ch=0;
+ m.acts.forEach(a=>{if(a.st!=='go'&&a.st!=='wait')return;const r=execAct(a);a.st=r.ok?'done':'no';if(!r.ok)a.note=r.note;ch=1});
+ if(ch){save();chatDraw()}}
+function aiMdraw(){const b=$('#aiM');if(b)b.textContent='Azioni: '+({always:'sempre',ask:'chiedi',deny:'mai'}[S.aiAct]);
+ $$('#aiMP button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===S.aiAct?'true':'false'))}
 function chatDraw(){const el=$('#cm');
- el.innerHTML=S.chat.length?S.chat.map(m=>`<div class="m1 ${m.r==='user'?'u':'a'}">${m.r==='user'?esc(m.c).replace(/\n/g,'<br>'):md(m.c)}</div>`).join(''):
+ el.innerHTML=S.chat.length?S.chat.map((m,mi)=>`<div class="m1 ${m.r==='user'?'u':'a'}">${m.r==='user'?esc(m.c).replace(/\n/g,'<br>'):md(m.c)}</div>`+(m.acts&&m.acts.length?'<div class="acts">'+m.acts.map((a,ai)=>actHtml(a,mi,ai)).join('')+'</div>':'')).join(''):
  `<div class="m1 a">${gqHas?'Ciao'+(S.name?' '+esc(S.name):'')+'. Posso aiutarti con compiti, verifiche e studio. Scegli un suggerimento o scrivi.':'Per usare l\'assistente serve la tua chiave Groq. Mettila nelle impostazioni (non quella di Grok).'}</div>`;
  el.scrollTop=el.scrollHeight}
 async function chatSend(text){text=(text||'').trim();if(!text)return;
@@ -545,9 +583,15 @@ async function chatSend(text){text=(text||'').trim();if(!text)return;
  const el=$('#cm');el.insertAdjacentHTML('beforeend','<div class="m1 a">…</div>');el.scrollTop=el.scrollHeight;
  const msgs=[{role:'system',content:ctx()}].concat(S.chat.slice(-12).map(m=>({role:m.r,content:m.c})));
  const r=await gq('chat',{messages:msgs});
- S.chat.push({r:'assistant',c:r.ok?r.text:r.err==='key'?'La chiave Groq non è valida. Controllala nelle impostazioni.':r.err==='limite'?'Hai raggiunto il limite di richieste di Groq. Riprova tra un minuto.':r.err==='rete'?'Non riesco a contattare Groq. Controlla la connessione.':r.err==='nokey'?'Manca la chiave Groq.':'Groq non ha risposto. Riprova tra poco.'});
- save();chatDraw()}
-function openChat(){chatDraw();$('#qs').innerHTML=QS.map((q,i)=>`<button data-i="${i}">${q[0]}</button>`).join('');if(!$('#dAI').open)$('#dAI').showModal();if(!gqHas)toast('Serve la chiave Groq: impostazioni > Assistente AI')}
+ let atxt=r.ok?r.text:r.err==='key'?'La chiave Groq non è valida. Controllala nelle impostazioni.':r.err==='limite'?'Hai raggiunto il limite di richieste di Groq. Riprova tra un minuto.':r.err==='rete'?'Non riesco a contattare Groq. Controlla la connessione.':r.err==='nokey'?'Manca la chiave Groq.':'Groq non ha risposto. Riprova tra poco.';
+ let acts=null;
+ if(r.ok){const ix=atxt.indexOf('###AZIONI###');if(ix>=0){const raw=atxt.slice(ix+12).trim();atxt=atxt.slice(0,ix).trim();
+  try{const pj=JSON.parse(raw);if(Array.isArray(pj)){const ns=pj.map(normAct).filter(Boolean).slice(0,3);
+   if(ns.length)acts=ns.map(a=>Object.assign(a,{st:S.aiAct==='always'?'go':S.aiAct==='ask'?'wait':'off'}))}}catch(e){}}}
+ S.chat.push(Object.assign({r:'assistant',c:atxt},acts?{acts}:{}));
+ save();chatDraw();
+ if(acts&&S.aiAct==='always')runActs(S.chat.length-1)}
+function openChat(){const d=$('#dDay');if(d&&d.open)d.close();pg(2,1);if(!gqHas&&S.prof.username)toast('Serve la chiave Groq: impostazioni > Assistente AI')}
 
 /* ---------- account & sync ---------- */
 const API='https://api.federicotaranu.site';
@@ -893,7 +937,7 @@ function pg(i,dir){i=Math.max(0,Math.min(PGS.length-1,i));const old=pgI;pgI=i;
  if(id==='pgGr')grades();if(id==='pgProf')pf();if(id==='pgChat')chatPg();
  window.scrollTo(0,0)}
 (()=>{const bar=$('#tabbar'),bs=$$('#tabbar button');
- bs.forEach((b,i)=>{b.innerHTML=ic(TBD[i][0])+'<span>'+TBD[i][1]+'</span>';b.onclick=()=>{if(Date.now()<tbSup)return;pg(i,i>pgI?1:-1)}});
+ bs.forEach((b,i)=>{b.innerHTML=ic(TBD[i][0]);b.setAttribute('aria-label',TBD[i][1]);b.onclick=()=>{if(Date.now()<tbSup)return;pg(i,i>pgI?1:-1)}});
  let drag=null;
  bar.addEventListener('pointerdown',e=>{drag={x:e.clientX,i:pgI,moved:0,pid:e.pointerId}});
  bar.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;
@@ -922,9 +966,12 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
  +(p.song?'<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div><button class="ico" id="pfPl" aria-label="Anteprima">'+ic(pfPlaying?'pause':'play')+'</button></div>':'<div class="pfRow">'+ic('music','wi')+'<div><b>Canzone preferita</b>Nessuna canzone scelta</div></div>');
  $('#pfE').onclick=()=>profOpen(0);
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
-function chatPg(){const el=$('#chatB');if(!el)return;
- if(!S.prof.username){el.innerHTML='<p class="mut">La chat è bloccata: scegli prima il tuo username (Profilo > Modifica). Serve per farti trovare dagli amici.</p>';return}
- el.innerHTML='<p class="mut">Le chat arrivano nel prossimo aggiornamento: messaggi e gruppi. NOVA ti avvisa quando sono pronte.</p>'}
+function chatPg(){const b=$('#chatB'),a=$('#aic');if(!b||!a)return;
+ if(!S.prof.username){a.hidden=true;b.hidden=false;b.innerHTML='<p class="mut">La chat è bloccata: scegli prima il tuo username (Profilo > Modifica). Serve per farti trovare dagli amici.</p>';return}
+ a.hidden=false;chatDraw();
+ $('#qs').innerHTML=QS.map((q,i)=>`<button data-i="${i}">${q[0]}</button>`).join('');
+ if(gqHas){b.hidden=true}
+ else{b.hidden=false;b.innerHTML='<p class="mut" style="margin:0">Per parlare con l\'assistente serve la tua chiave Groq (gratuita, resta solo su questo telefono). <a href="#" id="cGK" style="color:var(--acc)">Apri le impostazioni</a></p>';const l=$('#cGK');if(l)l.onclick=e=>{e.preventDefault();sheet();$('#dSet').showModal()}}}
 function avPick(inp,cb){inp.onchange=()=>{const f=inp.files&&inp.files[0];if(!f)return;const img=new Image();
  img.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
   const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,256,256);cb(c.toDataURL('image/jpeg',.85))}catch(e){toast('Immagine non valida')}};
@@ -965,8 +1012,8 @@ function sheet(){$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribut
  $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();introBtn();$('#ttSum').textContent=ttSum();acctUI();cvUI();gqUI();spUI()}
 function newTask(ds){const d=ds?dd0(ds):new Date();if(!ds)d.setDate(d.getDate()+1);d.setHours(18,0,0,0);$('#tT').value='';$('#tN').value='';$('#tD').value=iso(d);$('#tE').textContent='';$('#dTask').showModal();$('#tT').focus()}
 
-$('#bSb').innerHTML=ic('sb');$('#bSet').innerHTML=ic('gear');$('#bAI').innerHTML=ic('spark');$('#bAdd').innerHTML=ic('plus')+'Nuovo';$('#bCv').textContent='Aggiorna';$('#bCv').onclick=()=>cvRefresh(1);
-$('#cmP').innerHTML=ic('cl');$('#cmN').innerHTML=ic('cr');$('#aiC').innerHTML=ic('x');$('#aiS').innerHTML=ic('send');
+aiMdraw();$('#bSb').innerHTML=ic('sb');$('#bSet').innerHTML=ic('gear');$('#bAI').innerHTML=ic('spark');$('#bAdd').innerHTML=ic('plus')+'Nuovo';$('#bCv').textContent='Aggiorna';$('#bCv').onclick=()=>cvRefresh(1);
+$('#cmP').innerHTML=ic('cl');$('#cmN').innerHTML=ic('cr');$('#aiS').innerHTML=ic('send');
 $('#bSbX').innerHTML=ic('x');
 const sbExit=()=>{S.sb='off';save();layout();toast('StandBy spento');try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}};
 $('#bSbX').onclick=e=>{e.stopPropagation();sbExit()};
@@ -1001,8 +1048,18 @@ $('#tl').onclick=e=>{const li=e.target.closest('li[data-id]'),b=e.target.closest
  if(a==='ck'){t.done=t.done?0:1;haptic(t.done?'success':'medium')}else S.tasks=S.tasks.filter(x=>x!==t);save();tasks();cal();nxt()};
 $('#bAI').onclick=openChat;
 $('#qs').onclick=e=>{const b=e.target.closest('button');if(!b)return;const q=QS[+b.dataset.i][1];if(q.endsWith(': ')){$('#ai').value=q;$('#ai').focus()}else chatSend(q)};
+$('#cm').onclick=e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]');const k=ok?ok.dataset.ok:no&&no.dataset.no;if(!k)return;
+ const [mi,ai]=k.split(':').map(Number),m=S.chat[mi];if(!m||!m.acts||!m.acts[ai])return;
+ if(ok){haptic('light');const r=execAct(m.acts[ai]);m.acts[ai].st=r.ok?'done':'no';if(!r.ok)m.acts[ai].note=r.note}else m.acts[ai].st='no';
+ save();chatDraw()};
+$('#aiM').onclick=()=>{const p=$('#aiMP');p.hidden=!p.hidden};
+$('#aiMP').onclick=e=>{const b=e.target.closest('button[data-m]');if(!b)return;S.aiAct=b.dataset.m;save();aiMdraw();$('#aiMP').hidden=true;haptic('light');toast({always:'L’assistente esegue le azioni subito.',ask:'L’assistente chiede prima di agire.',deny:'Azioni dell’assistente disattivate.'}[S.aiAct])};
+$('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
+$('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
+$('#mdS').onclick=()=>{S.agentMd=$('#mdT').value.trim().slice(0,4000);save();$('#dMD').close();toast(S.agentMd?'agent.md salvata: l’assistente la segue dalla prossima risposta.':'agent.md vuota')};
+$('#mdX').onclick=()=>{S.agentMd='';save();$('#dMD').close();toast('agent.md rimossa')};
 $('#aiS').onclick=()=>chatSend($('#ai').value);$('#ai').onkeydown=e=>{if(e.key==='Enter')chatSend($('#ai').value)};
-$('#aiC').onclick=()=>$('#dAI').close();$('#aiX').onclick=()=>{S.chat=[];save();chatDraw()};
+$('#aiX').onclick=()=>{S.chat=[];save();chatDraw()};
 $$('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
 
 // Feedback tattile: leggero sui bottoni, selezione sui segmenti (stile iOS).
