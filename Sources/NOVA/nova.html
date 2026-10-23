@@ -149,12 +149,14 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 #aiAt button{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font-size:12px;line-height:20px}
 #mapDiv{height:calc(100dvh - 320px);min-height:320px;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin:0 -4px}
 .mkP{width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.mkW{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,0)}
+.mkC{background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:10.5px;padding:1px 6px;margin-top:2px;white-space:nowrap;color:var(--tx)}
 #cvR.rec{background:var(--bad)!important;border-color:var(--bad)!important;animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.55}}
 .m1 audio{max-width:210px;height:36px;display:block}
 #dQR .qrbox{display:flex;justify-content:center;padding:14px;background:#fff;border-radius:16px;margin:8px 0}
 #dSC video{width:100%;border-radius:14px;background:#000}
-#chatSeg{margin:0 0 10px}
+#fcFab{position:fixed;right:18px;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:25;width:54px;height:54px;border-radius:50%;background:var(--acc);color:#fff;font-size:28px;font-weight:300;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;padding:0;line-height:1}
 #frc{display:flex;flex-direction:column;gap:8px}
 .fcR{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;text-align:left}
 .fcR .tt{flex:1;min-width:0}
@@ -335,19 +337,20 @@ main.pg{padding-bottom:112px}
  <section class="card"><div id="grB"></div></section>
 </main>
 <main class="pg" id="pgChat" hidden>
- <div class="pgh"><h2>Chat</h2><span style="display:flex;gap:6px"><button class="btn sm" id="aiMD">agent.md</button><button class="btn sm" id="aiX">Nuova chat</button></span></div>
- <section class="card" id="chatB" hidden></section>
- <div class="seg" id="chatSeg"><button data-v="ai" aria-pressed="true">AI</button><button data-v="amici" aria-pressed="false">Amici</button></div>
- <div id="frc" hidden></div>
- <div id="aic">
+ <div class="pgh"><h2>Chat</h2></div>
+ <div id="frc"></div>
+ <div id="aic" hidden>
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><button class="ico" id="aiBack" aria-label="Torna alle chat" style="background:var(--bg3);color:var(--tx)">&#8249;</button><span style="flex:1"></span><button class="btn sm" id="aiMD">agent.md</button><button class="btn sm" id="aiX">Nuova chat</button></div>
+  <section class="card" id="chatB" hidden></section>
   <div id="cm"></div>
   <div class="cf"><div id="aiAt" hidden></div><button class="ico" id="aiP" aria-label="Aggiungi foto"></button><button class="ico" id="aiM" type="button" aria-haspopup="true" aria-label="Permessi azioni">/</button><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button><input type="file" id="aiPF" accept="image/*" hidden></div>
-  <div id="aiMP" hidden><button data-m="always">Sempre — esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai — niente azioni</button></div>
+  <div id="aiMP" hidden><button data-m="always">Sempre â esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai â niente azioni</button></div>
  </div>
+ <button id="fcFab" hidden aria-label="Nuova chat">+</button>
 </main>
 <dialog id="dMD"><div class="sheet" style="display:flex;flex-direction:column;gap:10px">
  <h3 style="margin:0">agent.md</h3>
- <small class="mut">Un file che dice all'assistente come comportarsi: personalità, tono, regole. Resta solo su questo telefono e l'assistente lo legge a ogni chat.</small>
+ <small class="mut">Un file che dice all'assistente come comportarsi: personalitÃ , tono, regole. Resta solo su questo telefono e l'assistente lo legge a ogni chat.</small>
  <input type="file" id="mdF" accept=".md,.txt,text/markdown,text/plain">
  <textarea id="mdT" rows="8" style="resize:vertical" placeholder="# agent.md&#10;Esempio: Rispondi in dialetto ferrarese, tono da coach, frasi corte."></textarea>
  <small class="err" id="mdE"></small>
@@ -386,7 +389,7 @@ main.pg{padding-bottom:112px}
  <div class="sep"></div>
  <div class="fl">Notifiche<button class="btn" id="bNot">Attiva notifiche</button><small id="nS"></small>
   <button class="btn tgl" id="bHw" aria-pressed="true">Avvisi compiti: attivi</button>
-  <small>Quando aggiorni i compiti, l'assistente IA sceglie e programma i promemoria migliori (mattina presto, sera prima, preavviso per le verifiche), che suonano anche con l'app chiusa. Senza chiave Groq NOVA usa orari standard. I compiti nuovi li scopre quando l'app si aggiorna: iOS lo fa in background solo ogni tanto, quindi non è istantaneo.</small></div>
+  <small>Quando aggiorni i compiti, l'assistente IA sceglie e programma i promemoria migliori (mattina presto, sera prima, preavviso per le verifiche), che suonano anche con l'app chiusa. Senza chiave Groq NOVA usa orari standard. I compiti nuovi li scopre quando l'app si aggiorna: iOS lo fa in background solo ogni tanto, quindi non Ã¨ istantaneo.</small></div>
  <div class="fl">Intro<button class="btn tgl" id="bIntro" aria-pressed="true">Intro all'avvio: attiva</button><small>La sequenza cinematografica quando apri NOVA, con voce in inglese. Puoi saltarla con un tocco.</small></div>
  <div class="sep"></div>
  <div class="fl">Orario e widget<button class="btn" id="bTT">Modifica orario</button><small id="ttSum"></small></div>
@@ -400,7 +403,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.18</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.19</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -433,9 +436,10 @@ main.pg{padding-bottom:112px}
 
 <dialog id="dNC"><div class="sheet">
  <h2>Nuova chat</h2>
- <small class="mut">Scegli uno o più amici. Con più di uno crei un gruppo.</small>
+ <small class="mut">Scegli uno o piÃ¹ amici. Con piÃ¹ di uno crei un gruppo.</small>
  <div id="ncL" style="margin:8px 0"></div>
  <label class="fl" id="ncG" hidden>Nome del gruppo<input id="ncN" maxlength="40" placeholder="Es. Studio matematica"></label>
+ <label class="fl" id="ncGE" hidden>Data esame (opzionale)<input id="ncD" type="date"></label>
  <div class="row"><button class="btn" id="ncC">Annulla</button><button class="btn pri" id="ncOk">Crea</button></div>
 </div></dialog>
 
@@ -456,7 +460,7 @@ main.pg{padding-bottom:112px}
  <label class="fl">Descrizione (facoltativa)<textarea id="tN" rows="2" maxlength="400"></textarea></label>
  <label class="fl">Scadenza<input id="tD" type="datetime-local"></label>
  <div class="row">
-  <label class="fl">Priorità<select id="tP"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="bassa">Bassa</option></select></label>
+  <label class="fl">PrioritÃ <select id="tP"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="bassa">Bassa</option></select></label>
   <label class="fl">Promemoria<select id="tR"><option value="0">Nessuno</option><option value="10">10 minuti prima</option><option value="60" selected>1 ora prima</option><option value="1440">1 giorno prima</option></select></label>
  </div>
  <small class="err" id="tE"></small>
@@ -536,7 +540,7 @@ function cvImport(ev,gr){let n=0;const seen=new Set();
  if(gr)S.gr=gr;
  save();tasks();cal();nxt();grades();return n}
 async function cvRefresh(manual){if(!S.cv.on)return;const r=await cv('refresh');
- if(r.ok){const n=cvImport(r.events,r.grades);if(manual)toast(n?n+' novità da ClasseViva':'Compiti e verifiche già aggiornati');if(gqHas&&(manual||n>0))planGen(manual)}
+ if(r.ok){const n=cvImport(r.events,r.grades);if(manual)toast(n?n+' novitÃ  da ClasseViva':'Compiti e verifiche giÃ  aggiornati');if(gqHas&&(manual||n>0))planGen(manual)}
  else if(r.err==='no-creds'){S.cv={on:0,name:''};save();cvUI()}
  else if(manual)toast('ClasseViva non raggiungibile ora, riprova tra poco')}
 async function planGen(manual){if(!gqHas||!S.cv.on)return;
@@ -544,7 +548,7 @@ async function planGen(manual){if(!gqHas||!S.cv.on)return;
  const nowD=new Date(),open=S.tasks.filter(t=>!t.done&&kindOf(t)!=='test').sort((a,b)=>a.due<b.due?-1:1).slice(0,40),
  tst=S.tasks.filter(t=>kindOf(t)==='test'&&t.due.slice(0,10)>=dstr(nowD)).sort((a,b)=>a.due<b.due?-1:1).slice(0,12),
  f=t=>`- ${t.due.slice(0,10)}${t.subj?' ['+t.subj+']':''}: ${String(t.title).slice(0,160)}`;
- const sys=`Sei il pianificatore di NOVA, l'app di uno studente delle superiori in Italia. Oggi è ${nowD.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}. Con i compiti e le verifiche qui sotto decidi TU i promemoria migliori e restituisci SOLO un array JSON valido: niente testo prima o dopo, niente backtick. Schema: [{"title":"...","body":"...","at":"YYYY-MM-DD HH:MM"}] con data e ora locali. Regole: da 3 a 12 promemoria; orari solo tra le 06:30 e le 21:45; il giorno di una consegna metti un riepilogo la mattina presto, tra 06:30 e 06:45 (si sveglia alle 6:10 ed esce di casa verso le 6:55); la sera prima metti un promemoria tra le 16:00 e le 19:30, più presto se per quel giorno c'è molto da fare; per ogni verifica aggiungi anche un avviso due giorni prima; niente duplicati, niente orari nel passato. "title" breve, tipo "NOVA · Per domani"; "body" con i compiti veri, uno per riga, al massimo 4 righe.\nCOMPITI APERTI:\n${open.map(f).join('\n')||'- nessuno'}\nVERIFICHE:\n${tst.map(f).join('\n')||'- nessuna'}`;
+ const sys=`Sei il pianificatore di NOVA, l'app di uno studente delle superiori in Italia. Oggi Ã¨ ${nowD.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}. Con i compiti e le verifiche qui sotto decidi TU i promemoria migliori e restituisci SOLO un array JSON valido: niente testo prima o dopo, niente backtick. Schema: [{"title":"...","body":"...","at":"YYYY-MM-DD HH:MM"}] con data e ora locali. Regole: da 3 a 12 promemoria; orari solo tra le 06:30 e le 21:45; il giorno di una consegna metti un riepilogo la mattina presto, tra 06:30 e 06:45 (si sveglia alle 6:10 ed esce di casa verso le 6:55); la sera prima metti un promemoria tra le 16:00 e le 19:30, piÃ¹ presto se per quel giorno c'Ã¨ molto da fare; per ogni verifica aggiungi anche un avviso due giorni prima; niente duplicati, niente orari nel passato. "title" breve, tipo "NOVA Â· Per domani"; "body" con i compiti veri, uno per riga, al massimo 4 righe.\nCOMPITI APERTI:\n${open.map(f).join('\n')||'- nessuno'}\nVERIFICHE:\n${tst.map(f).join('\n')||'- nessuna'}`;
  const r=await gq('chat',{messages:[{role:'user',content:sys}]});
  if(!r.ok){if(manual)toast(r.err==='limite'?'Groq al limite: promemoria IA rimandati.':'Pianificazione IA non riuscita ora, riprova tra poco.');return}
  const m=String(r.text||'').match(/\[[\s\S]*\]/);let arr=[];try{arr=JSON.parse(m?m[0]:'[]')}catch(e){arr=[]}
@@ -557,15 +561,15 @@ async function planGen(manual){if(!gqHas||!S.cv.on)return;
  post({t:'plan',items:ded});
  if(manual)toast('NOVA ha programmato '+items.length+' promemoria')}
 async function cvLogin(u,p,ident){if(!u||!p){$$('.cvE').forEach(e=>e.textContent='Scrivi codice utente e password.');return}
- cvTmp={u:u,p:p};cvChoices=null;$$('.cvG').forEach(b=>{b.disabled=1;b.textContent='Collego…'});
+ cvTmp={u:u,p:p};cvChoices=null;$$('.cvG').forEach(b=>{b.disabled=1;b.textContent='Collegoâ¦'});
  const r=await cv('login',ident?{uid:u,pass:p,ident:ident}:{uid:u,pass:p});
  if(r.ok){S.cv={on:1,name:r.name||''};cvTmp=null;cvStage.u='';cvFails=0;save();const n=cvImport(r.events,r.grades);toast('ClasseViva collegato: '+n+' elementi importati')}
  else if(r.needChoice)cvChoices=r.choices||[];
- else{cvTmp=null;cvErr=(r.err==='rete'?'Nessuna connessione o server ClasseViva giù. Riprova.':r.err==='bloccato'?'ClasseViva ha bloccato la richiesta. Riprova tra poco.':r.err==='bridge'?'Errore interno: reinstalla l\'ultima versione di NOVA.':'Credenziali non valide. Controlla codice utente e password.')+(r.info?' ('+r.info+')':'')}
+ else{cvTmp=null;cvErr=(r.err==='rete'?'Nessuna connessione o server ClasseViva giÃ¹. Riprova.':r.err==='bloccato'?'ClasseViva ha bloccato la richiesta. Riprova tra poco.':r.err==='bridge'?'Errore interno: reinstalla l\'ultima versione di NOVA.':'Credenziali non valide. Controlla codice utente e password.')+(r.info?' ('+r.info+')':'')}
  cvUI();if(cvErr){cvFails++;if(cvFails>=3)cvErr+=' Attenzione: dopo 5 tentativi sbagliati ClasseViva sospende l\'accesso per 60 minuti.';$$('.cvE').forEach(e=>e.textContent=cvErr);toast('ClasseViva: collegamento non riuscito');cvErr=''}if(window.obRefresh)obRefresh()}
 async function cvLogout(){await cv('logout');cvStage.u='';S.cv={on:0,name:''};S.tasks=S.tasks.filter(t=>t.src!=='cv');S.gr=[];save();tasks();cal();nxt();grades();cvUI();toast('ClasseViva scollegato')}
 function cvUI(){$$('.cvb').forEach(b=>{
- if(cvChoices){b.innerHTML='<small>Questo account ha più profili: scegli il tuo.</small><div class="chips" style="margin-top:8px">'+cvChoices.map(c=>`<button data-i="${esc(c.ident)}">${esc(c.name||c.ident)}</button>`).join('')+'</div><small class="err cvE"></small>';
+ if(cvChoices){b.innerHTML='<small>Questo account ha piÃ¹ profili: scegli il tuo.</small><div class="chips" style="margin-top:8px">'+cvChoices.map(c=>`<button data-i="${esc(c.ident)}">${esc(c.name||c.ident)}</button>`).join('')+'</div><small class="err cvE"></small>';
   b.querySelectorAll('button[data-i]').forEach(x=>x.onclick=()=>{const t=cvTmp,i=x.dataset.i;cvChoices=null;t&&cvLogin(t.u,t.p,i)})}
  else if(S.cv.on){b.innerHTML=`<small>Collegato come ${esc(S.cv.name||'studente')}.</small><div class="row" style="margin-top:8px"><button class="btn cvR">Aggiorna</button><button class="btn cvX">Scollega</button></div><small class="err cvE"></small>`;
   b.querySelector('.cvR').onclick=()=>cvRefresh(1);b.querySelector('.cvX').onclick=cvLogout}
@@ -588,11 +592,11 @@ async function gqInit(){const r=await gq('has');gqHas=!!(r&&r.has);gqUI()}
 function gqUI(){$$('.gqb').forEach(b=>{
  if(gqHas){b.innerHTML='<small>Chiave Groq salvata nel Portachiavi di iOS.</small><div class="row" style="margin-top:8px"><button class="btn gqR">Sostituisci</button><button class="btn gqX">Rimuovi</button></div><small class="err gqE"></small>';
   b.querySelector('.gqR').onclick=()=>{gqHas=false;gqUI()};b.querySelector('.gqX').onclick=async()=>{await gq('clear');gqHas=false;gqUI();toast('Chiave rimossa')}}
- else{b.innerHTML='<input class="gqK" type="password" placeholder="gsk_…" autocomplete="off" autocapitalize="none" spellcheck="false"><button class="btn pri gqS" style="margin-top:8px">Salva chiave</button><small>Serve la chiave API di <b>Groq</b> (inizia con gsk_), non quella di Grok/xAI. Creala gratis su console.groq.com/keys: <a href="https://console.groq.com/keys" style="color:var(--acc)">apri la pagina</a>.</small><small class="err gqE"></small>';
+ else{b.innerHTML='<input class="gqK" type="password" placeholder="gsk_â¦" autocomplete="off" autocapitalize="none" spellcheck="false"><button class="btn pri gqS" style="margin-top:8px">Salva chiave</button><small>Serve la chiave API di <b>Groq</b> (inizia con gsk_), non quella di Grok/xAI. Creala gratis su console.groq.com/keys: <a href="https://console.groq.com/keys" style="color:var(--acc)">apri la pagina</a>.</small><small class="err gqE"></small>';
   const go=async()=>{const k=b.querySelector('.gqK').value.trim(),e=b.querySelector('.gqE'),s=b.querySelector('.gqS');if(!k){e.textContent='Incolla la chiave.';return}
-   s.disabled=1;s.textContent='Controllo…';const r=await gq('set',{key:k});s.disabled=0;s.textContent='Salva chiave';
+   s.disabled=1;s.textContent='Controlloâ¦';const r=await gq('set',{key:k});s.disabled=0;s.textContent='Salva chiave';
    if(r.ok){gqHas=true;gqUI();toast('Assistente AI attivo');if(window.obRefresh)obRefresh()}
-   else e.textContent=r.err==='grok'?'Questa è una chiave di Grok (xAI). Serve quella di Groq, che inizia con gsk_.':r.err==='formato'?'La chiave Groq inizia con gsk_. Controlla di averla copiata tutta.':r.err==='key'?'Chiave non valida o revocata.':'Non riesco a contattare Groq. Controlla la connessione.'};
+   else e.textContent=r.err==='grok'?'Questa Ã¨ una chiave di Grok (xAI). Serve quella di Groq, che inizia con gsk_.':r.err==='formato'?'La chiave Groq inizia con gsk_. Controlla di averla copiata tutta.':r.err==='key'?'Chiave non valida o revocata.':'Non riesco a contattare Groq. Controlla la connessione.'};
   b.querySelector('.gqS').onclick=go;b.querySelector('.gqK').onkeydown=e=>{if(e.key==='Enter')go()}}})}
 
 /* ---------- Spotify ---------- */
@@ -602,7 +606,7 @@ const spMsg=e=>({premium:'Per controllare la musica serve Spotify Premium.',node
 function spUI(){$$('.spb').forEach(b=>{
  if(sp.conn){b.innerHTML='<small>Spotify collegato.</small><button class="btn spX" style="margin-top:8px">Scollega Spotify</button>';b.querySelector('.spX').onclick=async()=>{await spo('logout');sp.conn=false;sp.st=null;spUI();spCard();toast('Spotify scollegato')}}
  else if(!sp.cid){b.innerHTML='<small>Per controllare la musica serve una tua app Spotify (gratis) e un account Premium:<br>1. vai su developer.spotify.com/dashboard e crea un\'app<br>2. come Redirect URI scrivi esattamente <b>nova://spotify-callback</b><br>3. spunta "Web API" e salva<br>4. copia qui il Client ID</small><input class="spC" placeholder="Client ID" autocomplete="off" autocapitalize="none" spellcheck="false" style="margin-top:8px"><button class="btn pri spS" style="margin-top:8px">Salva Client ID</button><small class="err spE"></small>';
-  const go=async()=>{const v=b.querySelector('.spC').value.trim();if(!/^[0-9a-f]{32}$/i.test(v)){b.querySelector('.spE').textContent='Il Client ID è di 32 caratteri (lettere e numeri).';return}await spo('setcid',{cid:v});sp.cid=true;spUI()};
+  const go=async()=>{const v=b.querySelector('.spC').value.trim();if(!/^[0-9a-f]{32}$/i.test(v)){b.querySelector('.spE').textContent='Il Client ID Ã¨ di 32 caratteri (lettere e numeri).';return}await spo('setcid',{cid:v});sp.cid=true;spUI()};
   b.querySelector('.spS').onclick=go;b.querySelector('.spC').onkeydown=e=>{if(e.key==='Enter')go()}}
  else{b.innerHTML='<button class="btn pri spL">Collega Spotify</button><div class="row" style="margin-top:8px"><button class="btn spCh">Cambia Client ID</button></div><small class="err spE"></small><small>Si apre la pagina di accesso di Spotify. Serve Premium per play, pausa e brano successivo.</small>';
   b.querySelector('.spCh').onclick=async()=>{await spo('setcid',{cid:''});sp.cid=false;spUI()};
@@ -630,17 +634,17 @@ function spCard(){$('#spL').innerHTML=ic('music')+'Spotify';const el=$('#spB');
  $('#spP').onclick=()=>spCtl('prev');$('#spN').onclick=()=>spCtl('next');$('#spPl').onclick=()=>spCtl(sp.st&&sp.st.playing?'pause':'play')}
 
 /* ---------- chat ---------- */
-const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^[-*] (.+)$/gm,'• $1').replace(/\n/g,'<br>');
+const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^[-*] (.+)$/gm,'â¢ $1').replace(/\n/g,'<br>');
 const QS=[['Piano di studio per domani','Fammi un piano di studio per domani, in base ai miei compiti e alle verifiche in arrivo.'],['Cosa ho questa settimana?','Riassumi cosa devo fare questa settimana, giorno per giorno.'],['Come preparo la prossima verifica?','Come mi consigli di preparare la mia prossima verifica? Dammi passi concreti.'],['Spiegami un argomento','Spiegami in modo semplice: ']];
-const agMd=()=>S.agentMd?'\nPERSONALITÀ E REGOLE da agent.md (priorità su tono e stile, mai sui dati reali):\n'+String(S.agentMd).slice(0,2000):'';
-const agAct=()=>S.aiAct==='deny'?'\nNon proporre azioni automatiche.':'\nAZIONI IN-APP: solo quando è davvero utile, proponi fino a 3 azioni scrivendo ALLA FINE della risposta una riga con solo ###AZIONI### e poi un array JSON. Tipi: {"a":"task","title":"...","due":"YYYY-MM-DDTHH:MM","subj":"materia opzionale","rem":0} (rem = minuti di preavviso) oppure {"a":"open","page":"home|voti|chat|profilo"}. Niente testo dopo il JSON. Se non serve, non scrivere ###AZIONI###.';
+const agMd=()=>S.agentMd?'\nPERSONALITÃ E REGOLE da agent.md (prioritÃ  su tono e stile, mai sui dati reali):\n'+String(S.agentMd).slice(0,2000):'';
+const agAct=()=>S.aiAct==='deny'?'\nNon proporre azioni automatiche.':'\nAZIONI IN-APP: solo quando Ã¨ davvero utile, proponi fino a 3 azioni scrivendo ALLA FINE della risposta una riga con solo ###AZIONI### e poi un array JSON. Tipi: {"a":"task","title":"...","due":"YYYY-MM-DDTHH:MM","subj":"materia opzionale","rem":0} (rem = minuti di preavviso) oppure {"a":"open","page":"home|voti|chat|profilo"}. Niente testo dopo il JSON. Se non serve, non scrivere ###AZIONI###.';
 function ctx(){const now=new Date(),open=S.tasks.filter(t=>!t.done&&kindOf(t)!=='test').sort((a,b)=>a.due<b.due?-1:1).slice(0,40),
  tst=S.tasks.filter(t=>kindOf(t)==='test'&&t.due.slice(0,10)>=dstr(now)).sort((a,b)=>a.due<b.due?-1:1).slice(0,12),
  f=t=>`- ${dd0(t.due.slice(0,10)).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})}${t.subj?' ['+t.subj+']':''}: ${String(t.title).slice(0,220)}`;
  const by={};S.gr.forEach(g=>{(by[g.subj]=by[g.subj]||[]).push(g.v)});
  const med=Object.keys(by).map(s=>`${s} ${(by[s].reduce((a,b)=>a+b,0)/by[s].length).toFixed(1)}`).join(', ');
- return `Sei NOVA, l'assistente di studio dentro l'app di ${S.name||'uno studente'}, che frequenta le superiori in Italia. Rispondi sempre in italiano, in modo chiaro, breve e concreto, con un tono diretto e amichevole. Oggi è ${now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}. Usa solo i dati qui sotto per parlare di compiti, verifiche e voti: se non li trovi non inventarli. Se ti chiede aiuto con un compito, guidalo passo passo senza dargli solo la soluzione.\nCOMPITI APERTI:\n${open.map(f).join('\n')||'- nessuno'}\nVERIFICHE E ANNOTAZIONI:\n${tst.map(f).join('\n')||'- nessuna'}\nMEDIE VOTI: ${med||'non disponibili'}${agMd()}${agAct()}`}
-function actHtml(a,mi,ai){const d=a.a==='open'?'Apri la pagina "'+({home:'Home',voti:'Voti',chat:'Chat',profilo:'Profilo'}[a.page]||a.page)+'"':'Aggiungi: '+esc(String(a.title).slice(0,60))+(a.due?' · '+dd0(String(a.due).slice(0,10)).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'}):'');
+ return `Sei NOVA, l'assistente di studio dentro l'app di ${S.name||'uno studente'}, che frequenta le superiori in Italia. Rispondi sempre in italiano, in modo chiaro, breve e concreto, con un tono diretto e amichevole. Oggi Ã¨ ${now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}. Usa solo i dati qui sotto per parlare di compiti, verifiche e voti: se non li trovi non inventarli. Se ti chiede aiuto con un compito, guidalo passo passo senza dargli solo la soluzione.\nCOMPITI APERTI:\n${open.map(f).join('\n')||'- nessuno'}\nVERIFICHE E ANNOTAZIONI:\n${tst.map(f).join('\n')||'- nessuna'}\nMEDIE VOTI: ${med||'non disponibili'}${agMd()}${agAct()}`}
+function actHtml(a,mi,ai){const d=a.a==='open'?'Apri la pagina "'+({home:'Home',voti:'Voti',chat:'Chat',profilo:'Profilo'}[a.page]||a.page)+'"':'Aggiungi: '+esc(String(a.title).slice(0,60))+(a.due?' Â· '+dd0(String(a.due).slice(0,10)).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'}):'');
  const side=a.st==='wait'?'<button class="btn sm pri" data-ok="'+mi+':'+ai+'">Conferma</button><button class="btn sm" data-no="'+mi+':'+ai+'">Annulla</button>':a.st==='done'?'<small style="font-weight:700;color:var(--ok)">Fatto</small>':a.st==='no'?'<small class="mut">'+esc(a.note||'Annullata')+'</small>':'<small class="mut">Azioni disattivate</small>';
  return '<div class="act"><span style="flex:1;min-width:120px">'+d+'</span>'+side+'</div>'}
 function normAct(x){if(!x||typeof x!=='object')return null;
@@ -652,8 +656,8 @@ function normAct(x){if(!x||typeof x!=='object')return null;
 function execAct(a){
  if(a.a==='open'){const i={home:0,voti:1,chat:2,profilo:3}[a.page];if(i==null)return{ok:0,note:'Pagina sconosciuta'};pg(i,i>pgI?1:-1);return{ok:1}}
  const due=a.due;if(!due)return{ok:0,note:'Data mancante'};
- if(S.tasks.some(x=>!x.done&&x.due===due&&x.title.toLowerCase()===String(a.title).toLowerCase()))return{ok:0,note:'Già in elenco'};
- S.tasks.push({id:uid(),title:String(a.title).slice(0,200),note:'Aggiunto dall’assistente',due,pr:'media',rem:a.rem||0,done:0,fired:0,src:'ai',kind:'man',subj:a.subj||''});
+ if(S.tasks.some(x=>!x.done&&x.due===due&&x.title.toLowerCase()===String(a.title).toLowerCase()))return{ok:0,note:'GiÃ  in elenco'};
+ S.tasks.push({id:uid(),title:String(a.title).slice(0,200),note:'Aggiunto dallâassistente',due,pr:'media',rem:a.rem||0,done:0,fired:0,src:'ai',kind:'man',subj:a.subj||''});
  save();tasks();cal();nxt();rem();return{ok:1}}
 function runActs(mi){const m=S.chat[mi];if(!m||!m.acts)return;let ch=0;
  m.acts.forEach(a=>{if(a.st!=='go'&&a.st!=='wait')return;const r=execAct(a);a.st=r.ok?'done':'no';if(!r.ok)a.note=r.note;ch=1});
@@ -668,7 +672,7 @@ function chatDraw(){const el=$('#cm');
  el.scrollTop=el.scrollHeight}
 let atImg=null;
 function aiAtDraw(){const w=$('#aiAt');if(!w)return;
- if(atImg){w.hidden=false;w.innerHTML='<img src="'+atImg+'" alt="Allegato"><button type="button" id="aiAtX" aria-label="Rimuovi foto">×</button>';
+ if(atImg){w.hidden=false;w.innerHTML='<img src="'+atImg+'" alt="Allegato"><button type="button" id="aiAtX" aria-label="Rimuovi foto">Ã</button>';
   $('#aiAtX').onclick=()=>{atImg=null;aiAtDraw()}}else{w.hidden=true;w.innerHTML=''}}
 async function chatSend(text){text=(text||'').trim();if(!text&&!atImg)return;
  if(!gqHas){toast('Prima salva la chiave Groq nelle impostazioni');return}
@@ -676,12 +680,12 @@ async function chatSend(text){text=(text||'').trim();if(!text&&!atImg)return;
  S.chat.push(img?{r:'user',c:text,img}:{r:'user',c:text});S.chat=S.chat.slice(-40);
  S.chat.forEach((m,i)=>{if(m.img&&i<S.chat.length-8)delete m.img});
  chatDraw();$('#ai').value='';aiMic();
- const el=$('#cm');el.insertAdjacentHTML('beforeend','<div class="m1 a">…</div>');el.scrollTop=el.scrollHeight;
+ const el=$('#cm');el.insertAdjacentHTML('beforeend','<div class="m1 a">â¦</div>');el.scrollTop=el.scrollHeight;
  let r;
  if(img)r=await gq('vision',{img,prompt:(text?text+'\n\n':'')+'Rispondi come NOVA, l\'assistente di studio dentro l\'app, in italiano, tono amichevole e concreto.'});
  else{const msgs=[{role:'system',content:ctx()}].concat(S.chat.slice(-12).map(m=>({role:m.r,content:m.c})));
  r=await gq('chat',{messages:msgs})}
- let atxt=r.ok?r.text:r.err==='key'?'La chiave Groq non è valida. Controllala nelle impostazioni.':r.err==='limite'?'Hai raggiunto il limite di richieste di Groq. Riprova tra un minuto.':r.err==='rete'?'Non riesco a contattare Groq. Controlla la connessione.':r.err==='nokey'?'Manca la chiave Groq.':'Groq non ha risposto. Riprova tra poco.';
+ let atxt=r.ok?r.text:r.err==='key'?'La chiave Groq non Ã¨ valida. Controllala nelle impostazioni.':r.err==='limite'?'Hai raggiunto il limite di richieste di Groq. Riprova tra un minuto.':r.err==='rete'?'Non riesco a contattare Groq. Controlla la connessione.':r.err==='nokey'?'Manca la chiave Groq.':'Groq non ha risposto. Riprova tra poco.';
  let acts=null;
  if(r.ok){const ix=atxt.indexOf('###AZIONI###');if(ix>=0){const raw=atxt.slice(ix+12).trim();atxt=atxt.slice(0,ix).trim();
   try{const pj=JSON.parse(raw);if(Array.isArray(pj)){const ns=pj.map(normAct).filter(Boolean).slice(0,3);
@@ -873,13 +877,13 @@ function intro(){
 const TTD=[[2,'Lun'],[3,'Mar'],[4,'Mer'],[5,'Gio'],[6,'Ven'],[7,'Sab']];
 let ttDraft=[],ttDay=2,ttShared=null,ttPing=null;
 const ttCount=()=>(S.tt&&S.tt.lessons||[]).length;
-const ttSum=()=>ttCount()?ttCount()+' lezioni salvate. '+(ttPing===true?'I widget leggono l\'orario.':ttShared===false?'Attenzione: i widget non riescono a leggere l\'orario su questa installazione.':'Orario inviato: i widget lo leggeranno al prossimo aggiornamento.'):'Nessun orario: i widget restano vuoti finché non lo aggiungi.';
+const ttSum=()=>ttCount()?ttCount()+' lezioni salvate. '+(ttPing===true?'I widget leggono l\'orario.':ttShared===false?'Attenzione: i widget non riescono a leggere l\'orario su questa installazione.':'Orario inviato: i widget lo leggeranno al prossimo aggiornamento.'):'Nessun orario: i widget restano vuoti finchÃ© non lo aggiungi.';
 const mm=t=>{const[a,b]=String(t||'').split(':').map(Number);return isFinite(a)&&isFinite(b)?a*60+b:NaN};
 const hm=n=>p2(Math.floor(n/60))+':'+p2(n%60);
 async function ttPush(){const r=await nat('tt','set',{json:JSON.stringify({v:1,lessons:S.tt.lessons})});if(r&&r.ok){ttShared=!!r.shared;ttPing=!!r.ping}const e=$('#ttSum');if(e)e.textContent=ttSum()}
 function ttMerge(L){const o=[];L.slice().sort((a,b)=>a.d-b.d||a.s-b.s).forEach(l=>{const q=o[o.length-1];if(q&&q.d===l.d&&q.n===l.n&&q.e===l.s)q.e=l.e;else o.push(Object.assign({},l))});return o}
 function ttDraw(){
- $('#ttD').innerHTML=TTD.map(([d,l])=>'<button data-d="'+d+'" aria-pressed="'+(d===ttDay)+'">'+l+(ttDraft.some(x=>x.d===d)?' •':'')+'</button>').join('');
+ $('#ttD').innerHTML=TTD.map(([d,l])=>'<button data-d="'+d+'" aria-pressed="'+(d===ttDay)+'">'+l+(ttDraft.some(x=>x.d===d)?' â¢':'')+'</button>').join('');
  const rows=ttDraft.map((l,i)=>({l,i})).filter(x=>x.l.d===ttDay).sort((a,b)=>a.l.s-b.l.s);
  $('#ttL').innerHTML=rows.length?rows.map(({l,i})=>'<div class="row" data-i="'+i+'" style="align-items:center;flex-wrap:wrap;gap:6px;padding-bottom:8px;border-bottom:1px solid var(--line)"><input type="time" class="ts" style="flex:1 1 40%;min-width:0" value="'+hm(l.s)+'" aria-label="Inizio"><input type="time" class="te" style="flex:1 1 40%;min-width:0" value="'+hm(l.e)+'" aria-label="Fine"><input class="tn" style="flex:1 1 45%;min-width:0" maxlength="14" value="'+esc(l.n)+'" aria-label="Materia" placeholder="Materia"><input class="tr" style="flex:1 1 25%;min-width:0" maxlength="10" value="'+esc(l.r||'')+'" aria-label="Aula" placeholder="Aula"><button class="btn sm tx2" style="flex:0 0 auto" aria-label="Elimina">Elimina</button></div>').join(''):'<small>Nessuna lezione per questo giorno.</small>';
 }
@@ -901,9 +905,9 @@ function ttImg(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f),im
 const TTP='Questa e\' la foto di un orario scolastico settimanale. Estrai TUTTE le lezioni. Rispondi SOLO con un oggetto JSON di questa forma: {"lessons":[{"d":1,"h":1,"s":"08:10","e":"09:00","n":"INFO"}]}. d = giorno (1=lunedi, 2=martedi, 3=mercoledi, 4=giovedi, 5=venerdi, 6=sabato). h = numero dell\'ora (1,2,3...) nella griglia. s ed e = orario di inizio e fine in formato 24h HH:MM se sono scritti nella foto, altrimenti null. n = nome della materia, breve e in MAIUSCOLO, come scritto nella foto (es. MAT, ITA, INFO). Una lezione per ogni cella non vuota. Non inventare lezioni che non vedi.';
 $('#ttF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;const st=$('#ttS');
  if(!gqHas){st.textContent='Prima salva la chiave Groq (impostazioni o passo di configurazione).';haptic('error');return}
- try{st.textContent='Leggo la foto… può volerci qualche secondo.';const img=await ttImg(f);
+ try{st.textContent='Leggo la fotoâ¦ puÃ² volerci qualche secondo.';const img=await ttImg(f);
   const r=await gq('vision',{img,prompt:TTP});
-  if(!r.ok)throw new Error(r.err==='key'?'La chiave Groq non è valida.':r.err==='limite'?'Limite di richieste Groq raggiunto: riprova tra poco.':r.err==='rete'?'Rete non disponibile.':'Non riesco a leggere la foto. Riprova con una foto più nitida.');
+  if(!r.ok)throw new Error(r.err==='key'?'La chiave Groq non Ã¨ valida.':r.err==='limite'?'Limite di richieste Groq raggiunto: riprova tra poco.':r.err==='rete'?'Rete non disponibile.':'Non riesco a leggere la foto. Riprova con una foto piÃ¹ nitida.');
   let j;try{j=JSON.parse(r.text)}catch(x){const m=String(r.text).match(/\{[\s\S]*\}/);j=m?JSON.parse(m[0]):null}
   const arr=j&&Array.isArray(j.lessons)?j.lessons:[];
   const L=arr.map(o=>{const h=+o.h||1;let s=mm(o.s),e=mm(o.e);if(!isFinite(s)||!isFinite(e)||e<=s){s=480+(h-1)*60;e=s+60}
@@ -917,15 +921,15 @@ $('#ttF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.
 /* ---------- onboarding ---------- */
 const WL=[['wx','Meteo'],['bat','Batteria'],['cal','Calendario'],['task','Compiti'],['nx','Prossima verifica'],['sp','Spotify']];
 const notifOn=()=>'Notification' in window&&Notification.permission==='granted';
-const ACCSTEP={k:'Account',t:'Inserisci la tua email',w:'Se hai già un account NOVA ti mando un codice, accedi e ritrovi tutta la configurazione senza rifarla. Se è la prima volta, ricevi un codice, scegli una password e poi continuiamo. Online finisce solo la configurazione: la password di ClasseViva, la chiave di Groq e Spotify restano sempre e solo su questo telefono. Puoi anche saltare.',c:()=>'<div class="acctb"></div>',on:()=>acctUI(),skip:1,done:()=>!!(S.acct&&S.acct.token)};
+const ACCSTEP={k:'Account',t:'Inserisci la tua email',w:'Se hai giÃ  un account NOVA ti mando un codice, accedi e ritrovi tutta la configurazione senza rifarla. Se Ã¨ la prima volta, ricevi un codice, scegli una password e poi continuiamo. Online finisce solo la configurazione: la password di ClasseViva, la chiave di Groq e Spotify restano sempre e solo su questo telefono. Puoi anche saltare.',c:()=>'<div class="acctb"></div>',on:()=>acctUI(),skip:1,done:()=>!!(S.acct&&S.acct.token)};
 const OB=[
  ACCSTEP,
  {k:'Benvenuto',t:'Ciao, come ti chiamo?',w:'Uso il nome solo per salutarti nell\'app e nelle risposte dell\'assistente. Resta sul tuo telefono.',c:()=>'<input id="oN" maxlength="30" autocomplete="given-name" placeholder="Il tuo nome" value="'+esc(S.name)+'">',on:()=>{const i=$('#oN');i.oninput=()=>{S.name=i.value.trim();save();head()};i.onkeydown=e=>{if(e.key==='Enter')obGo(1)}}},
- {k:'Profilo',t:'Scegli il tuo username',w:'È come gli amici ti trovano nella chat. Se è già preso te lo dico subito; puoi deciderlo anche dopo, ma la chat resta bloccata finché non ne hai uno.',c:()=>'<label class="fl un" style="margin:0"><input id="oU" maxlength="20" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="es. federico.t" value="'+esc(S.prof.username)+'"><span class="st" id="oUs"></span></label>',on:()=>{unWire($('#oU'),$('#oUs'),(u,st)=>{if(st!=='no'){S.prof.username=u;save()}obRefresh()});$('#oU').onkeydown=e=>{if(e.key==='Enter')obGo(1)}},skip:1,done:()=>!!S.prof.username},
+ {k:'Profilo',t:'Scegli il tuo username',w:'Ã come gli amici ti trovano nella chat. Se Ã¨ giÃ  preso te lo dico subito; puoi deciderlo anche dopo, ma la chat resta bloccata finchÃ© non ne hai uno.',c:()=>'<label class="fl un" style="margin:0"><input id="oU" maxlength="20" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="es. federico.t" value="'+esc(S.prof.username)+'"><span class="st" id="oUs"></span></label>',on:()=>{unWire($('#oU'),$('#oUs'),(u,st)=>{if(st!=='no'){S.prof.username=u;save()}obRefresh()});$('#oU').onkeydown=e=>{if(e.key==='Enter')obGo(1)}},skip:1,done:()=>!!S.prof.username},
  {k:'Profilo',t:'Su di te',w:'Dove studi e cosa ti riesce meglio: finiscono sul tuo profilo e puoi cambiarli quando vuoi.',c:()=>'<label class="fl">Dove studi<input id="oSt" maxlength="60" placeholder="Es. ITI Copernico" value="'+esc(S.prof.study)+'"></label><label class="fl">Punti forti<input id="oSk" maxlength="80" placeholder="Es. informatica, calcio" value="'+esc(S.prof.skills)+'"></label><label class="fl" style="margin:0">Foto profilo (facoltativa)<input id="oAv" type="file" accept="image/*"></label>',on:()=>{$('#oSt').oninput=e=>{S.prof.study=e.target.value.trim();save()};$('#oSk').oninput=e=>{S.prof.skills=e.target.value.trim();save()};avPick($('#oAv'),d=>{S.prof.avatar=d;save();toast('Foto profilo salvata')})},skip:1,done:()=>!!(S.prof.study||S.prof.skills||S.prof.avatar)},
- {k:'Musica',t:'La tua canzone',w:'Sul profilo: chi la tocca sente un\'anteprima di 30 secondi. La cerchi da iTunes, gratis e senza account.',c:()=>'<input id="oSoQ" placeholder="Cerca canzone o artista" autocomplete="off"><div id="oSoL"></div><small id="oSoC"></small>',on:()=>{songWire($('#oSoQ'),$('#oSoL'),it=>{S.prof.song=it;save();$('#oSoC').textContent='Scelta: '+it.t+' · '+it.a;obRefresh()});$('#oSoC').textContent=S.prof.song?'Scelta: '+S.prof.song.t+' · '+S.prof.song.a:''},skip:1,done:()=>!!S.prof.song},
- {k:'Aspetto',t:'Che tema preferisci?',w:'Cambia colori e contrasto. "Auto" segue l\'impostazione chiaro/scuro del tuo iPhone, così di sera non ti abbaglia.',c:()=>'<div class="seg" id="oT"><button data-v="auto">Auto</button><button data-v="light">Chiaro</button><button data-v="dark">Scuro</button></div>',on:()=>{const f=()=>$$('#oT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));f();$('#oT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();f()}}},
- {k:'Widget',t:'Cosa vuoi vedere?',w:'Così la schermata mostra solo quello che ti serve. Puoi cambiare scelta quando vuoi dalle impostazioni.',c:()=>'<div class="chips" id="oW">'+WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('')+'</div>',on:()=>{const f=()=>$$('#oW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));f();$('#oW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();f()}}},
+ {k:'Musica',t:'La tua canzone',w:'Sul profilo: chi la tocca sente un\'anteprima di 30 secondi. La cerchi da iTunes, gratis e senza account.',c:()=>'<input id="oSoQ" placeholder="Cerca canzone o artista" autocomplete="off"><div id="oSoL"></div><small id="oSoC"></small>',on:()=>{songWire($('#oSoQ'),$('#oSoL'),it=>{S.prof.song=it;save();$('#oSoC').textContent='Scelta: '+it.t+' Â· '+it.a;obRefresh()});$('#oSoC').textContent=S.prof.song?'Scelta: '+S.prof.song.t+' Â· '+S.prof.song.a:''},skip:1,done:()=>!!S.prof.song},
+ {k:'Aspetto',t:'Che tema preferisci?',w:'Cambia colori e contrasto. "Auto" segue l\'impostazione chiaro/scuro del tuo iPhone, cosÃ¬ di sera non ti abbaglia.',c:()=>'<div class="seg" id="oT"><button data-v="auto">Auto</button><button data-v="light">Chiaro</button><button data-v="dark">Scuro</button></div>',on:()=>{const f=()=>$$('#oT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));f();$('#oT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();f()}}},
+ {k:'Widget',t:'Cosa vuoi vedere?',w:'CosÃ¬ la schermata mostra solo quello che ti serve. Puoi cambiare scelta quando vuoi dalle impostazioni.',c:()=>'<div class="chips" id="oW">'+WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('')+'</div>',on:()=>{const f=()=>$$('#oW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));f();$('#oW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();f()}}},
  {k:'ClasseViva',t:'Collega il registro',w:'Mi serve per portare in NOVA compiti, verifiche e voti. Codice utente e password restano nel Portachiavi di iOS sul telefono e vanno solo ai server di ClasseViva.',c:()=>'<div class="cvb"></div>',on:()=>cvUI(),skip:1,done:()=>S.cv.on},
  {k:'Notifiche',t:'Vuoi gli avvisi?',w:'Per ricordarti i compiti al momento giusto: quando aggiorni ClasseViva, l\'assistente IA sceglie e programma i promemoria (mattina, sera prima, preavviso verifiche), anche con l\'app chiusa. I compiti nuovi arrivano quando iOS aggiorna NOVA in background: succede ogni tanto, non subito.',c:()=>'<button class="btn pri" id="oNt">Attiva notifiche</button><small id="oNs"></small>',on:()=>{const f=()=>{const p='Notification' in window?Notification.permission:'';$('#oNs').textContent={granted:'Notifiche attive.',denied:'Bloccate: riattivale da Impostazioni di iOS > NOVA.',default:''}[p]||'';obRefresh()};f();$('#oNt').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}f()}},skip:1,done:notifOn},
  {k:'Assistente AI',t:'Chiave API di Groq',w:'Per far funzionare l\'assistente. Groq (non Grok di xAI) ha un piano gratuito: crei la chiave su console.groq.com/keys e la incolli qui. Resta nel Portachiavi e viene usata solo verso api.groq.com.',c:()=>'<div class="gqb"></div>',on:()=>gqUI(),skip:1,done:()=>gqHas},
@@ -936,7 +940,7 @@ const OB=[
  {k:'Fine',t:'Tutto pronto',w:'Puoi cambiare ogni scelta dalle impostazioni, nella pagina Profilo.',c:()=>'<button class="btn pri" id="oDone">Apri NOVA</button>',on:()=>{$('#oDone').onclick=obEnd}}];
 let obI=0,obDir=1;
 function obDraw(){const s=OB[obI],o=$('#ob');
- o.innerHTML=`<div class="obd">${OB.map((_,i)=>`<i class="${i<=obI?'on':''}"></i>`).join('')}</div><div class="obm ain${obDir<0?' b':''}"><div class="obt"><div class="st">${obI+1} di ${OB.length} · ${s.k}</div><h2>${esc(obI===OB.length-1&&S.name?'Tutto pronto, '+S.name:s.t)}</h2><div class="why">${s.w}</div></div><div class="obc">${s.c()}</div></div><div class="obf"><button class="btn" id="oB" ${obI?'':'style="visibility:hidden"'}>Indietro</button>${obI<OB.length-1?`<button class="btn pri" id="oF">Avanti</button>`:'<span></span>'}</div>`;
+ o.innerHTML=`<div class="obd">${OB.map((_,i)=>`<i class="${i<=obI?'on':''}"></i>`).join('')}</div><div class="obm ain${obDir<0?' b':''}"><div class="obt"><div class="st">${obI+1} di ${OB.length} Â· ${s.k}</div><h2>${esc(obI===OB.length-1&&S.name?'Tutto pronto, '+S.name:s.t)}</h2><div class="why">${s.w}</div></div><div class="obc">${s.c()}</div></div><div class="obf"><button class="btn" id="oB" ${obI?'':'style="visibility:hidden"'}>Indietro</button>${obI<OB.length-1?`<button class="btn pri" id="oF">Avanti</button>`:'<span></span>'}</div>`;
  const b=$('#oB'),f=$('#oF');b&&(b.onclick=()=>obGo(-1));f&&(f.onclick=()=>obGo(1));s.on&&s.on();obRefresh()}
 window.obRefresh=()=>{if($('#ob').hidden)return;const f=$('#oF'),s=OB[obI];if(f)f.textContent=s.skip&&!s.done()?'Salta':'Avanti'};
 function obGo(d){obDir=d<0?-1:1;obI=Math.max(0,Math.min(OB.length-1,obI+d));obDraw()}
@@ -960,29 +964,29 @@ function cal(){const n=new Date(),b=new Date(n.getFullYear(),n.getMonth()+calOff
 function when(t){const d=new Date(t.due),n=new Date(),k=Math.round((dd0(t.due.slice(0,10))-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/864e5),
  h=d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
  day=k===0?'Oggi':k===1?'Domani':k===-1?'Ieri':d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
- return{txt:t.src==='cv'?day:`${day} · ${h}`,cls:k<0||(k===0&&t.src!=='cv'&&d<n)?'late':k<=1?'soon':'',k:k}}
+ return{txt:t.src==='cv'?day:`${day} Â· ${h}`,cls:k<0||(k===0&&t.src!=='cv'&&d<n)?'late':k<=1?'soon':'',k:k}}
 function tasks(){const td=dstr(new Date()),L=S.tasks.filter(t=>kindOf(t)!=='test'||t.due.slice(0,10)>=td).sort((a,b)=>a.done-b.done||new Date(a.due)-new Date(b.due)||RK[a.pr]-RK[b.pr]);
  $('#tkL').innerHTML=ic('book')+'Compiti';
- $('#tl').innerHTML=L.length?L.map(t=>{const w=when(t),v=kindOf(t)==='test';return `<li class="t${t.done?' dn':''}" data-id="${t.id}"><button class="ck" data-a="ck" aria-label="${t.done?'Riapri':'Completa'}">${ic('ck')}</button><div class="tx" data-a="op"><b>${esc(t.title)}</b><span class="${t.done?'':w.cls}">${v?'<i class="tg v">Verifica</i>':''}${t.subj&&!v?esc(t.subj)+' · ':''}${w.txt}</span></div><button class="x" data-a="rm" aria-label="Elimina">${ic('tr')}</button></li>`}).join(''):'<li class="empty">Nessun compito. Tocca Nuovo per aggiungerne uno.</li>'}
+ $('#tl').innerHTML=L.length?L.map(t=>{const w=when(t),v=kindOf(t)==='test';return `<li class="t${t.done?' dn':''}" data-id="${t.id}"><button class="ck" data-a="ck" aria-label="${t.done?'Riapri':'Completa'}">${ic('ck')}</button><div class="tx" data-a="op"><b>${esc(t.title)}</b><span class="${t.done?'':w.cls}">${v?'<i class="tg v">Verifica</i>':''}${t.subj&&!v?esc(t.subj)+' Â· ':''}${w.txt}</span></div><button class="x" data-a="rm" aria-label="Elimina">${ic('tr')}</button></li>`}).join(''):'<li class="empty">Nessun compito. Tocca Nuovo per aggiungerne uno.</li>'}
 function nxt(){const td=dstr(new Date()),t=S.tasks.filter(t=>kindOf(t)==='test'&&!t.done&&t.due.slice(0,10)>=td).sort((a,b)=>a.due<b.due?-1:1)[0],el=$('#nxB');
- if(!t){el.onclick=null;el.innerHTML=`<div class="nxn" style="color:var(--mut)">—<small>VERIFICHE</small></div><div class="nxt"><b>Nessuna verifica in arrivo</b><span>Quelle del registro compaiono qui</span></div>`;return}
+ if(!t){el.onclick=null;el.innerHTML=`<div class="nxn" style="color:var(--mut)">â<small>VERIFICHE</small></div><div class="nxt"><b>Nessuna verifica in arrivo</b><span>Quelle del registro compaiono qui</span></div>`;return}
  const k=Math.round((dd0(t.due.slice(0,10))-dd0(td))/864e5);
  el.onclick=()=>openDay(t.due.slice(0,10),t.id);
- el.innerHTML=`<div class="nxn" style="${k<=1?'color:var(--bad)':''}">${k===0?'Oggi':k}<small>${k===0?'':k===1?'GIORNO':'GIORNI'}</small></div><div class="nxt"><b>${esc(t.title)}</b><span>Prossima verifica · ${cap(dd0(t.due.slice(0,10)).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}))}</span></div>${ic('cr')}`}
+ el.innerHTML=`<div class="nxn" style="${k<=1?'color:var(--bad)':''}">${k===0?'Oggi':k}<small>${k===0?'':k===1?'GIORNO':'GIORNI'}</small></div><div class="nxt"><b>${esc(t.title)}</b><span>Prossima verifica Â· ${cap(dd0(t.due.slice(0,10)).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}))}</span></div>${ic('cr')}`}
 function grades(){const el=$('#grB');
  if(!S.cv.on){el.innerHTML='<p class="mut">Collega ClasseViva dalle impostazioni per vedere i tuoi voti.</p>';return}
  if(!S.gr.length){el.innerHTML='<p class="mut">Nessun voto numerico trovato.</p>';return}
  const by={};S.gr.forEach(g=>{(by[g.subj]=by[g.subj]||[]).push(g.v)});
  const rows=Object.keys(by).map(s=>{const a=by[s],sum=a.reduce((x,y)=>x+y,0);return{s:s,a:sum/a.length,n:a.length,need:6*(a.length+1)-sum}}).sort((a,b)=>a.a-b.a),
  all=S.gr.reduce((x,g)=>x+g.v,0)/S.gr.length,rec=[...S.gr].sort((a,b)=>a.date<b.date?1:-1).slice(0,6);
- const hint=r=>r.a>=6?(r.need<=1?'sei al sicuro':`puoi scendere fino a ${r.need.toFixed(1).replace('.0','')} e restare al 6`):(r.need>10?'servono più voti per arrivare al 6':`serve almeno ${r.need.toFixed(1).replace('.0','')} per arrivare al 6`);
- el.innerHTML=`<div class="avg"><span class="big" style="${all<6?'color:var(--bad)':''}">${all.toFixed(2)}</span><span class="mut" style="margin:0">media generale · ${S.gr.length} voti</span></div><div class="gc">${rec.map(g=>`<i class="${g.v<6?'lo':''}" title="${esc(g.subj)}">${esc(g.d)}</i>`).join('')}</div><div class="gl">${rows.map(r=>`<div class="gr"><div>${esc(r.s)} <small>(${r.n} ${r.n===1?'voto':'voti'}) · ${hint(r)}</small></div><span class="${r.a<6?'lo':r.a>=8?'hi':''}">${r.a.toFixed(1)}</span></div>`).join('')}</div>`}
+ const hint=r=>r.a>=6?(r.need<=1?'sei al sicuro':`puoi scendere fino a ${r.need.toFixed(1).replace('.0','')} e restare al 6`):(r.need>10?'servono piÃ¹ voti per arrivare al 6':`serve almeno ${r.need.toFixed(1).replace('.0','')} per arrivare al 6`);
+ el.innerHTML=`<div class="avg"><span class="big" style="${all<6?'color:var(--bad)':''}">${all.toFixed(2)}</span><span class="mut" style="margin:0">media generale Â· ${S.gr.length} voti</span></div><div class="gc">${rec.map(g=>`<i class="${g.v<6?'lo':''}" title="${esc(g.subj)}">${esc(g.d)}</i>`).join('')}</div><div class="gl">${rows.map(r=>`<div class="gr"><div>${esc(r.s)} <small>(${r.n} ${r.n===1?'voto':'voti'}) Â· ${hint(r)}</small></div><span class="${r.a<6?'lo':r.a>=8?'hi':''}">${r.a.toFixed(1)}</span></div>`).join('')}</div>`}
 let dyDate='';
 function openDay(ds,fid){dyDate=ds;const L=S.tasks.filter(t=>t.due.slice(0,10)===ds).sort((a,b)=>(kindOf(a)==='test')-(kindOf(b)==='test')||a.done-b.done);
  const d=dd0(ds),nh=L.filter(t=>kindOf(t)!=='test').length,nv=L.length-nh;
  $('#dyT').textContent=cap(d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
- $('#dyS').textContent=L.length?`${nh} ${nh===1?'compito':'compiti'}${nv?' · '+nv+(nv===1?' verifica':' verifiche'):''}`:'Niente in programma';
- $('#dyL').innerHTML=L.length?L.map(t=>{const v=kindOf(t)==='test';return `<div class="di${t.id===fid?' f':''}" data-id="${t.id}"><div class="h"><span class="s">${esc(t.subj||(v?'Verifica':'Compito'))}</span><span>${v?'<i class="tg v">Verifica</i>':'<button class="ck" data-a="ck" aria-label="Completa" style="'+(t.done?'background:var(--fg);border-color:var(--fg);color:var(--bg)':'')+'">'+ic('ck')+'</button>'}</span></div><div class="b">${esc(t.title)}</div>${t.note&&t.src!=='cv'?'<div class="b">'+esc(t.note)+'</div>':''}<div class="m">${t.teacher?esc(t.teacher)+' · ':''}${t.src==='cv'?'ClasseViva':'Aggiunto da te'}${t.done?' · completato':''}</div><button class="btn sm ai" data-a="ai">${ic('spark')} Chiedi all'AI</button></div>`}).join(''):'<p class="mut">Nessun compito o verifica per questo giorno.</p>';
+ $('#dyS').textContent=L.length?`${nh} ${nh===1?'compito':'compiti'}${nv?' Â· '+nv+(nv===1?' verifica':' verifiche'):''}`:'Niente in programma';
+ $('#dyL').innerHTML=L.length?L.map(t=>{const v=kindOf(t)==='test';return `<div class="di${t.id===fid?' f':''}" data-id="${t.id}"><div class="h"><span class="s">${esc(t.subj||(v?'Verifica':'Compito'))}</span><span>${v?'<i class="tg v">Verifica</i>':'<button class="ck" data-a="ck" aria-label="Completa" style="'+(t.done?'background:var(--fg);border-color:var(--fg);color:var(--bg)':'')+'">'+ic('ck')+'</button>'}</span></div><div class="b">${esc(t.title)}</div>${t.note&&t.src!=='cv'?'<div class="b">'+esc(t.note)+'</div>':''}<div class="m">${t.teacher?esc(t.teacher)+' Â· ':''}${t.src==='cv'?'ClasseViva':'Aggiunto da te'}${t.done?' Â· completato':''}</div><button class="btn sm ai" data-a="ai">${ic('spark')} Chiedi all'AI</button></div>`}).join(''):'<p class="mut">Nessun compito o verifica per questo giorno.</p>';
  const dlg=$('#dDay');if(!dlg.open)dlg.showModal();const f=$('#dyL .f');f&&setTimeout(()=>f.scrollIntoView({block:'center'}),60)}
 $('#dyL').onclick=e=>{const b=e.target.closest('button[data-a]');if(!b)return;const t=S.tasks.find(x=>x.id===b.closest('.di').dataset.id);if(!t)return;
  if(b.dataset.a==='ai'){$('#dDay').close();openChat();const v=kindOf(t)==='test';chatSend((v?'Aiutami a prepararmi per questa verifica':'Aiutami con questo compito')+(t.subj?' di '+t.subj:'')+' (per '+dd0(t.due.slice(0,10)).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})+'): "'+String(t.title).slice(0,500)+'". Spiegami come procedere passo passo.');return}
@@ -993,23 +997,23 @@ $('#calG').onclick=e=>{const b=e.target.closest('button.d');b&&openDay(b.dataset
 $('#cmP').onclick=()=>{calOff--;cal()};$('#cmN').onclick=()=>{calOff++;cal()};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),5000)}
 function rem(){const n=Date.now();let ch=0;for(const t of S.tasks){if(t.done||t.fired||!t.rem)continue;
- if(n>=new Date(t.due)-t.rem*6e4){t.fired=1;ch=1;toast('Promemoria: '+t.title+' · '+when(t).txt);
- try{if('Notification' in window&&Notification.permission==='granted')new Notification('NOVA · Promemoria',{body:t.title})}catch(e){}}}
+ if(n>=new Date(t.due)-t.rem*6e4){t.fired=1;ch=1;toast('Promemoria: '+t.title+' Â· '+when(t).txt);
+ try{if('Notification' in window&&Notification.permission==='granted')new Notification('NOVA Â· Promemoria',{body:t.title})}catch(e){}}}
  if(ch)save()}
 function drawBat(b){const el=$('#batB');
  if(!b){el.innerHTML='<p class="mut">Stato batteria non disponibile.</p>';return}
  const lv=b.level,C=2*Math.PI*26,col=b.charging?'var(--ok)':lv<.2?'var(--bad)':'var(--fg)';
  el.innerHTML=`<div class="bm"><svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="32" cy="32" r="26" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(lv*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor" stroke="none">${Math.round(lv*100)}</text></svg><span>${b.charging?'In carica':'Non in carica'}</span></div>`}
-async function wx(){const el=$('#wxB');if(!el.dataset.ok)el.innerHTML='<p class="mut">Carico il meteo…</p>';
+async function wx(){const el=$('#wxB');if(!el.dataset.ok)el.innerHTML='<p class="mut">Carico il meteoâ¦</p>';
  try{let la,lo;if(S.city){la=S.city.lat;lo=S.city.lon}else{const pos=await new Promise((ok,no)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(ok,no,{timeout:10000,maximumAge:6e5}):no(new Error('geo')));la=pos.coords.latitude;lo=pos.coords.longitude}
  const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${(+la).toFixed(3)}&longitude=${(+lo).toFixed(3)}&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`);
  if(!r.ok)throw new Error('http');const j=await r.json(),c=j.current,[,k,d]=WX.find(x=>x[0].includes(c.weather_code))||[0,'cloud','Variabile'];
- el.innerHTML=`<div class="wxm">${ic(k,'wi')}<span class="big">${Math.round(c.temperature_2m)}°</span></div><p class="mut">${S.city?esc(S.city.name)+' · ':''}${d} · ${Math.round(j.daily.temperature_2m_min[0])}° / ${Math.round(j.daily.temperature_2m_max[0])}°</p><p style="margin:6px 0 0"><button class="lk" id="wxK">Cambia città</button></p>`;el.dataset.ok=1;$('#wxK').onclick=()=>askCity('Scegli la città per il meteo.')}
- catch(e){askCity('Non riesco a leggere il meteo. Scrivi la tua città oppure consenti la posizione.')}}
+ el.innerHTML=`<div class="wxm">${ic(k,'wi')}<span class="big">${Math.round(c.temperature_2m)}Â°</span></div><p class="mut">${S.city?esc(S.city.name)+' Â· ':''}${d} Â· ${Math.round(j.daily.temperature_2m_min[0])}Â° / ${Math.round(j.daily.temperature_2m_max[0])}Â°</p><p style="margin:6px 0 0"><button class="lk" id="wxK">Cambia cittÃ </button></p>`;el.dataset.ok=1;$('#wxK').onclick=()=>askCity('Scegli la cittÃ  per il meteo.')}
+ catch(e){askCity('Non riesco a leggere il meteo. Scrivi la tua cittÃ  oppure consenti la posizione.')}}
 async function geo(q){const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=it`);if(!r.ok)throw new Error('http');const c=((await r.json()).results||[])[0];if(!c)throw new Error('nf');return{name:c.name,lat:c.latitude,lon:c.longitude}}
 function askCity(msg){const el=$('#wxB');delete el.dataset.ok;
- el.innerHTML=`<p class="mut">${msg}</p><div class="row" style="margin-top:10px"><input id="wxC" placeholder="Es. Roma" aria-label="Città" maxlength="60"><button class="btn" id="wxS" style="flex:none">Cerca</button></div><p style="margin:8px 0 0"><button class="lk" id="wxG">Usa la mia posizione</button></p>`;
- $('#wxS').onclick=async()=>{const q=$('#wxC').value.trim();if(!q)return wx();try{S.city=await geo(q);save();wx()}catch(e){$('#wxC').value='';$('#wxC').placeholder='Città non trovata o rete assente'}};
+ el.innerHTML=`<p class="mut">${msg}</p><div class="row" style="margin-top:10px"><input id="wxC" placeholder="Es. Roma" aria-label="CittÃ " maxlength="60"><button class="btn" id="wxS" style="flex:none">Cerca</button></div><p style="margin:8px 0 0"><button class="lk" id="wxG">Usa la mia posizione</button></p>`;
+ $('#wxS').onclick=async()=>{const q=$('#wxC').value.trim();if(!q)return wx();try{S.city=await geo(q);save();wx()}catch(e){$('#wxC').value='';$('#wxC').placeholder='CittÃ  non trovata o rete assente'}};
  $('#wxC').onkeydown=e=>{if(e.key==='Enter')$('#wxS').click()};
  $('#wxG').onclick=()=>{S.city=null;save();wx()}}
 async function wake(on){try{if(on&&!wl&&navigator.wakeLock){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}else if(!on&&wl){await wl.release();wl=null}}catch(e){}}
@@ -1064,7 +1068,7 @@ async function profPush(){
   const b={username:S.prof.username||'',study:S.prof.study||'',skills:S.prof.skills||'',song:S.prof.song||null,badges:S.prof.badges||[],ntfy_topic:S.prof.ntfy||''};
   if(S.prof.avatar&&S.prof.avatar.length<=8)b.avatar=S.prof.avatar;
   const r=await api('/profile','PUT',b);
-  if(r&&r.error==='username taken'){toast('Questo username è già preso');return false}
+  if(r&&r.error==='username taken'){toast('Questo username Ã¨ giÃ  preso');return false}
   save();return true
  }catch(e){return true}
 }
@@ -1114,29 +1118,34 @@ async function frDraw(){
 }
 function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
  const av=p.avatar?'<img src="'+p.avatar+'" alt="">':(S.name?esc(S.name[0].toUpperCase()):ic('user'));
- el.innerHTML='<div class="pfTop"><div class="pfA">'+av+'</div><h3 style="margin:0">'+esc(S.name||'Il tuo profilo')+'</h3><div class="pfU">'+(p.username?'@'+esc(p.username):'nessun username scelto')+'</div>'+(p.badges&&p.badges.length?'<div class="pfU" style="opacity:.7">'+p.badges.map(b=>'🏅 '+esc(b)).join(' · ')+'</div>':'')+'<button class="btn sm" id="pfE">Modifica</button></div>'
+ el.innerHTML='<div class="pfTop"><div class="pfA">'+av+'</div><h3 style="margin:0">'+esc(S.name||'Il tuo profilo')+'</h3><div class="pfU">'+(p.username?'@'+esc(p.username):'nessun username scelto')+'</div>'+(p.badges&&p.badges.length?'<div class="pfU" style="opacity:.7">'+p.badges.map(b=>'ð '+esc(b)).join(' Â· ')+'</div>':'')+'<button class="btn sm" id="pfE">Modifica</button></div>'
  +'<div class="pfRow">'+ic('book','wi')+'<div><b>Dove studi</b>'+esc(p.study||'Non impostato')+'</div></div>'
  +'<div class="pfRow">'+ic('spark','wi')+'<div><b>Punti forti</b>'+esc(p.skills||'Non impostato')+'</div></div>'
  +(p.song?'<div class="pfSong"><img src="'+p.song.art+'" alt=""><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(p.song.t)+'</div><small class="mut">'+esc(p.song.a)+'</small></div><button class="ico" id="pfPl" aria-label="Anteprima">'+ic(pfPlaying?'pause':'play')+'</button></div>':'<div class="pfRow">'+ic('music','wi')+'<div><b>Canzone preferita</b>Nessuna canzone scelta</div></div>');
  $('#pfE').onclick=()=>profOpen(0);
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
 if(S.acct&&S.acct.token)profPull();
-let chatMode='ai',convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
-function chatSegDraw(){$$('#chatSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===chatMode?'true':'false'));
- $('#aic').hidden=chatMode!=='ai';$('#frc').hidden=chatMode!=='amici';
- if(chatMode==='amici'){const b=$('#chatB');if(b)b.hidden=true}
- $('#aiMD').style.display=chatMode==='ai'?'':'none';$('#aiX').style.display=chatMode==='ai'?'':'none'}
-async function frcDraw(){const el=$('#frc');if(!el||chatMode!=='amici')return;
- if(!S.acct||!S.acct.token){el.innerHTML='<p class="mut" style="text-align:center;padding:20px">Collega il tuo account NOVA (Impostazioni) per chattare con gli amici.</p>';return}
- if(!S.prof.username){el.innerHTML='<p class="mut" style="text-align:center;padding:20px">Scegli prima il tuo username (Profilo › Modifica): è come ti trovano gli amici.</p>';return}
- el.innerHTML='<div style="display:flex;justify-content:flex-end"><button class="btn sm" id="fcN">+ Nuova chat</button></div><small class="mut" style="text-align:center">Carico le chat…</small>';
+let convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
+function aiOpen(){const b=$('#chatB'),a=$('#aic');if(!a)return;
+ $('#frc').hidden=true;$('#fcFab').hidden=true;a.hidden=false;chatDraw();
+ if(gqHas){b.hidden=true}
+ else{b.hidden=false;b.innerHTML='<p class="mut" style="margin:0">Per parlare con l\'assistente serve la tua chiave Groq (gratuita, resta solo su questo telefono). <a href="#" id="cGK" style="color:var(--acc)">Apri le impostazioni</a></p>';const l=$('#cGK');if(l)l.onclick=e=>{e.preventDefault();sheet();$('#dSet').showModal()}}
+ haptic('light')}
+async function frcDraw(){const el=$('#frc');if(!el)return;
+ const aiPrev=S.chat&&S.chat.length?S.chat[S.chat.length-1].c.slice(0,60):'Il tuo assistente di studio';
+ const aiRow='<button class="fcR" id="fcAI"><div class="pfA" style="width:40px;height:40px;font-size:16px;background:var(--acc);color:#fff;border:0">N</div><div class="tt"><b>NOVA</b><small>'+esc(aiPrev)+'</small></div></button>';
+ const bind=()=>{const a=$('#fcAI');if(a)a.onclick=aiOpen};
+ if(!S.acct||!S.acct.token){el.innerHTML=aiRow+'<p class="mut" style="text-align:center;padding:16px">Collega il tuo account NOVA (Impostazioni) per chattare con gli amici.</p>';$('#fcFab').hidden=true;bind();return}
+ if(!S.prof.username){el.innerHTML=aiRow+'<p class="mut" style="text-align:center;padding:16px">Scegli il tuo username (Profilo âº Modifica) per chattare con gli amici.</p>';$('#fcFab').hidden=true;bind();return}
+ $('#fcFab').hidden=false;
+ el.innerHTML=aiRow+'<small class="mut" style="text-align:center;display:block;padding:8px">Carico le chatâ¦</small>';
  try{const r=await api('/chats','GET');
   const cs=(r&&r.chats)||[];
-  el.innerHTML='<div style="display:flex;justify-content:flex-end"><button class="btn sm" id="fcN">+ Nuova chat</button></div>'
-   +(cs.length?cs.map(c=>'<button class="fcR" data-c="'+c.id+'" data-t="'+esc(c.title||'Chat')+'"><div class="pfA" style="width:40px;height:40px;font-size:16px">'+esc((c.title||'?')[0].toUpperCase())+'</div><div class="tt"><b>'+esc(c.title||'Chat')+'</b><small>'+(c.last?esc(c.last.kind==='text'?c.last.body.slice(0,60):(c.last.kind==='image'?'📷 Foto':'🎤 Vocale')):'Nessun messaggio')+'</small></div>'+(c.unread?'<span class="fcUn">'+c.unread+'</span>':'')+'</button>').join(''):'<small class="mut" style="text-align:center;padding:14px">Nessuna chat ancora: creane una e invita i tuoi amici.</small>');
-  $('#fcN').onclick=ncOpen;
-  el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>convOpen(b.dataset.c,b.dataset.t));
- }catch(e){el.innerHTML='<div style="display:flex;justify-content:flex-end"><button class="btn sm" id="fcN">+ Nuova chat</button></div><small class="mut" style="text-align:center">Chat non disponibile ora.</small>';$('#fcN').onclick=ncOpen}
+  el.innerHTML=aiRow
+   +(cs.length?cs.map(c=>'<button class="fcR" data-c="'+c.id+'" data-t="'+esc(c.title||'Chat')+'"'+(c.exam_at?' data-ex="'+c.exam_at+'"':'')+'><div class="pfA" style="width:40px;height:40px;font-size:16px">'+esc((c.title||'?')[0].toUpperCase())+'</div><div class="tt"><b>'+esc(c.title||'Chat')+'</b><small>'+(c.last?esc(c.last.kind==='text'?c.last.body.slice(0,60):(c.last.kind==='image'?'ð· Foto':'ð¤ Vocale')):'Nessun messaggio')+'</small></div>'+(c.unread?'<span class="fcUn">'+c.unread+'</span>':'')+'</button>').join(''):'<small class="mut" style="text-align:center;display:block;padding:14px">Nessuna chat con gli amici ancora: tocca + per crearne una.</small>');
+  bind();
+  el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>convOpen(b.dataset.c,b.dataset.t,b.dataset.ex?+b.dataset.ex:0));
+ }catch(e){el.innerHTML=aiRow+'<small class="mut" style="text-align:center;display:block;padding:8px">Chat non disponibile ora.</small>';bind()}
 }
 function ncOpen(){frLoad(true).then(()=>{const d=frData||{friends:[]};
  if(!d.friends.length){toast('Aggiungi prima un amico dalla pagina Profilo');return}
@@ -1145,8 +1154,9 @@ function ncOpen(){frLoad(true).then(()=>{const d=frData||{friends:[]};
 async function ncCreate(){const us=$$('#ncL input:checked').map(c=>c.dataset.u);
  if(!us.length){toast('Seleziona almeno un amico');return}
  const grp=us.length>1;
- try{const r=await api('/chats','POST',{type:grp?'group':'dm',members:us,name:grp?($('#ncN').value.trim()||'Gruppo'):undefined});
-  if(r&&r.ok){$('#dNC').close();convOpen(r.chat_id,grp?($('#ncN').value.trim()||'Gruppo'):'@'+us[0])}else toast((r&&r.error)||'Errore')}catch(e){toast(e.message||'Errore')}}
+ const ex=grp&&$('#ncD').value?new Date($('#ncD').value+'T08:00:00').getTime():undefined;
+ try{const r=await api('/chats','POST',{type:grp?'group':'dm',members:us,name:grp?($('#ncN').value.trim()||'Gruppo'):undefined,exam_at:ex});
+  if(r&&r.ok){$('#dNC').close();convOpen(r.chat_id,grp?($('#ncN').value.trim()||'Gruppo'):'@'+us[0],ex)}else toast((r&&r.error)||'Errore')}catch(e){toast(e.message||'Errore')}}
 function cvDraw(scroll){const el=$('#cvM');const nearBottom=el.scrollHeight-el.scrollTop-el.clientHeight<120;
  el.innerHTML=cvMsgs.map(m=>{const own=m.sender===(S.acct&&S.acct.email);
   const rx=(cvReacts[m.id]||[]);const rxS=rx.length?'<div class="rx'+(own?' rxU':'')+'" style="'+(own?'align-self:flex-end':'')+'">'+rx.map(r=>esc(r.emoji)).join('')+'</div>':'';
@@ -1159,7 +1169,7 @@ function cvDraw(scroll){const el=$('#cvM');const nearBottom=el.scrollHeight-el.s
  if(scroll||nearBottom)el.scrollTop=el.scrollHeight}
 function cvActSheet(mid){const m=cvMsgs.find(x=>x.id===mid);if(!m||m.deleted)return;const own=m.sender===(S.acct&&S.acct.email);
  const w=$('#cvAct');
- w.innerHTML='<div class="sh"><div class="em">'+['👍','❤️','😂','😮','🎉'].map(e=>'<button data-e="'+e+'">'+e+'</button>').join('')+'</div>'
+ w.innerHTML='<div class="sh"><div class="em">'+['ð','â¤ï¸','ð','ð®','ð'].map(e=>'<button data-e="'+e+'">'+e+'</button>').join('')+'</div>'
   +(own&&m.kind==='text'?'<button data-a="edit">Modifica</button>':'')+(own?'<button data-a="del" style="color:var(--bad)">Elimina</button>':'')+'<button data-a="x">Chiudi</button></div>';
  w.hidden=false;
  w.onclick=async e=>{const b=e.target.closest('button');if(!b||e.target===w&&!b){if(e.target===w){w.hidden=true}if(!b)return}
@@ -1179,25 +1189,24 @@ async function convPoll(force){if(!convId)return;
     cvDraw(cvMsgs.length!==ni);
     const mx=convLast;if(mx)api('/chats/'+convId+'/read','POST',{last_msg_id:mx}).catch(()=>{})}}
   const t=await api('/chats/'+convId+'/typing','GET');
-  $('#cvTy').textContent=(t&&t.typing&&t.typing.length)?t.typing.join(', ')+' sta scrivendo…':''}catch(e){}}
-function convOpen(id,title){convId=id;convLast=0;cvMsgs=[];cvSenders={};cvReacts={};
+  $('#cvTy').textContent=(t&&t.typing&&t.typing.length)?t.typing.join(', ')+' sta scrivendoâ¦':''}catch(e){}}
+function convOpen(id,title,examAt){convId=id;convLast=0;cvMsgs=[];cvSenders={};cvReacts={};
  $('#cvT').textContent=title||'Chat';$('#cvM').innerHTML='';$('#cvTy').textContent='';
+ const ce=$('#cvE');if(examAt){const dd=Math.ceil((examAt-Date.now())/86400000);
+  ce.hidden=false;ce.textContent=dd>0?'Esame tra '+dd+(dd===1?' giorno':' giorni'):(dd===0?'Esame oggi!':'Esame passato')}else ce.hidden=true;
  $('#conv').hidden=false;
  convPoll(true);clearInterval(convTimer);convTimer=setInterval(convPoll,4000)}
 function convClose(){convId=null;clearInterval(convTimer);$('#conv').hidden=true;frcDraw()}
-function chatPg(){const b=$('#chatB'),a=$('#aic');if(!b||!a)return;
- if(!S.prof.username){a.hidden=true;b.hidden=false;b.innerHTML='<p class="mut">La chat è bloccata: scegli prima il tuo username (Profilo > Modifica). Serve per farti trovare dagli amici.</p>';return}
- a.hidden=false;chatDraw();
- if(gqHas){b.hidden=true}
- else{b.hidden=false;b.innerHTML='<p class="mut" style="margin:0">Per parlare con l\'assistente serve la tua chiave Groq (gratuita, resta solo su questo telefono). <a href="#" id="cGK" style="color:var(--acc)">Apri le impostazioni</a></p>';const l=$('#cGK');if(l)l.onclick=e=>{e.preventDefault();sheet();$('#dSet').showModal()}}}
+function chatPg(){const a=$('#aic');if(a)a.hidden=true;frcDraw()}
 function avPick(inp,cb){inp.onchange=()=>{const f=inp.files&&inp.files[0];if(!f)return;const img=new Image();
  img.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
   const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,256,256);cb(c.toDataURL('image/jpeg',.85))}catch(e){toast('Immagine non valida')}};
  img.src=URL.createObjectURL(f)}}
-async function songFind(q){const r=await fetch('https://itunes.apple.com/search?term='+encodeURIComponent(q)+'&entity=song&limit=8&country=IT');const j=await r.json();
- return (j.results||[]).filter(x=>x.previewUrl).map(x=>({t:x.trackName,a:x.artistName,prev:x.previewUrl,art:x.artworkUrl100}))}
+async function songFind(q){const r=await fetch(API+'/song/search?q='+encodeURIComponent(q));const j=await r.json();
+ if(j&&j.ok===false)throw new Error(j.error||'upstream');
+ return j.results||[]}
 function songWire(q,l,cb){let t=null;q.oninput=()=>{clearTimeout(t);t=setTimeout(async()=>{const v=q.value.trim();if(v.length<2){l.innerHTML='';return}
-  l.innerHTML='<small class="mut">Cerco…</small>';
+  l.innerHTML='<small class="mut">Cercoâ¦</small>';
   try{const rs=await songFind(v);l._rs=rs;
    l.innerHTML=rs.length?rs.map((it,i)=>'<div class="sngR" data-i="'+i+'"><img src="'+it.art+'"><div style="min-width:0"><div>'+esc(it.t)+'</div><small>'+esc(it.a)+'</small></div></div>').join(''):'<small class="mut">Nessun risultato con anteprima.</small>';
    l.querySelectorAll('.sngR').forEach(el=>el.onclick=()=>cb(l._rs[+el.dataset.i]))}catch(e){l.innerHTML='<small class="mut">Ricerca non disponibile ora.</small>'}},450)}}
@@ -1205,10 +1214,12 @@ function unWire(inp,st,onOk){const re=/^[a-z0-9_.]{3,20}$/;let t=null;
  const run=async()=>{const u=inp.value.trim().toLowerCase();
   if(!u){unLast='';st.textContent='';st.className='st';onOk&&onOk(u,'');return}
   if(!re.test(u)){unLast='no';st.textContent='3-20 caratteri: minuscole, numeri, punto o _';st.className='st no';onOk&&onOk(u,'no');return}
-  st.textContent='controllo…';st.className='st mu';
-  try{const r=await fetch(API+'/username/check?u='+encodeURIComponent(u));const j=await r.json();
-   if(j&&j.free===true){unLast='ok';st.textContent='disponibile';st.className='st ok';onOk&&onOk(u,'ok')}
-   else if(j&&j.free===false){unLast='no';st.textContent='già preso';st.className='st no';onOk&&onOk(u,'no')}
+  st.textContent='controlloâ¦';st.className='st mu';
+  if(S.prof.username&&u===S.prof.username.toLowerCase()){unLast='ok';st.textContent='Ã¨ il tuo';st.className='st ok';onOk&&onOk(u,'ok');return}
+  try{const h={};if(S.acct&&S.acct.token)h.authorization='Bearer '+S.acct.token;
+   const r=await fetch(API+'/username/check?u='+encodeURIComponent(u),{headers:h});const j=await r.json();
+   if(j&&(j.free===true||j.own===true)){unLast='ok';st.textContent=j.own?'Ã¨ il tuo':'disponibile';st.className='st ok';onOk&&onOk(u,'ok')}
+   else if(j&&j.free===false){unLast='no';st.textContent='giÃ  preso';st.className='st no';onOk&&onOk(u,'no')}
    else{unLast='ok?';st.textContent='controllo live non ancora attivo';st.className='st mu';onOk&&onOk(u,'ok?')}}
   catch(e){unLast='ok?';st.textContent='controllo live non ancora attivo';st.className='st mu';onOk&&onOk(u,'ok?')}};
  inp.oninput=()=>{clearTimeout(t);t=setTimeout(run,400)};if(inp.value.trim())run()}
@@ -1243,11 +1254,11 @@ $('#bProf').onclick=()=>profOpen(0);
 $('#dC').onclick=()=>$('#dProf').close();
 $('#dOk').onclick=()=>{const u=$('#dU').value.trim().toLowerCase();
  if(u&&!/^[a-z0-9_.]{3,20}$/.test(u)){$('#dE').textContent='Username: 3-20 caratteri, lettere minuscole, numeri, punto o trattino basso.';return}
- if(unLast==='no'){$('#dE').textContent='Questo username non va bene o è già preso.';return}
+ if(unLast==='no'){$('#dE').textContent='Questo username non va bene o Ã¨ giÃ  preso.';return}
  dTmp.username=u;dTmp.study=$('#dSt').value.trim();dTmp.skills=$('#dSk').value.trim();
  dTmp.badges=dTmp.badges||S.prof.badges||[];dTmp.ntfy=S.prof.ntfy||'';
  S.prof=dTmp;S.profDone=1;save();pf();$('#dProf').close();haptic('success');if(profOne)toast('Profilo completato');
- if(S.acct&&S.acct.token&&u){$('#dE').textContent='';profPush().then(ok=>{if(ok===false){toast('Username già preso da un altro account: scegline un altro da Modifica profilo')}else if(!dTmp.badges.includes('pioniere')&&!S.prof._pio){S.prof.badges=S.prof.badges||[];if(!S.prof.badges.includes('pioniere')){S.prof.badges.push('pioniere');S.prof._pio=1;save();profPush()}}})}};
+ if(S.acct&&S.acct.token&&u){$('#dE').textContent='';profPush().then(ok=>{if(ok===false){toast('Username giÃ  preso da un altro account: scegline un altro da Modifica profilo')}else if(!dTmp.badges.includes('pioniere')&&!S.prof._pio){S.prof.badges=S.prof.badges||[];if(!S.prof.badges.includes('pioniere')){S.prof.badges.push('pioniere');S.prof._pio=1;save();profPush()}}})}};
 $('#sOk').onclick=()=>$('#dSet').close();
 $('#bObR').onclick=()=>{$('#dSet').close();obStart()};
 $('#fN').oninput=e=>{S.name=e.target.value.trim();save();head()};
@@ -1260,7 +1271,7 @@ $('#bAdd').onclick=()=>newTask();
 $('#tC').onclick=()=>$('#dTask').close();
 $('#tS').onclick=()=>{const title=$('#tT').value.trim(),due=$('#tD').value,E=m=>{$('#tE').textContent=m;haptic('error')};
  if(!title)return E('Scrivi cosa devi fare.');if(!due)return E('Imposta una scadenza.');
- if(S.tasks.some(x=>!x.done&&x.due===due&&x.title.toLowerCase()===title.toLowerCase()))return E('Questo compito è già in elenco.');
+ if(S.tasks.some(x=>!x.done&&x.due===due&&x.title.toLowerCase()===title.toLowerCase()))return E('Questo compito Ã¨ giÃ  in elenco.');
  S.tasks.push({id:uid(),title,note:$('#tN').value.trim(),due,pr:$('#tP').value,rem:+$('#tR').value,done:0,fired:0,src:'manuale',kind:'man'});
  haptic('medium');save();$('#dTask').close();tasks();cal();nxt();rem()};
 $('#tl').onclick=e=>{const li=e.target.closest('li[data-id]'),b=e.target.closest('button[data-a],.tx');if(!li||!b)return;const t=S.tasks.find(x=>x.id===li.dataset.id);if(!t)return;
@@ -1271,13 +1282,13 @@ $('#cm').onclick=e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest(
  const [mi,ai]=k.split(':').map(Number),m=S.chat[mi];if(!m||!m.acts||!m.acts[ai])return;
  if(ok){haptic('light');const r=execAct(m.acts[ai]);m.acts[ai].st=r.ok?'done':'no';if(!r.ok)m.acts[ai].note=r.note}else m.acts[ai].st='no';
  save();chatDraw()};
-const aiMPpick='<button data-m="always">Sempre — esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai — niente azioni</button>';
+const aiMPpick='<button data-m="always">Sempre â esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai â niente azioni</button>';
 $('#aiM').onclick=()=>{const p=$('#aiMP');if(p.hidden){p.innerHTML=aiMPpick;aiMdraw()}p.hidden=!p.hidden};
 $('#aiMP').onclick=e=>{const b=e.target.closest('button');if(!b)return;const p=$('#aiMP');
  if(b.id==='aiMW'){S.aiAct='always';save();aiMdraw();p.hidden=true;haptic('medium');toast('Azioni sempre attive: compiti e promemoria vengono aggiunti senza conferma');return}
  if(b.id==='aiMC'){p.hidden=true;return}
- if(b.dataset.m==='always'&&S.aiAct!=='always'){p.innerHTML='<div style="padding:10px;max-width:240px"><b style="font-size:13.5px">Usa a tuo rischio</b><small class="mut" style="display:block;margin:5px 0 10px;line-height:1.4">Con "Sempre" l\'assistente agisce da solo: può aggiungere compiti e promemoria al tuo elenco e aprire le schermate dell\'app senza chiederti conferma ogni volta.</small><div class="row"><button class="btn sm" id="aiMC">Annulla</button><button class="btn sm pri" id="aiMW">Attiva</button></div></div>';haptic('light');return}
- if(b.dataset.m){S.aiAct=b.dataset.m;save();aiMdraw();p.hidden=true;haptic('light');toast({ask:'L’assistente chiede prima di agire.',deny:'Azioni dell’assistente disattivate.'}[S.aiAct]||'')}};
+ if(b.dataset.m==='always'&&S.aiAct!=='always'){p.innerHTML='<div style="padding:10px;max-width:240px"><b style="font-size:13.5px">Usa a tuo rischio</b><small class="mut" style="display:block;margin:5px 0 10px;line-height:1.4">Con "Sempre" l\'assistente agisce da solo: puÃ² aggiungere compiti e promemoria al tuo elenco e aprire le schermate dell\'app senza chiederti conferma ogni volta.</small><div class="row"><button class="btn sm" id="aiMC">Annulla</button><button class="btn sm pri" id="aiMW">Attiva</button></div></div>';haptic('light');return}
+ if(b.dataset.m){S.aiAct=b.dataset.m;save();aiMdraw();p.hidden=true;haptic('light');toast({ask:'Lâassistente chiede prima di agire.',deny:'Azioni dellâassistente disattivate.'}[S.aiAct]||'')}};
 function aiMic(){const b=$('#aiS');if(!b)return;const t=$('#ai').value.trim();
  b.innerHTML=t?ic('send'):'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>';
  b.setAttribute('aria-label',t?'Invia':'Dettatura vocale')}
@@ -1286,7 +1297,8 @@ $('#aiS').onclick=()=>{if($('#ai').value.trim())chatSend($('#ai').value);else to
 $('#aiP').innerHTML=ic('plus');$('#aiP').onclick=()=>$('#aiPF').click();aiMic();
 $('#aiPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
  try{atImg=await ttImg(f);aiAtDraw();$('#ai').focus()}catch(x){toast('Non riesco a leggere questa foto')}};
-$('#chatSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;chatMode=b.dataset.v;chatSegDraw();if(chatMode==='amici')frcDraw();haptic('light')};
+$('#aiBack').onclick=()=>{$('#aic').hidden=true;frcDraw();haptic('light')};
+$('#fcFab').onclick=()=>{ncOpen()};
 $('#cvB').onclick=convClose;
 $('#cvS').innerHTML=ic('send');
 $('#cvS').onclick=()=>{const v=$('#cvI').value.trim();if(!v||!convId)return;$('#cvI').value='';
@@ -1295,11 +1307,11 @@ $('#cvI').onkeydown=e=>{if(e.key==='Enter')$('#cvS').click()};
 $('#cvI').oninput=()=>{const n=Date.now();if(convId&&n-typingLast>3000){typingLast=n;api('/chats/'+convId+'/typing','POST',{}).catch(()=>{})}};
 $('#ncOk').onclick=ncCreate;
 $('#ncC').onclick=()=>$('#dNC').close();
-$('#ncL').onchange=()=>{$('#ncG').hidden=$$('#ncL input:checked').length<2};
+$('#ncL').onchange=()=>{const g=$$('#ncL input:checked').length<2;$('#ncG').hidden=g;$('#ncGE').hidden=g};
 $('#cvP').innerHTML=ic('plus');
 $('#cvP').onclick=()=>$('#cvPF').click();
 $('#cvPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||!convId)return;
- try{toast('Carico la foto…');const img=await ttImg(f);
+ try{toast('Carico la fotoâ¦');const img=await ttImg(f);
   const up=await api('/media','POST',{data:img.split(',')[1],mime:'image/jpeg'});
   await api('/chats/'+convId+'/messages','POST',{kind:'image',media_key:up.url});
   haptic('success');convPoll(true)}catch(x){toast(x.message||'Foto non inviata')}};
@@ -1319,7 +1331,7 @@ $('#cvR').onclick=async()=>{
    const blob=new Blob(mrChunks,{type:mr.mimeType||'audio/mp4'});
    if(blob.size<500){toast('Registrazione troppo corta');return}
    if(blob.size>900000){toast('Massimo 60 secondi');return}
-   toast('Invio il vocale…');
+   toast('Invio il vocaleâ¦');
    const fr=new FileReader();fr.onload=async()=>{try{
     const up=await api('/media','POST',{data:String(fr.result).split(',')[1],mime:blob.type});
     await api('/chats/'+convId+'/messages','POST',{kind:'voice',media_key:up.url});haptic('success');convPoll(true)}catch(x){toast(x.message||'Vocale non inviato')}};
@@ -1353,7 +1365,7 @@ $('#scC').onclick=scClose;
 // ---- mappa amici ----
 let mapO=null,mkMe=null,mkFr={},mapT=null;
 function mapNoteDraw(){const el=$('#mapNote');if(!el)return;const on=!!S.locShare;
- el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici: si aggiorna solo quando apri la mappa, non ti segue in background. Tocca "Fantasma" per sparire subito dalla loro mappa.':'Modalità fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi; gli amici vedono solo la tua ultima posizione recente (max 30 minuti), niente tracciamento continuo.')+'</p>';
+ el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici: si aggiorna solo quando apri la mappa, non ti segue in background. Tocca "Fantasma" per sparire subito dalla loro mappa.':'ModalitÃ  fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi; gli amici vedono solo la tua ultima posizione recente (max 30 minuti), niente tracciamento continuo.')+'</p>';
  const b=$('#mapSh');b.setAttribute('aria-pressed',on?'true':'false');b.textContent=on?'Condivisione: attiva':'Fantasma: attivo'}
 async function mapLoc(){return new Promise(res=>{let done=0;const fin=(lat,lon,err)=>{if(done)return;done=1;res(err?null:{lat,lon})};
  window.__novaLoc=fin;setTimeout(()=>fin(0,0,'timeout'),9000);
@@ -1363,26 +1375,26 @@ async function mapInit(){
  mapNoteDraw();
  if(typeof L==='undefined'){setTimeout(mapInit,600);return}
  if(!mapO){mapO=L.map('mapDiv',{attributionControl:true}).setView([44.65,10.93],12);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapO)}
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'Â© OpenStreetMap'}).addTo(mapO)}
  setTimeout(()=>mapO.invalidateSize(),300);
  const me=await mapLoc();
- if(me){if(!mkMe){mkMe=L.marker([me.lat,me.lon],{icon:L.divIcon({className:'',html:'<div class="mkP" style="background:var(--fg)">•</div>',iconSize:[34,34]})}).addTo(mapO).bindPopup('Tu')}else mkMe.setLatLng([me.lat,me.lon]);
+ if(me){if(!mkMe){mkMe=L.marker([me.lat,me.lon],{icon:L.divIcon({className:'',html:'<div class="mkP" style="background:var(--fg)">â¢</div>',iconSize:[34,34]})}).addTo(mapO).bindPopup('Tu')}else mkMe.setLatLng([me.lat,me.lon]);
   mapO.setView([me.lat,me.lon],14);
   api('/location','PUT',{lat:me.lat,lon:me.lon,sharing:!!S.locShare}).catch(()=>{})}
  try{const r=await api('/map','GET');const seen=new Set();
   for(const f of (r&&r.friends)||[]){seen.add(f.username);
    const html='<div class="mkP">'+esc((f.username||'?')[0].toUpperCase())+'</div>';
    const ago=Math.max(1,Math.round((Date.now()-f.ts)/60000));const agoS=ago<60?ago+' min fa':Math.round(ago/60)+' h fa';
-   if(!mkFr[f.username])mkFr[f.username]=L.marker([f.lat,f.lon],{icon:L.divIcon({className:'',html,iconSize:[34,34]})}).addTo(mapO);
-   else mkFr[f.username].setLatLng([f.lat,f.lon]);
-   mkFr[f.username].bindPopup('@'+esc(f.username)+' · '+agoS)}
+   const whtml='<div class="mkW"><div class="mkP">'+esc((f.username||'?')[0].toUpperCase())+'</div><div class="mkC">@'+esc(f.username)+' Â· '+agoS+'</div></div>';
+   if(!mkFr[f.username])mkFr[f.username]=L.marker([f.lat,f.lon],{icon:L.divIcon({className:'',html:whtml,iconSize:null})}).addTo(mapO);
+   else{mkFr[f.username].setLatLng([f.lat,f.lon]);mkFr[f.username].setIcon(L.divIcon({className:'',html:whtml,iconSize:null}))}}
   for(const u of Object.keys(mkFr))if(!seen.has(u)){mapO.removeLayer(mkFr[u]);delete mkFr[u]}}catch(e){}
  clearTimeout(mapT);mapT=setTimeout(()=>{if(!$('#pgMap').hidden)mapInit()},30000)}
 $('#mapSh').onclick=()=>{S.locShare=!S.locShare;save();mapNoteDraw();haptic('light');
- if(S.locShare)mapInit();else{if(S.acct&&S.acct.token)api('/location','PUT',{sharing:false}).catch(()=>{});toast('Modalità fantasma: gli amici non ti vedono più')}};
+ if(S.locShare)mapInit();else{if(S.acct&&S.acct.token)api('/location','PUT',{sharing:false}).catch(()=>{});toast('ModalitÃ  fantasma: gli amici non ti vedono piÃ¹')}};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
 $('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
-$('#mdS').onclick=()=>{S.agentMd=$('#mdT').value.trim().slice(0,4000);save();$('#dMD').close();toast(S.agentMd?'agent.md salvata: l’assistente la segue dalla prossima risposta.':'agent.md vuota')};
+$('#mdS').onclick=()=>{S.agentMd=$('#mdT').value.trim().slice(0,4000);save();$('#dMD').close();toast(S.agentMd?'agent.md salvata: lâassistente la segue dalla prossima risposta.':'agent.md vuota')};
 $('#mdX').onclick=()=>{S.agentMd='';save();$('#dMD').close();toast('agent.md rimossa')};
 $('#ai').onkeydown=e=>{if(e.key==='Enter'&&$('#ai').value.trim())chatSend($('#ai').value)};
 $('#aiX').onclick=()=>{S.chat=[];save();chatDraw()};
@@ -1403,7 +1415,7 @@ gqInit();spInit();ttPush();
 if(S.cv.on)cvRefresh(0);
 setInterval(()=>{if(S.cv.on&&!document.hidden)cvRefresh(0)},18e5);
 setInterval(spPoll,6000);
-$('#batB').innerHTML='<p class="mut">Controllo la batteria…</p>';
+$('#batB').innerHTML='<p class="mut">Controllo la batteriaâ¦</p>';
 if(navigator.getBattery)navigator.getBattery().then(b=>{const u=()=>{chg=b.charging;drawBat(b);layout()};['levelchange','chargingchange'].forEach(e=>b.addEventListener(e,u));u()}).catch(()=>drawBat(null));else drawBat(null);
 if(S.w.wx)wx();
 setInterval(tick,1000);setInterval(rem,15000);setInterval(()=>{if(S.w.wx)wx()},9e5);
