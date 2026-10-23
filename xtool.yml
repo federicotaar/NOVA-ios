@@ -1,5 +1,5 @@
 version: 1
-bundleID: it.tuonome.nova
+bundleID: federicotaranu.site
 product: NOVA
 extensions:
   - product: NOVAWidget
