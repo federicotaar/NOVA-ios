@@ -895,8 +895,10 @@ function pg(i,dir){i=Math.max(0,Math.min(PGS.length-1,i));const old=pgI;pgI=i;
 (()=>{const bar=$('#tabbar'),bs=$$('#tabbar button');
  bs.forEach((b,i)=>{b.innerHTML=ic(TBD[i][0])+'<span>'+TBD[i][1]+'</span>';b.onclick=()=>{if(Date.now()<tbSup)return;pg(i,i>pgI?1:-1)}});
  let drag=null;
- bar.addEventListener('pointerdown',e=>{drag={x:e.clientX,i:pgI,moved:0};try{bar.setPointerCapture(e.pointerId)}catch(_){}});
- bar.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;if(Math.abs(dx)>8)drag.moved=1;if(!drag.moved)return;
+ bar.addEventListener('pointerdown',e=>{drag={x:e.clientX,i:pgI,moved:0,pid:e.pointerId}});
+ bar.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;
+  if(Math.abs(dx)>8&&!drag.moved){drag.moved=1;try{bar.setPointerCapture(drag.pid)}catch(_){}}
+  if(!drag.moved)return;
   const w=bs[0].offsetWidth,n=PGS.length,pos=Math.max(0,Math.min(n-1,drag.i-dx/w));
   const ind=$('#tbInd');ind.style.transition='none';ind.style.left=(bs[0].offsetLeft+pos*w)+'px';
   const W=innerWidth;PGS.forEach((id,j)=>{const el=$('#'+id);
