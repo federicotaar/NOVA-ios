@@ -407,9 +407,10 @@ main.pg{padding-bottom:112px}
  <div class="sep"></div>
  <div class="fl">Account NOVA<div class="acctb"></div><small>Con un account la configurazione si sincronizza da sola. Esci se vuoi cambiare account.</small></div>
  <div class="fl" id="fidRow" hidden>Blocco app<button class="btn" id="bFid">Face ID: spento</button><small>Quando è attivo, NOVA si blocca a ogni apertura e si sblocca con Face ID (o codice). Il volto resta sul telefono.</small></div>
+ <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Se qualcosa si rompe, NOVA segnala solo il tipo di errore e la riga del codice (mai messaggi, contenuti o dati tuoi) così posso correggere i bug. Puoi spegnerla quando vuoi.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.26</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.23.27</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -517,7 +518,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: '+(e.message||'sconosciuto')+' (riga '+(e.lineno||'?')+') — fai uno screenshot e mandamelo';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.acct&&S.acct.token)api('/client-error','POST',{build:'2026.10.23.26',msg:String(e.message||'').slice(0,280),line:e.lineno||0}).catch(()=>{})}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token)const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.name)>=0?e.name:'Error';api('/client-error','POST',{build:'2026.10.23.27',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -1126,10 +1127,10 @@ async function frDraw(){
  el.hidden=false;
  await frLoad(false);
  const d=frData||{friends:[],incoming:[],outgoing:[]};
- const row=(f,btn)=>'<div class="pfRow"'+(f.username?' data-pu="'+esc(f.username)+'" style="cursor:pointer"':'')+'>'+ic('user','wi')+'<div><b>'+(f.username?'@'+esc(f.username):esc(f.email||'?'))+'</b></div><span style="flex:1"></span>'+btn+'</div>';
+ const row=(f,btn)=>'<div class="pfRow"'+(f.username?' data-pu="'+esc(f.username)+'" style="cursor:pointer"':'')+'>'+ic('user','wi')+'<div><b>'+(f.username?'@'+esc(f.username):'Utente senza username')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
  el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">Amici</h3><button class="btn sm" id="frQR">Il mio QR</button><button class="btn sm" id="frSC">Scansiona</button></div>'
   +'<div class="frS"><input id="frQ" placeholder="Cerca per username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"><div id="frL"></div></div>'
-  +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,f.username?'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>':'<button class="btn sm pri" data-acce="'+esc(f.email||'')+'">Accetta</button>')).join(''):'')
+  +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,f.username?'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>':'<button class="btn sm pri" data-acr="'+esc(f.rid||'')+'">Accetta</button>')).join(''):'')
   +(d.friends.length?d.friends.map(f=>row(f,'<button class="btn sm" data-rem="'+esc(f.username)+'">Rimuovi</button>')).join(''):(d.incoming.length?'':'<small class="mut">Nessun amico ancora: cerca uno username qui sopra.</small>'))
   +(d.outgoing.length?'<small class="mut">In attesa</small>'+d.outgoing.map(f=>row(f,'<button class="btn sm" data-rem="'+esc(f.username)+'">Annulla</button>')).join(''):'');
  $('#frQ').oninput=e=>{const q=e.target.value.trim();const L=$('#frL');
@@ -1142,7 +1143,7 @@ async function frDraw(){
     if(r2&&r2.ok){toast('Richiesta inviata a @'+b.dataset.add);frLoad(true).then(frDraw)}else toast((r2&&r2.error)||'Errore')})}catch(e2){L.innerHTML='<small class="mut">Ricerca non disponibile.</small>'}},400)};
  const q1=$('#frQR');if(q1)q1.onclick=frQROpen;const q2=$('#frSC');if(q2)q2.onclick=frSCOpen;
  el.querySelectorAll('[data-acc]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{username:b.dataset.acc});haptic('success');await frLoad(true);frDraw()});
- el.querySelectorAll('[data-acce]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{email:b.dataset.acce});haptic('success');await frLoad(true);frDraw()});
+ el.querySelectorAll('[data-acr]').forEach(b=>b.onclick=async()=>{await api('/friends/accept','POST',{rid:b.dataset.acr});haptic('success');await frLoad(true);frDraw()});
  el.querySelectorAll('[data-rem]').forEach(b=>b.onclick=async()=>{await api('/friends/remove','POST',{username:b.dataset.rem});await frLoad(true);frDraw()});
  el.querySelectorAll('[data-pu]').forEach(r=>r.onclick=e=>{if(e.target.closest('[data-rem]')||e.target.closest('[data-acc]'))return;if(r.dataset.pu)frProfOpen(r.dataset.pu)});
 }
@@ -1326,7 +1327,7 @@ async function fidSetupUI(){const row=$('#fidRow'),b=$('#bFid');if(!row||!b)retu
   const r=await fid('set',{on:want});
   if(r&&r.err==='noauth'){toast('Face ID o codice non disponibili su questo iPhone');return}
   if(r&&r.ok){S.faceId=r.on?1:0;save();draw();toast(r.on?'Blocco Face ID attivo':(want?'Blocco non attivato: verifica annullata':'Blocco Face ID spento'));haptic(r.on?'success':'light')}}}
-function sheet(){fidSetupUI();$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
+function sheet(){diagUI();fidSetupUI();$('#fN').value=S.name;$$('#fT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
  $('#fW').innerHTML=WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('');$$('#fW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));nstat();hwBtn();introBtn();$('#ttSum').textContent=ttSum();acctUI();cvUI();gqUI();spUI()}
 function newTask(ds){const d=ds?dd0(ds):new Date();if(!ds)d.setDate(d.getDate()+1);d.setHours(18,0,0,0);$('#tT').value='';$('#tN').value='';$('#tD').value=iso(d);$('#tE').textContent='';$('#dTask').showModal();$('#tT').focus()}
 
@@ -1350,6 +1351,8 @@ $('#dOk').onclick=()=>{const u=$('#dU').value.trim().toLowerCase();
  if(S.acct&&S.acct.token&&u){$('#dE').textContent='';profPush().then(ok=>{if(ok===false){toast('Username già preso da un altro account: scegline un altro da Modifica profilo')}else if(!dTmp.badges.includes('pioniere')&&!S.prof._pio){S.prof.badges=S.prof.badges||[];if(!S.prof.badges.includes('pioniere')){S.prof.badges.push('pioniere');S.prof._pio=1;save();profPush()}}})}};
 $('#sOk').onclick=()=>$('#dSet').close();
 $('#bObR').onclick=()=>{$('#dSet').close();obStart()};
+const diagUI=()=>{const b=$('#bDiag');if(!b)return;const on=S.diag!==0;b.setAttribute('aria-pressed',on?'true':'false');b.textContent='Diagnostica errori: '+(on?'attiva':'spenta')};
+$('#bDiag').onclick=()=>{S.diag=S.diag===0?1:0;save();diagUI()};
 $('#fN').oninput=e=>{S.name=e.target.value.trim();save();head()};
 $('#fT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();sheet()};
 $('#fW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();sheet();if(k==='wx'&&S.w.wx)wx();if(k==='sp')spPoll()};
@@ -1456,9 +1459,19 @@ $('#scC').onclick=scClose;
 
 // ---- mappa amici ----
 let mapO=null,mkMe=null,mkFr={},mapT=null;
+function bgLocSet(on){if(on&&(!S.acct||!S.acct.token)){toast('Collega il tuo account NOVA prima');return}
+ if(on&&!S.locShare){toast('Attiva prima la condivisione (spegni Fantasma): a app chiusa condivido solo se la condivisione è attiva');return}
+ if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova){try{webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:on?1:0,token:on?S.acct.token:null,sharing:!!S.locShare})}catch(e){toast('Non riesco ad attivarlo qui')}return}
+ toast('Serve l\'app NOVA aggiornata')}
+window.__novaBgLoc=st=>{if(st==='on'){S.bgLoc=1;save();mapNoteDraw();haptic('success')}
+ else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
+ else if(st==='denied'){toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
+ else if(st==='wheninuse'){toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
+function bgLocStop(){S.bgLoc=0;save();try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:0})}catch(e){}}
 function mapNoteDraw(){const el=$('#mapNote');if(!el)return;const on=!!S.locShare;
  el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici: si aggiorna solo quando apri la mappa, non ti segue in background. Tocca "Fantasma" per sparire subito dalla loro mappa.':'Modalità fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi; gli amici vedono solo la tua ultima posizione recente (max 30 minuti), niente tracciamento continuo.')+'</p>';
- const b=$('#mapSh');b.setAttribute('aria-pressed',on?'true':'false');b.textContent=on?'Condivisione: attiva':'Fantasma: attivo'}
+ const b=$('#mapSh');b.setAttribute('aria-pressed',on?'true':'false');b.textContent=on?'Condivisione: attiva':'Fantasma: attivo';
+ const bg=$('#mapBg');if(bg){bg.textContent=S.bgLoc?'Disattiva':'Attiva';bg.onclick=()=>bgLocSet(!S.bgLoc)}}
 async function mapLoc(){return new Promise(res=>{let done=0;const fin=(lat,lon,err)=>{if(done)return;done=1;res(err?null:{lat,lon})};
  window.__novaLoc=fin;setTimeout(()=>fin(0,0,'timeout'),9000);
  try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'loc'});else fin(0,0,'nonative')}catch(e){fin(0,0,'nonative')}})}
@@ -1488,7 +1501,7 @@ async function mapInit(){
    else{mkFr[f.username].setLatLng([f.lat,f.lon]);mkFr[f.username].setIcon(L.divIcon({className:'',html:whtml,iconSize:null}))}}
   for(const u of Object.keys(mkFr))if(!seen.has(u)){mapO.removeLayer(mkFr[u]);delete mkFr[u]}}catch(e){}
  clearTimeout(mapT);mapT=setTimeout(()=>{if(!$('#pgMap').hidden)mapInit()},30000)}
-$('#mapSh').onclick=()=>{S.locShare=!S.locShare;save();mapNoteDraw();haptic('light');
+$('#mapSh').onclick=()=>{S.locShare=!S.locShare;save();if(!S.locShare)bgLocStop();mapNoteDraw();haptic('light');
  if(S.locShare)mapInit();else{if(S.acct&&S.acct.token)api('/location','PUT',{sharing:false}).catch(()=>{});toast('Modalità fantasma: gli amici non ti vedono più')}};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
 $('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
