@@ -37,6 +37,7 @@ struct WebContainer: UIViewRepresentable {
             WKUserScript(source: Bridge.polyfill(), injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = bridge
+        bridge.rearmBgLocIfNeeded()
         web.scrollView.contentInsetAdjustmentBehavior = .never
         web.scrollView.contentInset = .zero
         web.scrollView.verticalScrollIndicatorInsets = .zero
@@ -75,6 +76,82 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     private var hapticEngine: CHHapticEngine?
 
     private var locManager: CLLocationManager?
+    private let bgUd = UserDefaults.standard
+
+    /// Posizione a app chiusa, SOLO su richiesta esplicita: aggiornamenti ai grandi spostamenti.
+    /// Riattiva il monitoraggio dopo rilancio (anche in background) se l'utente lo aveva attivato.
+    func rearmBgLocIfNeeded() {
+        guard bgUd.bool(forKey: "nova.bgLoc.on") else { return }
+        if locManager == nil {
+            let m = CLLocationManager()
+            m.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            m.delegate = self
+            locManager = m
+        }
+        if let m = locManager, m.authorizationStatus == .authorizedAlways {
+            m.allowsBackgroundLocationUpdates = true
+            m.pausesLocationUpdatesAutomatically = true
+            m.startMonitoringSignificantLocationChanges()
+        }
+    }
+
+    private func bgLocHandle(_ body: [String: Any]) {
+        let on = (body["on"] as? Int ?? (body["on"] as? Bool == true ? 1 : 0)) == 1
+        if !on { bgDisarm(); return }
+        if let tok = body["token"] as? String, !tok.isEmpty { bgUd.set(tok, forKey: "nova.bgLoc.token") }
+        bgUd.set(body["sharing"] as? Bool ?? true, forKey: "nova.bgLoc.sharing")
+        bgUd.set(true, forKey: "nova.bgLoc.on")
+        if locManager == nil {
+            let m = CLLocationManager()
+            m.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            m.delegate = self
+            locManager = m
+        }
+        guard let m = locManager else { return }
+        switch m.authorizationStatus {
+        case .authorizedAlways:
+            bgArm(m)
+        case .authorizedWhenInUse, .notDetermined:
+            m.requestAlwaysAuthorization()
+        case .denied, .restricted:
+            bgUd.set(false, forKey: "nova.bgLoc.on")
+            web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('denied')")
+        @unknown default:
+            break
+        }
+    }
+
+    private func bgArm(_ m: CLLocationManager) {
+        m.allowsBackgroundLocationUpdates = true
+        m.pausesLocationUpdatesAutomatically = true
+        m.startMonitoringSignificantLocationChanges()
+        web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('on')")
+    }
+
+    private func bgDisarm() {
+        bgUd.set(false, forKey: "nova.bgLoc.on")
+        bgUd.removeObject(forKey: "nova.bgLoc.token")
+        bgUd.removeObject(forKey: "nova.bgLoc.sharing")
+        if let m = locManager {
+            m.stopMonitoringSignificantLocationChanges()
+            m.allowsBackgroundLocationUpdates = false
+        }
+        web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('off')")
+    }
+
+    private func bgUpload(_ l: CLLocation) {
+        guard bgUd.bool(forKey: "nova.bgLoc.on"),
+              bgUd.bool(forKey: "nova.bgLoc.sharing"),
+              let tok = bgUd.string(forKey: "nova.bgLoc.token"), !tok.isEmpty,
+              let url = URL(string: "https://api.federicotaranu.site/location") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "PUT"
+        req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let payload: [String: Any] = ["lat": l.coordinate.latitude, "lon": l.coordinate.longitude, "sharing": true]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        URLSession.shared.dataTask(with: req) { _, _, _ in }.resume()
+    }
 
     func locGet() {
         if locManager == nil {
@@ -421,6 +498,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             faceIdHandle(body)
         } else if t == "loc" {
             locGet()
+        } else if t == "bgLoc" {
+            bgLocHandle(body)
         } else if t == "haptic" {
             haptic(body["style"] as? String)
         } else if t == "intro" {
@@ -1429,6 +1508,7 @@ extension Bridge: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let l = locations.last else { return }
         web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(\(l.coordinate.latitude),\(l.coordinate.longitude),'ok')")
+        bgUpload(l)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
@@ -1441,6 +1521,18 @@ extension Bridge: CLLocationManagerDelegate {
             locRead(manager)
         case .denied, .restricted:
             web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'denied')")
+        default:
+            break
+        }
+        guard bgUd.bool(forKey: "nova.bgLoc.on") else { return }
+        switch manager.authorizationStatus {
+        case .authorizedAlways:
+            bgArm(manager)
+        case .authorizedWhenInUse:
+            web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('wheninuse')")
+        case .denied, .restricted:
+            bgUd.set(false, forKey: "nova.bgLoc.on")
+            web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('denied')")
         default:
             break
         }
