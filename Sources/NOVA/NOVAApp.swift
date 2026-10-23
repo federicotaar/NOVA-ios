@@ -6,6 +6,7 @@ import UserNotifications
 import BackgroundTasks
 import AuthenticationServices
 import CryptoKit
+import CoreLocation
 import CoreHaptics
 import AVFoundation
 import WidgetKit
@@ -71,6 +72,37 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     private var introHapticPlayer: CHHapticPatternPlayer?
     private var fallbackWork: [DispatchWorkItem] = []
     private var hapticEngine: CHHapticEngine?
+
+    private var locManager: CLLocationManager?
+
+    func locGet() {
+        if locManager == nil {
+            let m = CLLocationManager()
+            m.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            locManager = m
+        }
+        guard let m = locManager else { return }
+        switch m.authorizationStatus {
+        case .notDetermined:
+            m.requestWhenInUseAuthorization()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.locRead(m) }
+        case .authorizedWhenInUse, .authorizedAlways:
+            locRead(m)
+        default:
+            web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'denied')")
+        }
+    }
+
+    func locRead(_ m: CLLocationManager) {
+        m.requestLocation()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if let l = m.location {
+                self.web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(\(l.coordinate.latitude),\(l.coordinate.longitude),'ok')")
+            } else {
+                self.web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'unavailable')")
+            }
+        }
+    }
 
     // Safari/WKWebView su iPhone non espone navigator.getBattery né Notification:
     // li simuliamo con i dati nativi, così nova.html funziona senza modifiche.
@@ -381,6 +413,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
                     self.center.removePendingNotificationRequests(withIdentifiers: ids)
                 }
             }
+        } else if t == "loc" {
+            locGet()
         } else if t == "haptic" {
             haptic(body["style"] as? String)
         } else if t == "intro" {
