@@ -412,7 +412,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.2</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.3</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -523,7 +523,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: codice JS_ERROR, riga '+(Number.isInteger(e.lineno)?e.lineno:0)+'. Puoi inviare uno screenshot senza contenuti privati';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.2',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.3',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -1512,7 +1512,7 @@ window.__novaBgLoc=st=>{if(st==='on'){if(!S.locShare||!S.locSession){bgLocStop()
  else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
  else if(st==='denied'){S.bgLoc=0;save();mapNoteDraw();toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
  else if(st==='wheninuse'){S.bgLoc=0;save();mapNoteDraw();toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
-window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.2',ename:'Error',line:0}).catch(()=>{})});
+window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.3',ename:'Error',line:0}).catch(()=>{})});
 let locEpoch=0,locPending=false;
 async function locEnable(){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();mapInit()}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
 function locDisable(){locEpoch++;locPending=false;const token=S.acct&&S.acct.token;S.locShare=0;S.locSession='';save();bgLocStop();if(token)api('/location','PUT',{sharing:false}).then(()=>toast('Condivisione spenta sul server')).catch(()=>toast('Offline: spegnimento mappa non confermato. Riconnettiti e riprova.'));}
@@ -1521,9 +1521,16 @@ function mapNoteDraw(){const el=$('#mapNote');if(!el)return;const on=!!S.locShar
  el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici. '+(S.bgLoc?'Aggiornamenti ai grandi spostamenti anche a app chiusa, quando iOS lo consente. ':'Aggiornamenti quando apri la mappa. ')+'Tocca "Fantasma" per sparire subito dalla loro mappa.':'Modalità fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi; gli amici vedono solo la tua ultima posizione recente (max 30 minuti), niente tracciamento continuo.')+'</p>';
  const b=$('#mapSh');b.setAttribute('aria-pressed',on?'true':'false');b.textContent=locPending?'Annulla attivazione':on?'Condivisione: attiva':'Fantasma: attivo';
  const bg=$('#mapBg');if(bg){bg.textContent=S.bgLoc?'Disattiva':'Attiva';bg.onclick=()=>bgLocSet(!S.bgLoc)}}
-async function mapLoc(){return new Promise(res=>{let done=0;const fin=(lat,lon,err)=>{if(done)return;done=1;res(err?null:{lat,lon})};
- window.__novaLoc=fin;setTimeout(()=>fin(0,0,'timeout'),30000);
- try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'loc'});else fin(0,0,'nonative')}catch(e){fin(0,0,'nonative')}})}
+let mapLocDetail='';
+async function mapLoc(){if(window.__mapLocPromise)return window.__mapLocPromise;
+ window.__mapLocPromise=new Promise(res=>{let done=0;const fin=(lat,lon,status,detail)=>{if(done)return;done=1;clearTimeout(timer);
+ mapLocDetail=String(detail||status||'nessuna risposta').slice(0,160);
+ const ok=(status==='ok'||!status)&&Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180;
+ res(ok?{lat,lon}:null)};
+ const timer=setTimeout(()=>fin(0,0,'bridge_timeout','bridge: nessuna risposta entro 30s'),30000);
+ window.__novaLoc=fin;
+ try{if(window.webkit?.messageHandlers?.nova)post({t:'loc'});else fin(0,0,'nonative','bridge: non disponibile')}catch(e){fin(0,0,'bridge_error','bridge: invio fallito')}});
+ try{return await window.__mapLocPromise}finally{window.__mapLocPromise=null}}
 async function mapInit(){
  if(!S.acct||!S.acct.token){$('#mapDiv').innerHTML='<p class="mut" style="text-align:center;padding:30px 16px">Collega il tuo account NOVA per vedere gli amici sulla mappa.</p>';return}
  mapNoteDraw();
@@ -1537,7 +1544,7 @@ async function mapInit(){
   if(!mkMe){mkMe=L.marker([me.lat,me.lon],{icon:L.divIcon({className:'',html:'<div class="mkP" style="background:var(--fg)">•</div>',iconSize:[34,34]})}).addTo(mapO).bindPopup('Tu')}else mkMe.setLatLng([me.lat,me.lon]);
   mapO.setView([me.lat,me.lon],14);
   api('/location','PUT',{lat:me.lat,lon:me.lon,sharing:!!S.locShare,session:S.locSession||''}).catch(()=>{})}
- else if(st){st.hidden=false;st.innerHTML='<p>Posizione non disponibile: potrebbe mancare il permesso o il segnale GPS. Per la mappa serve Mentre usi l’app; per gli aggiornamenti a app chiusa serve Sempre. Gli amici non ricevono una nuova posizione finché questa lettura non riesce.</p><button class="btn sm" id="mapRetry">Riprova</button> <button class="btn sm" id="mapPerm">Apri impostazioni</button>';$('#mapRetry').onclick=mapInit;$('#mapPerm').onclick=()=>post({t:'locationSettings'})}
+ else if(st){st.hidden=false;st.innerHTML='<p>Posizione non disponibile in NOVA. Nessuna nuova posizione è stata inviata. Tocca Riprova; il codice sotto aiuta a capire dove si ferma la lettura.</p><small>'+esc(mapLocDetail)+'</small><p></p><button class="btn sm" id="mapRetry">Riprova</button> <button class="btn sm" id="mapPerm">Apri impostazioni</button>';$('#mapRetry').onclick=mapInit;$('#mapPerm').onclick=()=>post({t:'locationSettings'})}
  const st2=$('#mapSt2');
  try{const r=await api('/map','GET');const seen=new Set();
   const frN=((r&&r.friends)||[]).length;
