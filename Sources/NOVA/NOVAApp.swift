@@ -185,7 +185,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     func locRead(_ m: CLLocationManager) {
         // requestLocation() richiede il delegate impostato: senza, iOS termina l'app.
         m.requestLocation()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12.0) {
             if let l = m.location {
                 self.web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(\(l.coordinate.latitude),\(l.coordinate.longitude),'ok')")
             } else {
@@ -528,6 +528,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             bgLocHandle(body)
         } else if t == "haptic" {
             haptic(body["style"] as? String)
+        } else if t == "locationSettings" {
+            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
         } else if t == "mediaAudio" {
             try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try? AVAudioSession.sharedInstance().setActive(true)
