@@ -32,6 +32,7 @@ struct WebContainer: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let bridge = context.coordinator
         let config = WKWebViewConfiguration()
+        config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(bridge, name: "nova")
         config.userContentController.addUserScript(
             WKUserScript(source: Bridge.polyfill(), injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -527,6 +528,9 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             bgLocHandle(body)
         } else if t == "haptic" {
             haptic(body["style"] as? String)
+        } else if t == "mediaAudio" {
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try? AVAudioSession.sharedInstance().setActive(true)
         } else if t == "intro" {
             if body["stop"] as? Bool == true { stopIntro() } else { startIntro() }
         } else if t == "timer" {
@@ -565,7 +569,14 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     private var lockView: UIView?
     private var unlocking = false
 
+    @objc private func appForegrounded() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { [weak self] in
+            self?.web?.evaluateJavaScript("window.__novaForeground&&window.__novaForeground()", completionHandler: nil)
+        }
+    }
+
     func faceIdSetup() {
+        NotificationCenter.default.addObserver(self, selector: #selector(appForegrounded), name: UIApplication.willEnterForegroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appBackgrounded), name: UIApplication.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appActive), name: UIApplication.didBecomeActiveNotification, object: nil)
         if UserDefaults.standard.bool(forKey: "nova.faceid") {
