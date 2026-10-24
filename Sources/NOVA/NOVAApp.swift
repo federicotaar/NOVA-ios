@@ -119,7 +119,10 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         case .authorizedAlways:
             bgArm(m)
         case .authorizedWhenInUse, .notDetermined:
-            m.requestAlwaysAuthorization()
+            if body["restore"] as? Bool == true {
+                bgDisarm()
+                web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('off')")
+            } else { m.requestAlwaysAuthorization() }
         case .denied, .restricted:
             bgDisarm()
             web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('denied')")
