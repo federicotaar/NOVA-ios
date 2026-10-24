@@ -315,6 +315,25 @@ main.pg{padding-bottom:112px}
 .un{position:relative}
 .un .st{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600}
 .un .st.ok{color:var(--ok)}.un .st.no{color:var(--bad)}.un .st.mu{color:var(--mut)}
+
+/* Mappa immersiva: controlli flottanti, informazioni nella scheda privacy. */
+#pgMap{position:fixed;inset:0;padding:0!important;z-index:10;background:#101b21;color:#f5f7fa;overflow:hidden}
+#mapDiv{position:absolute;inset:0;width:100%;height:100%;min-height:0;border:0;border-radius:0;margin:0;background:#16252d}
+#pgMap .leaflet-tile-pane{filter:invert(1) hue-rotate(178deg) saturate(.52) brightness(.95) contrast(.9)}
+#pgMap .leaflet-control-attribution{font-size:9px;background:rgba(15,24,30,.85);color:#c6d0d5;margin-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+#pgMap .leaflet-control-attribution a{color:#b5cbe7}
+.mapGlass{background:rgba(31,44,53,.78)!important;color:#fff!important;border:1px solid rgba(255,255,255,.18)!important;backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);box-shadow:0 8px 28px #0003}
+.mapTop{position:absolute;z-index:800;top:calc(16px + env(safe-area-inset-top,0px));left:16px;right:16px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+.mapTop>*{pointer-events:auto}.mapBrand{font-size:20px;font-weight:650;text-shadow:0 1px 8px #000;background:#19272b99;padding:9px 15px;border-radius:24px}
+#mapSh{border-radius:50%;padding:0;font-size:13px;width:52px;height:52px;display:grid;place-items:center}#mapSh svg{width:25px;height:25px}#mapSh[aria-pressed="false"]{box-shadow:0 0 0 2px #8bafff55,0 8px 28px #0003}#mapSh[aria-pressed="false"]::after{content:"";position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-radius:50%;background:#a5c5ff;border:2px solid #223039}
+#mapSh[aria-pressed="true"]{border-color:#b9c9df!important;background:rgba(93,112,138,.85)!important}
+.mapTools{position:absolute;z-index:800;right:16px;bottom:calc(112px + env(safe-area-inset-bottom,0px));border-radius:28px;display:flex;flex-direction:column;overflow:hidden}
+.mapTools button{width:52px;height:52px;border:0;background:none;color:white;font-size:24px}.mapTools button+button{border-top:1px solid #ffffff25}
+#mapStatus{position:absolute;z-index:800;left:16px;bottom:calc(116px + env(safe-area-inset-bottom,0px));border-radius:22px;padding:10px 14px;font-size:12px;max-width:calc(100% - 100px)}
+#pgMap #mapSt,#pgMap #mapSt2{display:none!important}
+#dMap,#dMapAsk{--bg:#142129;--card:#1b2a33;--fg:#f3f6f8;--mut:#b2bfc9;--line:#3b4a54;--fld:#24353f;color:#f3f6f8;background:#142129;color-scheme:dark}#dMap .sheet,#dMapAsk .sheet{max-width:440px;background:#142129}#dMap h3,#dMapAsk h3{margin-top:0}
+#pgMap .mapOwn{overflow:hidden}#pgMap .mapOwn img{width:100%;height:100%;object-fit:cover;border-radius:50%}#pgMap .mkP{background:#3b91ff;color:white;border:3px solid white;box-shadow:0 0 0 10px #318dff22,0 3px 14px #0005}
+
 </style>
 </head>
 <body>
@@ -360,13 +379,18 @@ main.pg{padding-bottom:112px}
  <div class="row"><button class="btn" id="mdX">Rimuovi</button><button class="btn pri" id="mdS">Salva</button></div>
 </div></dialog>
 <main class="pg" id="pgMap" hidden>
- <div class="pgh"><h2>Mappa</h2><button class="btn sm tgl" id="mapSh" aria-pressed="false">Fantasma: attivo</button></div>
- <section class="card" id="mapNote"></section>
- <section class="card"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1"><b>Anche a app chiusa</b><br><small class="mut">Aggiorna la tua posizione solo ai grandi spostamenti e solo mentre la condivisione è attiva. Non è un tracciamento continuo: iOS decide quando svegliare NOVA. Fantasma la spegne subito. Batteria: impatto ridotto.</small></div><button class="btn sm" id="mapBg">Attiva</button></div></section>
- <section class="card" id="mapSt" hidden style="border-color:#a33"></section>
- <section class="card" id="mapSt2" hidden></section>
  <div id="mapDiv"></div>
+ <div class="mapTop"><span class="mapBrand">Mappa</span><button class="btn tgl mapGlass" id="mapSh" aria-pressed="false">Fantasma</button></div>
+ <div class="mapTools mapGlass"><button id="mapOptions" aria-label="Impostazioni mappa">⚙</button><button id="mapCenter" aria-label="Centra la mia posizione">➤</button></div>
+ <div id="mapStatus" class="mapGlass" hidden></div>
+ <section id="mapSt" hidden></section><section id="mapSt2" hidden></section>
 </main>
+<dialog id="dMap"><div class="sheet">
+ <h3>Mappa e privacy</h3><section id="mapNote"></section>
+ <section class="card" style="margin-top:16px"><b>Anche a app chiusa</b><p class="mut">Solo con il tuo consenso e il permesso Sempre. Aggiornamenti ai grandi spostamenti quando iOS lo consente, non tracciamento continuo. Fantasma li spegne.</p><button class="btn" id="mapBg">Attiva</button></section>
+ <p class="mut" id="mapDiag"></p><button class="btn" id="mapSettings">Impostazioni iOS</button><button class="btn pri" id="mapDone" style="margin-top:16px">Fatto</button>
+</div></dialog>
+<dialog id="dMapAsk"><div class="sheet"><h3>Posizione anche a app chiusa?</h3><p class="mut">Condividi con gli amici autorizzati anche ai grandi spostamenti. Serve il permesso Sempre; iOS decide quando aggiornare. Puoi spegnere tutto con Fantasma.</p><button class="btn pri" id="mapAskYes" style="margin-top:18px">Attiva</button><button class="btn" id="mapAskNo" style="margin-top:8px">Non ora</button></div></dialog>
 <main class="pg" id="pgProf" hidden>
  <div class="pgh"><h2>Profilo</h2><button class="ico" id="bSet" aria-label="Impostazioni"></button></div>
  <section class="card" id="pfB"></section>
@@ -412,7 +436,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.3</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.4</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -523,7 +547,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: codice JS_ERROR, riga '+(Number.isInteger(e.lineno)?e.lineno:0)+'. Puoi inviare uno screenshot senza contenuti privati';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.3',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.4',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -1073,7 +1097,7 @@ function pg(i,dir){i=Math.max(0,Math.min(PGS.length-1,i));const old=pgI;pgI=i;
   nu.style.transform='translateX(0)';ol.style.transform='translateX('+(dir>0?'-100%':'100%')+')';
   setTimeout(()=>{ol.hidden=true;ol.style.transition=ol.style.transform='';nu.style.transition=nu.style.transform=''},320)}
  tbLayout();const id=PGS[i];
- if(id==='pgGr')grades();if(id==='pgProf'){pf();frDraw()}if(id==='pgChat')chatPg();if(id==='pgMap')mapInit();
+ if(id==='pgGr')grades();if(id==='pgProf'){pf();frDraw()}if(id==='pgChat')chatPg();if(id==='pgMap'){mapInit();mapEntry()};
  window.scrollTo(0,0)}
 (()=>{const bar=$('#tabbar'),bs=$$('#tabbar button');
  bs.forEach((b,i)=>{b.innerHTML=ic(TBD[i][0]);b.setAttribute('aria-label',TBD[i][1]);b.onclick=()=>{if(Date.now()<tbSup)return;pg(i,i>pgI?1:-1)}});
@@ -1512,14 +1536,14 @@ window.__novaBgLoc=st=>{if(st==='on'){if(!S.locShare||!S.locSession){bgLocStop()
  else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
  else if(st==='denied'){S.bgLoc=0;save();mapNoteDraw();toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
  else if(st==='wheninuse'){S.bgLoc=0;save();mapNoteDraw();toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
-window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.3',ename:'Error',line:0}).catch(()=>{})});
+window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.4',ename:'Error',line:0}).catch(()=>{})});
 let locEpoch=0,locPending=false;
-async function locEnable(){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();mapInit()}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
+async function locEnable(){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();mapInit();mapEntry()}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
 function locDisable(){locEpoch++;locPending=false;const token=S.acct&&S.acct.token;S.locShare=0;S.locSession='';save();bgLocStop();if(token)api('/location','PUT',{sharing:false}).then(()=>toast('Condivisione spenta sul server')).catch(()=>toast('Offline: spegnimento mappa non confermato. Riconnettiti e riprova.'));}
 function bgLocStop(){S.bgLoc=0;save();try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:0})}catch(e){}}
 function mapNoteDraw(){const el=$('#mapNote');if(!el)return;const on=!!S.locShare;
  el.innerHTML='<p class="mut" style="margin:0">'+(on?'Posizione condivisa con i tuoi amici. '+(S.bgLoc?'Aggiornamenti ai grandi spostamenti anche a app chiusa, quando iOS lo consente. ':'Aggiornamenti quando apri la mappa. ')+'Tocca "Fantasma" per sparire subito dalla loro mappa.':'Modalità fantasma: nessuno ti vede sulla mappa. Attiva la condivisione solo se vuoi; gli amici vedono solo la tua ultima posizione recente (max 30 minuti), niente tracciamento continuo.')+'</p>';
- const b=$('#mapSh');b.setAttribute('aria-pressed',on?'true':'false');b.textContent=locPending?'Annulla attivazione':on?'Condivisione: attiva':'Fantasma: attivo';
+ const b=$('#mapSh');b.setAttribute('aria-pressed',on?'false':'true');b.setAttribute('aria-label',locPending?'Annulla attivazione':on?'Attiva Fantasma: ora visibile agli amici':'Disattiva Fantasma: ora nascosto');b.title=on?'Visibile agli amici':'Fantasma attivo';b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 20V9a7 7 0 0 1 14 0v11l-3-2-4 2-4-2z"/><circle cx="9" cy="9" r=".8" fill="currentColor"/><circle cx="15" cy="9" r=".8" fill="currentColor"/></svg>';
  const bg=$('#mapBg');if(bg){bg.textContent=S.bgLoc?'Disattiva':'Attiva';bg.onclick=()=>bgLocSet(!S.bgLoc)}}
 let mapLocDetail='';
 async function mapLoc(){if(window.__mapLocPromise)return window.__mapLocPromise;
@@ -1531,20 +1555,22 @@ async function mapLoc(){if(window.__mapLocPromise)return window.__mapLocPromise;
  window.__novaLoc=fin;
  try{if(window.webkit?.messageHandlers?.nova)post({t:'loc'});else fin(0,0,'nonative','bridge: non disponibile')}catch(e){fin(0,0,'bridge_error','bridge: invio fallito')}});
  try{return await window.__mapLocPromise}finally{window.__mapLocPromise=null}}
+function ownMapPin(){const a=S.prof?.avatar||'';const safe=/^(data:image\/(png|jpeg|webp|gif);base64,|https:\/\/)/i.test(a);return '<div class="mkP mapOwn">'+(safe?'<img src="'+esc(a)+'" alt="Tu">':esc((S.name||'Tu')[0].toUpperCase()))+'</div>'}
 async function mapInit(){
  if(!S.acct||!S.acct.token){$('#mapDiv').innerHTML='<p class="mut" style="text-align:center;padding:30px 16px">Collega il tuo account NOVA per vedere gli amici sulla mappa.</p>';return}
  mapNoteDraw();
  if(typeof L==='undefined'){setTimeout(mapInit,600);return}
- if(!mapO){mapO=L.map('mapDiv',{attributionControl:true}).setView([44.65,10.93],12);
+ if(!mapO){mapO=L.map('mapDiv',{attributionControl:true,zoomControl:false}).setView([44.65,10.93],12);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapO)}
  setTimeout(()=>mapO.invalidateSize(),300);
  const me=await mapLoc();
  const st=$('#mapSt');
- if(me){if(st)st.hidden=true;
-  if(!mkMe){mkMe=L.marker([me.lat,me.lon],{icon:L.divIcon({className:'',html:'<div class="mkP" style="background:var(--fg)">•</div>',iconSize:[34,34]})}).addTo(mapO).bindPopup('Tu')}else mkMe.setLatLng([me.lat,me.lon]);
+ if(me){if(st)st.hidden=true;$('#mapStatus').hidden=true;
+  if(!mkMe){mkMe=L.marker([me.lat,me.lon],{icon:L.divIcon({className:'',html:ownMapPin(),iconSize:[34,34]})}).addTo(mapO).bindPopup('Tu')}else{mkMe.setLatLng([me.lat,me.lon]);mkMe.setIcon(L.divIcon({className:'',html:ownMapPin(),iconSize:[34,34]}))};
   mapO.setView([me.lat,me.lon],14);
   api('/location','PUT',{lat:me.lat,lon:me.lon,sharing:!!S.locShare,session:S.locSession||''}).catch(()=>{})}
- else if(st){st.hidden=false;st.innerHTML='<p>Posizione non disponibile in NOVA. Nessuna nuova posizione è stata inviata. Tocca Riprova; il codice sotto aiuta a capire dove si ferma la lettura.</p><small>'+esc(mapLocDetail)+'</small><p></p><button class="btn sm" id="mapRetry">Riprova</button> <button class="btn sm" id="mapPerm">Apri impostazioni</button>';$('#mapRetry').onclick=mapInit;$('#mapPerm').onclick=()=>post({t:'locationSettings'})}
+ else if(st){$('#mapStatus').hidden=false;$('#mapStatus').textContent='Posizione non disponibile · Riprova';st.hidden=false;st.innerHTML='<p>Posizione non disponibile in NOVA. Nessuna nuova posizione è stata inviata. Tocca Riprova; il codice sotto aiuta a capire dove si ferma la lettura.</p><small>'+esc(mapLocDetail)+'</small><p></p><button class="btn sm" id="mapRetry">Riprova</button> <button class="btn sm" id="mapPerm">Apri impostazioni</button>';$('#mapRetry').onclick=mapInit;$('#mapPerm').onclick=()=>post({t:'locationSettings'})}
+ $('#mapDiag').textContent=me?'Ultima lettura riuscita.':mapLocDetail;
  const st2=$('#mapSt2');
  try{const r=await api('/map','GET');const seen=new Set();
   const frN=((r&&r.friends)||[]).length;
@@ -1557,6 +1583,14 @@ async function mapInit(){
    else{mkFr[f.username].setLatLng([f.lat,f.lon]);mkFr[f.username].setIcon(L.divIcon({className:'',html:whtml,iconSize:null}))}}
   for(const u of Object.keys(mkFr))if(!seen.has(u)){mapO.removeLayer(mkFr[u]);delete mkFr[u]}}catch(e){}
  clearTimeout(mapT);mapT=setTimeout(()=>{if(!$('#pgMap').hidden)mapInit()},30000)}
+function mapEntry(){if(S.mapBgAsked||S.bgLoc||!S.locShare)return;S.mapBgAsked=1;save();setTimeout(()=>{if(!$('#pgMap').hidden&&!$('#dMapAsk').open){$('#mapAskYes').textContent=S.locShare?'Attiva':'Prima attiva Condividi';$('#mapAskYes').disabled=!S.locShare;$('#dMapAsk').showModal()}},400)}
+$('#mapAskYes').onclick=()=>{$('#dMapAsk').close();bgLocSet(true)};
+$('#mapAskNo').onclick=()=>$('#dMapAsk').close();
+$('#mapOptions').onclick=()=>{mapNoteDraw();$('#dMap').showModal()};
+$('#mapDone').onclick=()=>$('#dMap').close();
+$('#mapSettings').onclick=()=>post({t:'locationSettings'});
+$('#mapCenter').onclick=mapInit;
+$('#mapStatus').onclick=mapInit;
 $('#mapSh').onclick=()=>{if(S.locShare||locPending){locDisable();mapNoteDraw();toast('Fantasma: richiesta di spegnimento inviata')}else locEnable();haptic('light')};
 $('#aiMD').onclick=()=>{$('#mdT').value=S.agentMd||'';$('#mdE').textContent='';$('#dMD').showModal()};
 $('#mdF').onchange=()=>{const f=$('#mdF').files&&$('#mdF').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#mdT').value=String(r.result||'').slice(0,4000)};r.onerror=()=>{$('#mdE').textContent='Non riesco a leggere il file.'};r.readAsText(f)};
