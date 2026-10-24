@@ -79,6 +79,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     private var locManager: CLLocationManager?
     private var locReadGeneration = 0
     private var locWaiting = false
+    private var locLastError = -1
     private let bgUd = UserDefaults.standard
     private var bgTasks: [URLSessionDataTask] = []
 
@@ -165,7 +166,19 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         bgTasks.append(task); task.resume()
     }
 
+    private func locReply(_ lat: Double = 0, _ lon: Double = 0, status: String, phase: String) {
+        let auth = locManager.map { Int($0.authorizationStatus.rawValue) } ?? -1
+        let detail = "auth=\(auth); cl=\(locLastError); phase=\(phase)"
+        let args: [Any] = [lat, lon, status, detail]
+        guard let data = try? JSONSerialization.data(withJSONObject: args), let json = String(data: data, encoding: .utf8) else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.web?.evaluateJavaScript("window.__novaLoc&&window.__novaLoc.apply(null,\(json))", completionHandler: nil)
+        }
+    }
+
     func locGet() {
+        if !Thread.isMainThread { DispatchQueue.main.async { self.locGet() }; return }
+        locLastError = -1
         if locManager == nil {
             let m = CLLocationManager()
             m.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -180,7 +193,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         case .authorizedWhenInUse, .authorizedAlways:
             locRead(m)
         default:
-            web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'denied')")
+            locReply(status: "denied", phase: "authorization")
         }
     }
 
@@ -193,7 +206,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
             guard let self = self, self.locWaiting, generation == self.locReadGeneration else { return }
             self.locWaiting = false
             m.stopUpdatingLocation()
-            self.web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'timeout')")
+            self.locReply(status: "timeout", phase: "fix_timeout")
         }
     }
 
@@ -1571,15 +1584,16 @@ extension Bridge: CLLocationManagerDelegate {
         guard let l = locations.last, l.horizontalAccuracy >= 0,
               abs(l.timestamp.timeIntervalSinceNow) < 60 else { return }
         if locWaiting { locWaiting = false; locReadGeneration += 1; manager.stopUpdatingLocation() }
-        web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(\(l.coordinate.latitude),\(l.coordinate.longitude),'ok')")
+        locReply(l.coordinate.latitude, l.coordinate.longitude, status: "ok", phase: "fix_received")
         bgUpload(l)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        locLastError = (error as NSError).code
         if (error as? CLError)?.code == .locationUnknown { return }
         guard locWaiting else { return }
         locWaiting = false; locReadGeneration += 1; manager.stopUpdatingLocation()
-        web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'unavailable')")
+        locReply(status: "unavailable", phase: "delegate_error")
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -1587,7 +1601,7 @@ extension Bridge: CLLocationManagerDelegate {
         case .authorizedWhenInUse, .authorizedAlways:
             locRead(manager)
         case .denied, .restricted:
-            web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'denied')")
+            locReply(status: "denied", phase: "authorization")
         default:
             break
         }
