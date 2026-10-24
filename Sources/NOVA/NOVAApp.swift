@@ -77,6 +77,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     private var hapticEngine: CHHapticEngine?
 
     private var locManager: CLLocationManager?
+    private var locReadGeneration = 0
+    private var locWaiting = false
     private let bgUd = UserDefaults.standard
     private var bgTasks: [URLSessionDataTask] = []
 
@@ -183,14 +185,15 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     }
 
     func locRead(_ m: CLLocationManager) {
-        // requestLocation() richiede il delegate impostato: senza, iOS termina l'app.
-        m.requestLocation()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 12.0) {
-            if let l = m.location {
-                self.web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(\(l.coordinate.latitude),\(l.coordinate.longitude),'ok')")
-            } else {
-                self.web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'unavailable')")
-            }
+        locReadGeneration += 1
+        let generation = locReadGeneration
+        locWaiting = true
+        m.startUpdatingLocation()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 25.0) { [weak self] in
+            guard let self = self, self.locWaiting, generation == self.locReadGeneration else { return }
+            self.locWaiting = false
+            m.stopUpdatingLocation()
+            self.web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'timeout')")
         }
     }
 
@@ -1565,12 +1568,17 @@ enum Spotify {
 // Delegate posizione: senza questi metodi requestLocation() fa terminare l'app.
 extension Bridge: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let l = locations.last else { return }
+        guard let l = locations.last, l.horizontalAccuracy >= 0,
+              abs(l.timestamp.timeIntervalSinceNow) < 60 else { return }
+        if locWaiting { locWaiting = false; locReadGeneration += 1; manager.stopUpdatingLocation() }
         web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(\(l.coordinate.latitude),\(l.coordinate.longitude),'ok')")
         bgUpload(l)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        if (error as? CLError)?.code == .locationUnknown { return }
+        guard locWaiting else { return }
+        locWaiting = false; locReadGeneration += 1; manager.stopUpdatingLocation()
         web?.evaluateJavaScript("window.__novaLoc&&__novaLoc(0,0,'unavailable')")
     }
 
