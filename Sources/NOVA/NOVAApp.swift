@@ -77,11 +77,12 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     private var locManager: CLLocationManager?
     private let bgUd = UserDefaults.standard
+    private var bgTasks: [URLSessionDataTask] = []
 
     /// Posizione a app chiusa, SOLO su richiesta esplicita: aggiornamenti ai grandi spostamenti.
     /// Riattiva il monitoraggio dopo rilancio (anche in background) se l'utente lo aveva attivato.
     func rearmBgLocIfNeeded() {
-        guard bgUd.bool(forKey: "nova.bgLoc.on") else { return }
+        guard bgUd.bool(forKey: "nova.bgLoc.on"), bgUd.string(forKey: "nova.bgLoc.session") != nil else { return }
         if locManager == nil {
             let m = CLLocationManager()
             m.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -98,6 +99,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     private func bgLocHandle(_ body: [String: Any]) {
         let on = (body["on"] as? Int ?? (body["on"] as? Bool == true ? 1 : 0)) == 1
         if !on { bgDisarm(); return }
+        guard let session = body["session"] as? String, !session.isEmpty else { bgDisarm(); return }
+        bgUd.set(session, forKey: "nova.bgLoc.session")
         if let tok = body["token"] as? String, !tok.isEmpty { bgUd.set(tok, forKey: "nova.bgLoc.token") }
         bgUd.set(body["sharing"] as? Bool ?? true, forKey: "nova.bgLoc.sharing")
         bgUd.set(true, forKey: "nova.bgLoc.on")
@@ -114,7 +117,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
         case .authorizedWhenInUse, .notDetermined:
             m.requestAlwaysAuthorization()
         case .denied, .restricted:
-            bgUd.set(false, forKey: "nova.bgLoc.on")
+            bgDisarm()
             web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('denied')")
         @unknown default:
             break
@@ -129,6 +132,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     }
 
     private func bgDisarm() {
+        bgTasks.forEach { $0.cancel() }; bgTasks.removeAll()
+        bgUd.removeObject(forKey: "nova.bgLoc.session")
         bgUd.set(false, forKey: "nova.bgLoc.on")
         bgUd.removeObject(forKey: "nova.bgLoc.token")
         bgUd.removeObject(forKey: "nova.bgLoc.sharing")
@@ -142,15 +147,19 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     private func bgUpload(_ l: CLLocation) {
         guard bgUd.bool(forKey: "nova.bgLoc.on"),
               bgUd.bool(forKey: "nova.bgLoc.sharing"),
+              locManager?.authorizationStatus == .authorizedAlways,
+              let session = bgUd.string(forKey: "nova.bgLoc.session"), !session.isEmpty,
               let tok = bgUd.string(forKey: "nova.bgLoc.token"), !tok.isEmpty,
               let url = URL(string: "https://api.federicotaranu.site/location") else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "PUT"
         req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let payload: [String: Any] = ["lat": l.coordinate.latitude, "lon": l.coordinate.longitude, "sharing": true]
+        let payload: [String: Any] = ["lat": l.coordinate.latitude, "lon": l.coordinate.longitude, "sharing": true, "session": session]
         req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
-        URLSession.shared.dataTask(with: req) { _, _, _ in }.resume()
+        bgTasks.removeAll { $0.state == .completed || $0.state == .canceling }
+        let task = URLSession.shared.dataTask(with: req) { _, _, _ in }
+        bgTasks.append(task); task.resume()
     }
 
     func locGet() {
@@ -469,7 +478,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         pushBattery()
         // Converge la UI sullo stato nativo reale: attivo solo se autorizzato Sempre e mai spento.
-        if bgUd.bool(forKey: "nova.bgLoc.on"), let m = locManager ?? Optional(CLLocationManager()) {
+        if bgUd.bool(forKey: "nova.bgLoc.on"), bgUd.string(forKey: "nova.bgLoc.session") != nil, let m = locManager ?? Optional(CLLocationManager()) {
             if m.delegate == nil { m.delegate = self; m.desiredAccuracy = kCLLocationAccuracyHundredMeters }
             locManager = m
             if m.authorizationStatus == .authorizedAlways {
@@ -478,6 +487,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
                 m.startMonitoringSignificantLocationChanges()
                 webView.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('on')")
             } else {
+                bgDisarm()
                 webView.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('wheninuse')")
             }
         }
@@ -494,6 +504,8 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
                 let p = ok ? "granted" : "denied"
                 DispatchQueue.main.async { self.web?.evaluateJavaScript("__novaPerm('\(p)')") }
             }
+        } else if t == "reminderOne" {
+            scheduleOneReminder(body)
         } else if t == "sched", let items = body["items"] as? [[String: Any]] {
             schedule(items)
         } else if t == "plan", let items = body["items"] as? [[String: Any]] {
@@ -676,6 +688,27 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     }
 
     // Riprogramma tutti i promemoria futuri (iOS ne ammette max 64 in sospeso).
+    // Acknowledge only after iOS accepted the local notification request.
+    private func scheduleOneReminder(_ body: [String: Any]) {
+        guard let id = body["id"] as? String, let at = body["at"] as? Double,
+              let title = body["title"] as? String else { return }
+        let reply: (Bool) -> Void = { ok in
+            let data = try? JSONSerialization.data(withJSONObject: [id, ok])
+            guard let data = data, let args = String(data: data, encoding: .utf8) else { return }
+            DispatchQueue.main.async { self.web?.evaluateJavaScript("window.__novaReminderResult&&__novaReminderResult.apply(null,\(args))") }
+        }
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            guard granted else { reply(false); return }
+            let seconds = at / 1000 - Date().timeIntervalSince1970
+            guard seconds > 1 else { reply(false); return }
+            let c = UNMutableNotificationContent()
+            c.title = "NOVA · Promemoria"; c.body = String(title.prefix(200)); c.sound = .default
+            let request = UNNotificationRequest(identifier: "manual." + id, content: c,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false))
+            self.center.add(request) { error in reply(error == nil) }
+        }
+    }
+
     func schedule(_ items: [[String: Any]]) {
         center.getPendingNotificationRequests { reqs in
             let old = reqs.map { $0.identifier }.filter { $0.hasPrefix("rem.") }
@@ -1537,14 +1570,15 @@ extension Bridge: CLLocationManagerDelegate {
         default:
             break
         }
-        guard bgUd.bool(forKey: "nova.bgLoc.on") else { return }
+        guard bgUd.bool(forKey: "nova.bgLoc.on"), bgUd.string(forKey: "nova.bgLoc.session") != nil else { return }
         switch manager.authorizationStatus {
         case .authorizedAlways:
             bgArm(manager)
         case .authorizedWhenInUse:
+            bgDisarm()
             web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('wheninuse')")
         case .denied, .restricted:
-            bgUd.set(false, forKey: "nova.bgLoc.on")
+            bgDisarm()
             web?.evaluateJavaScript("window.__novaBgLoc&&__novaBgLoc('denied')")
         default:
             break
