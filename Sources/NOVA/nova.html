@@ -436,7 +436,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.5</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.6</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -547,7 +547,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: codice JS_ERROR, riga '+(Number.isInteger(e.lineno)?e.lineno:0)+'. Puoi inviare uno screenshot senza contenuti privati';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.5',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.6',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -1226,7 +1226,7 @@ if(S.acct&&S.acct.token)profPull().then(had=>{if(had===false&&!acctHydrating&&S.
 if(S.locSessionToken&&S.locSessionToken!==(S.acct&&S.acct.token)){S.locSession='';S.locShare=0;S.bgLoc=0;save()}
 if(S.locShare&&!S.locSession)setTimeout(()=>afterIntro(()=>locEnable(false)),0);
 setTimeout(()=>afterIntro(()=>{if(S.bgLoc&&S.acct&&S.acct.token&&S.locShare&&S.locSession){try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:1,token:S.acct.token,session:S.locSession,sharing:true,restore:true})}catch(e){S.bgLoc=0;save()}}}),0)
-let convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
+let convId=null,convLast=0,convTimer=null,typingLast=0,cvMsgs=[],cvSenders={},cvReacts={};
 function aiOpen(){const b=$('#chatB'),a=$('#aic');if(!a)return;
  $('#frc').hidden=true;$('#fcFab').hidden=true;a.hidden=false;chatDraw();
  if(gqHas){b.hidden=true}
@@ -1342,7 +1342,7 @@ async function convPoll(force){if(!convId)return;
     const mx=convLast;if(mx)api('/chats/'+convId+'/read','POST',{last_msg_id:mx}).catch(()=>{})}}
   const t=await api('/chats/'+convId+'/typing','GET');
   $('#cvTy').textContent=(t&&t.typing&&t.typing.length)?t.typing.join(', ')+' sta scrivendo…':''}catch(e){$('#cvTy').textContent='Aggiornamento non riuscito. Riprovo tra pochi secondi.'}}
-function convOpen(id,title,examAt){convId=id;convLast=0;cvMsgs=[];cvSenders={};cvReacts={};
+function convOpen(id,title,examAt){convId=id;convLast=0;typingLast=0;cvMsgs=[];cvSenders={};cvReacts={};
  $('#cvT').textContent=title||'Chat';$('#cvM').innerHTML='';$('#cvTy').textContent='';
  const ce=$('#cvE');if(examAt){const dd=Math.ceil((examAt-Date.now())/86400000);
   ce.hidden=false;ce.textContent=dd>0?'Esame tra '+dd+(dd===1?' giorno':' giorni'):(dd===0?'Esame oggi!':'Esame passato')}else ce.hidden=true;
@@ -1548,7 +1548,7 @@ window.__novaBgLoc=st=>{if(st==='on'){if(!S.locShare||!S.locSession){bgLocStop()
  else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
  else if(st==='denied'){S.bgLoc=0;save();mapNoteDraw();toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
  else if(st==='wheninuse'){S.bgLoc=0;save();mapNoteDraw();toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
-window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.5',ename:'Error',line:0}).catch(()=>{})});
+window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.6',ename:'Error',line:0}).catch(()=>{})});
 let locEpoch=0,locPending=false;
 async function locEnable(openMap=true){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();if(openMap){mapInit();mapEntry()}}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
 function locDisable(){locEpoch++;locPending=false;const token=S.acct&&S.acct.token;S.locShare=0;S.locSession='';save();bgLocStop();if(token)api('/location','PUT',{sharing:false}).then(()=>toast('Condivisione spenta sul server')).catch(()=>toast('Offline: spegnimento mappa non confermato. Riconnettiti e riprova.'));}
