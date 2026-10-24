@@ -436,7 +436,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.4</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.24.5</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -547,7 +547,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: codice JS_ERROR, riga '+(Number.isInteger(e.lineno)?e.lineno:0)+'. Puoi inviare uno screenshot senza contenuti privati';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.4',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.24.5',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -751,26 +751,33 @@ async function api(p,m,b,qs){const h={'content-type':'application/json'};if(S.ac
  const r=await fetch(API+p+(qs||''),{method:m,headers:h,body:b?JSON.stringify(b):undefined});
  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'HTTP '+r.status);return j}
 let acct={mode:'new',stage:'email',email:'',busy:0,err:''};
-const setupJson=()=>({v:1,name:S.name,theme:S.theme,sb:S.sb,hwn:S.hwn,w:S.w,cv:S.cv,tt:S.tt});
-let acctLast='',acctT=0;
-function acctPush(){if(!S.acct||!S.acct.token)return;const s=JSON.stringify(setupJson());if(s===acctLast)return;
+const setupJson=()=>({v:2,setupComplete:S.ob===2||!!S.done,introEvery:!!S.introEvery,introOff:!!S.introOff,name:S.name,theme:S.theme,sb:S.sb,hwn:S.hwn,w:S.w,cv:S.cv,tt:S.tt});
+let acctLast='',acctT=0,acctHydrating=false;
+function acctPush(){if(acctHydrating)return;if(!S.acct||!S.acct.token)return;const s=JSON.stringify(setupJson());if(s===acctLast)return;
  clearTimeout(acctT);acctT=setTimeout(async()=>{try{await api('/sync','PUT',{json:setupJson()});acctLast=s}catch(e){}},800)}
 async function acctPull(){const r=await api('/sync','GET');if(!r.json)return false;
- const j=r.json;['name','theme','sb','hwn'].forEach(k=>{if(j[k]!==undefined)S[k]=j[k]});
+ const j=r.json;if(j.setupComplete===true){S.ob=2;S.done=1;S.profDone=1}['name','theme','sb','hwn','introEvery','introOff'].forEach(k=>{if(j[k]!==undefined)S[k]=j[k]});
  if(j.w)S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},j.w);if(j.cv)S.cv=j.cv;if(j.tt&&j.tt.lessons){S.tt=j.tt;ttPush()}
  save();theme();head();show();acctLast=JSON.stringify(setupJson());return true}
-async function acctDone(email,token,isNew){S.acct={email:email.toLowerCase(),token};save();
+async function acctDone(email,token,isNew){
+ clearTimeout(acctT);acctHydrating=true;
+ const changed=S.acct?.email?.toLowerCase()!==email.toLowerCase();
+ if(changed){bgLocStop();S.locShare=0;S.locSession='';S.prof={username:'',avatar:'',study:'',skills:'',hobbies:'',song:null};S.name=''}
+ S.acct={email:email.toLowerCase(),token};save();
  acct={mode:'new',stage:'email',email:'',busy:0,err:''};
- const had=await acctPull().catch(()=>false);if(!had)acctPush();
- const hadP=await profPull();if(S.profDone&&S.prof.username&&hadP===false)profPush();
+ let had=false,hadP=null,failed=false;
+ try{had=await acctPull();hadP=await profPull()}catch(e){failed=true}
  const inOb=!$('#ob').hidden&&OB[obI]&&OB[obI].k==='Account';
- acctUI();
- if(isNew)welcomeAnim(email);
- if(inOb){if(had&&S.name){obEnd();toast('Bentornato, '+S.name+': configurazione ripristinata')}else{obGo(1);toast(had?'Account collegato':'Account creato')}}
- else{if(window.obRefresh)obRefresh();toast(had?'Configurazione ripristinata dal tuo account':'Account collegato: la configurazione si sincronizza da sola')}}
+ acctHydrating=false;acctUI();
+ if(failed||hadP===null){acctHydrating=true;acctUI();toast('Account collegato. Ripristino non riuscito: riprova, senza rifare il setup.');return}
+ const returning=!isNew&&(had||hadP===true);
+ if(returning){obEnd();toast('Bentornato: configurazione ripristinata')}
+ else if(isNew){welcomeAnim(email);if(inOb)obGo(1);acctPush()}
+ else{if(inOb){obEnd();toast('Account collegato. Completa solo ciò che manca da Profilo.')}else toast('Account collegato')}
+}
 const mailOk=e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
 function acctUI(){$$('.acctb').forEach(b=>{
- if(S.acct&&S.acct.token){b.innerHTML='<small>Collegato come <b>'+esc(S.acct.email)+'</b>. La configurazione si sincronizza automaticamente.</small><div class="row" style="margin-top:8px"><button class="btn acO">Esci</button></div>';
+ if(S.acct&&S.acct.token&&acctHydrating){b.innerHTML='<p class="mut">Ripristino account non completato. Nessuna configurazione locale verrà inviata.</p><button class="btn acRetry">Riprova ripristino</button>';b.querySelector('.acRetry').onclick=()=>acctDone(S.acct.email,S.acct.token,false);return}if(S.acct&&S.acct.token){b.innerHTML='<small>Collegato come <b>'+esc(S.acct.email)+'</b>. La configurazione si sincronizza automaticamente.</small><div class="row" style="margin-top:8px"><button class="btn acO">Esci</button></div>';
   b.querySelector('.acO').onclick=()=>{locDisable();delete S.acct;save();acct={mode:'new',stage:'email',email:'',busy:0,err:''};acctUI();obRefresh()};return}
  const em='<input id="acE" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="La tua email" value="'+esc(acct.email)+'">';
  const codeIn='<input id="acC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Codice a 6 cifre">';
@@ -845,13 +852,17 @@ function welcomeAnim(email){
 }
 
 /* ---------- intro cinematografica ---------- */
+let introFinished=false;
+const afterIntroJobs=[];
+function afterIntro(f){if(introFinished&&!$('#intro'))f();else afterIntroJobs.push(f)}
+function introDidFinish(){introFinished=true;const drain=()=>{if($('#intro')||document.hidden||document.querySelector('dialog[open]')||!$('#ob').hidden){setTimeout(drain,300);return}const f=afterIntroJobs.shift();if(f){f();setTimeout(drain,350)}};drain()}
 if(S.introEvery&&S.introOff){S.introOff=0;save()}
 const introTemplate=$('#intro').outerHTML;
 window.__novaForeground=()=>{if(!S.introEvery||S.introOff||S.ob!==2||$('#intro'))return;
- document.body.insertAdjacentHTML('beforeend',introTemplate);intro()};
+ introFinished=false;document.body.insertAdjacentHTML('beforeend',introTemplate);intro()};
 function intro(){
- const el=$('#intro');if(!el){if(S.ob!==2)obStart();return}
- const go=()=>{if(S.ob!==2)obStart()};
+ const el=$('#intro');if(!el){if(S.ob!==2)obStart();introDidFinish();return}
+ const go=()=>{if(S.ob!==2)obStart();introDidFinish()};
  if(S.introOff||(!S.introEvery&&(S.introSeen||S.done))){el.remove();go();return}
  S.introSeen=1;save();
  const lg=$('#inL'),ln=$('#inT'),glow=$('#inG'),ring=$('#inR'),cvs=$('#inC'),inW=$('#inW');
@@ -1056,8 +1067,8 @@ $('#dyC').onclick=()=>$('#dDay').close();
 $('#dyA').onclick=()=>{$('#dDay').close();newTask(dyDate)};
 $('#calG').onclick=e=>{const b=e.target.closest('button.d');b&&openDay(b.dataset.d)};
 $('#cmP').onclick=()=>{calOff--;cal()};$('#cmN').onclick=()=>{calOff++;cal()};
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),5000)}
-function rem(){const n=Date.now();let ch=0;for(const t of S.tasks){if(t.done||t.fired||!t.rem)continue;
+function toast(m){if($('#intro')){afterIntro(()=>toast(m));return}const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),5000)}
+function rem(){if(!introFinished||$('#intro'))return;const n=Date.now();let ch=0;for(const t of S.tasks){if(t.done||t.fired||!t.rem)continue;
  if(n>=new Date(t.due)-t.rem*6e4){t.fired=1;ch=1;toast('Promemoria: '+t.title+' · '+when(t).txt);
  try{if('Notification' in window&&Notification.permission==='granted')new Notification('NOVA · Promemoria',{body:t.title})}catch(e){}}}
  if(ch)save()}
@@ -1065,7 +1076,7 @@ function drawBat(b){const el=$('#batB');
  if(!b){el.innerHTML='<p class="mut">Stato batteria non disponibile.</p>';return}
  const lv=b.level,C=2*Math.PI*26,col=b.charging?'var(--ok)':lv<.2?'var(--bad)':'var(--fg)';
  el.innerHTML=`<div class="bm"><svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="32" cy="32" r="26" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(lv*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor" stroke="none">${Math.round(lv*100)}</text></svg><span>${b.charging?'In carica':'Non in carica'}</span></div>`}
-async function wx(){const el=$('#wxB');if(!el.dataset.ok)el.innerHTML='<p class="mut">Carico il meteo…</p>';
+async function wx(userGeo=false){if(!introFinished||$('#intro')){afterIntro(()=>wx(userGeo));return}if(!S.city&&!userGeo){askCity('Scegli la città oppure usa la tua posizione.');return}const el=$('#wxB');if(!el.dataset.ok)el.innerHTML='<p class="mut">Carico il meteo…</p>';
  try{let la,lo;if(S.city){la=S.city.lat;lo=S.city.lon}else{const pos=await new Promise((ok,no)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(ok,no,{timeout:10000,maximumAge:6e5}):no(new Error('geo')));la=pos.coords.latitude;lo=pos.coords.longitude}
  const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${(+la).toFixed(3)}&longitude=${(+lo).toFixed(3)}&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`);
  if(!r.ok)throw new Error('http');const j=await r.json(),c=j.current,[,k,d]=WX.find(x=>x[0].includes(c.weather_code))||[0,'cloud','Variabile'];
@@ -1076,7 +1087,7 @@ function askCity(msg){const el=$('#wxB');delete el.dataset.ok;
  el.innerHTML=`<p class="mut">${msg}</p><div class="row" style="margin-top:10px"><input id="wxC" placeholder="Es. Roma" aria-label="Città" maxlength="60"><button class="btn" id="wxS" style="flex:none">Cerca</button></div><p style="margin:8px 0 0"><button class="lk" id="wxG">Usa la mia posizione</button></p>`;
  $('#wxS').onclick=async()=>{const q=$('#wxC').value.trim();if(!q)return wx();try{S.city=await geo(q);save();wx()}catch(e){$('#wxC').value='';$('#wxC').placeholder='Città non trovata o rete assente'}};
  $('#wxC').onkeydown=e=>{if(e.key==='Enter')$('#wxS').click()};
- $('#wxG').onclick=()=>{S.city=null;save();wx()}}
+ $('#wxG').onclick=()=>{S.city=null;save();wx(true)}}
 async function wake(on){try{if(on&&!wl&&navigator.wakeLock){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}else if(!on&&wl){await wl.release();wl=null}}catch(e){}}
 function layout(){const on=S.sb==='on'||(S.sb==='auto'&&mq.matches&&chg===true);R.classList.toggle('sb',on);
  $('#bSb').setAttribute('aria-pressed',S.sb==='on');$('#bSb').title='StandBy: '+{auto:'Auto',on:'Attivo',off:'Off'}[S.sb];wake(on);night()}
@@ -1147,10 +1158,11 @@ async function profPush(){
 }
 async function profPull(){
  if(!S.acct||!S.acct.token)return null;
- try{const r=await api('/profile','GET');
+ const ownerToken=S.acct.token;try{const r=await api('/profile','GET');if(ownerToken!==S.acct?.token)return null;
   if(r&&r.profile&&r.profile.username){
    const sp=r.profile;
    if(!S.prof.username||S.prof.username!==sp.username){S.prof.username=sp.username}
+   if(sp.avatar)S.prof.avatar=sp.avatar;
    if(!S.prof.study&&sp.study)S.prof.study=sp.study;
    if(!S.prof.skills&&sp.skills)S.prof.skills=sp.skills;
    if(!S.prof.hobbies&&sp.hobbies)S.prof.hobbies=sp.hobbies;
@@ -1161,7 +1173,7 @@ async function profPull(){
    save();
    return true
   }
-  return false
+  return r&&r.profile===null?false:null
  }catch(e){return null}
 }
 let frData=null,frT=0;
@@ -1210,10 +1222,10 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
   api('/users/profile','GET',null,'?u='+encodeURIComponent(p.username)).then(r=>{if(r&&r.ok){const a=$('#pfNFr');if(a)a.textContent=r.followers||0;const b=$('#pfNS');if(b)b.textContent=r.following||0}}).catch(()=>{});
   frLoad(false).then(()=>{const c=$('#pfNF');if(c&&frData)c.textContent=(frData.friends||[]).length}).catch(()=>{})}
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
-if(S.acct&&S.acct.token)profPull().then(had=>{if(had===false&&S.profDone&&S.prof.username)profPush()});
+if(S.acct&&S.acct.token)profPull().then(had=>{if(had===false&&!acctHydrating&&S.profDone&&S.prof.username)profPush()});
 if(S.locSessionToken&&S.locSessionToken!==(S.acct&&S.acct.token)){S.locSession='';S.locShare=0;S.bgLoc=0;save()}
-if(S.locShare&&!S.locSession)setTimeout(()=>locEnable(),0);
-if(S.bgLoc&&S.acct&&S.acct.token&&S.locShare&&S.locSession){try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:1,token:S.acct.token,session:S.locSession,sharing:true})}catch(e){S.bgLoc=0;save()}}
+if(S.locShare&&!S.locSession)setTimeout(()=>afterIntro(()=>locEnable(false)),0);
+setTimeout(()=>afterIntro(()=>{if(S.bgLoc&&S.acct&&S.acct.token&&S.locShare&&S.locSession){try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:1,token:S.acct.token,session:S.locSession,sharing:true,restore:true})}catch(e){S.bgLoc=0;save()}}}),0)
 let convId=null,convLast=0,convTimer=null,cvMsgs=[],cvSenders={},cvReacts={};
 function aiOpen(){const b=$('#chatB'),a=$('#aic');if(!a)return;
  $('#frc').hidden=true;$('#fcFab').hidden=true;a.hidden=false;chatDraw();
@@ -1536,9 +1548,9 @@ window.__novaBgLoc=st=>{if(st==='on'){if(!S.locShare||!S.locSession){bgLocStop()
  else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
  else if(st==='denied'){S.bgLoc=0;save();mapNoteDraw();toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
  else if(st==='wheninuse'){S.bgLoc=0;save();mapNoteDraw();toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
-window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.4',ename:'Error',line:0}).catch(()=>{})});
+window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.24.5',ename:'Error',line:0}).catch(()=>{})});
 let locEpoch=0,locPending=false;
-async function locEnable(){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();mapInit();mapEntry()}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
+async function locEnable(openMap=true){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();if(openMap){mapInit();mapEntry()}}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
 function locDisable(){locEpoch++;locPending=false;const token=S.acct&&S.acct.token;S.locShare=0;S.locSession='';save();bgLocStop();if(token)api('/location','PUT',{sharing:false}).then(()=>toast('Condivisione spenta sul server')).catch(()=>toast('Offline: spegnimento mappa non confermato. Riconnettiti e riprova.'));}
 function bgLocStop(){S.bgLoc=0;save();try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:0})}catch(e){}}
 function mapNoteDraw(){const el=$('#mapNote');if(!el)return;const on=!!S.locShare;
@@ -1610,7 +1622,7 @@ document.addEventListener('pointerdown',e=>{
 if(S.theme!=='auto')theme();
 show();tasks();cal();tick();layout();rem();bridge();cvUI();gqUI();nxt();grades();spCard();post({t:'hwn',on:!!S.hwn});
 pg(0);setTimeout(tbLayout,300);
-if(S.done&&!S.profDone)setTimeout(()=>{try{profOpen(1)}catch(e){}},900);
+if(S.done&&!S.profDone)setTimeout(()=>afterIntro(()=>{if(S.done&&!S.profDone){try{profOpen(1)}catch(e){}}}),0);
 gqInit();spInit();ttPush();
 if(S.cv.on)cvRefresh(0);
 setInterval(()=>{if(S.cv.on&&!document.hidden)cvRefresh(0)},18e5);
