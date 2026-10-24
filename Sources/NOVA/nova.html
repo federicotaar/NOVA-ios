@@ -436,7 +436,7 @@ main.pg{padding-bottom:112px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.2</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.3</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -542,12 +542,12 @@ const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
 const haptic=s=>post({t:'haptic',style:s||'light'});
 const bridge=()=>post({t:'sched',items:S.tasks.filter(t=>!t.done&&t.rem).map(t=>({id:t.id,title:t.title,at:new Date(t.due)-t.rem*6e4}))});
 const hwPush=()=>{const items=S.tasks.filter(t=>!t.done&&t.kind!=='test'&&t.due).map(t=>({t:t.title,s:t.subj||'',d:String(t.due).slice(0,10)}));nat('tt','hw',{json:JSON.stringify({v:1,items})})};
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}bridge();hwPush();acctPush()};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){if(window.__novaMainReady)toast('Memoria locale piena: non uscire e verifica il backup account.')}bridge();hwPush();acctPush()};
 let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: codice JS_ERROR, riga '+(Number.isInteger(e.lineno)?e.lineno:0)+'. Puoi inviare uno screenshot senza contenuti privati';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.25.2',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.25.3',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -586,7 +586,7 @@ function cvImport(ev,gr){let n=0;const seen=new Set();
  if(ev&&ev.length)S.tasks=S.tasks.filter(t=>t.src!=='cv'||seen.has(t.id)||t.done);
  if(gr)S.gr=gr;
  save();tasks();cal();nxt();grades();return n}
-async function cvRefresh(manual){if(!S.cv.on)return;const r=await cv('refresh');
+async function cvRefresh(manual){if(!S.cv.on)return;const owner=S.acct?.token;const r=await cv('refresh');if(owner!==S.acct?.token)return;
  if(r.ok){const n=cvImport(r.events,r.grades);if(manual)toast(n?n+' novità da ClasseViva':'Compiti e verifiche già aggiornati');if(gqHas&&(manual||n>0))planGen(manual)}
  else if(r.err==='no-creds'){S.cv={on:0,name:''};save();cvUI()}
  else if(manual)toast('ClasseViva non raggiungibile ora, riprova tra poco')}
@@ -751,34 +751,50 @@ async function api(p,m,b,qs){const h={'content-type':'application/json'};if(S.ac
  const r=await fetch(API+p+(qs||''),{method:m,headers:h,body:b?JSON.stringify(b):undefined});
  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'HTTP '+r.status);return j}
 let acct={mode:'new',stage:'email',email:'',busy:0,err:''};
-const setupJson=()=>({v:2,setupComplete:S.ob===2||!!S.done,introEvery:!!S.introEvery,introOff:!!S.introOff,name:S.name,theme:S.theme,sb:S.sb,hwn:S.hwn,w:S.w,cv:S.cv,tt:S.tt});
-let acctLast='',acctT=0,acctHydrating=false;
-function acctPush(){if(acctHydrating)return;if(!S.acct||!S.acct.token)return;const s=JSON.stringify(setupJson());if(s===acctLast)return;
- clearTimeout(acctT);acctT=setTimeout(async()=>{try{await api('/sync','PUT',{json:setupJson()});acctLast=s}catch(e){}},800)}
-async function acctPull(){const r=await api('/sync','GET');if(!r.json)return false;
- const j=r.json;if(j.setupComplete===true){S.ob=2;S.done=1;S.profDone=1}['name','theme','sb','hwn','introEvery','introOff'].forEach(k=>{if(j[k]!==undefined)S[k]=j[k]});
- if(j.w)S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},j.w);if(j.cv)S.cv=j.cv;if(j.tt&&j.tt.lessons){S.tt=j.tt;ttPush()}
- save();theme();head();show();acctLast=JSON.stringify(setupJson());return true}
+const ACCOUNT_FIELDS=['name','theme','sb','hwn','w','tt','tasks','chat','gr','agentMd','aiAct','city','introEvery','introOff','done','ob','ttSeeded','profDone'];
+const PRIVATE_PROFILE=['username','avatar','study','skills','hobbies','song','badges'];
+const accountSnapshot=()=>{const d={};for(const k of ACCOUNT_FIELDS)if(S[k]!==undefined)d[k]=S[k];d.prof={};for(const k of PRIVATE_PROFILE)if(S.prof?.[k]!==undefined)d.prof[k]=S.prof[k];return JSON.parse(JSON.stringify(d))};
+const accountKey=e=>'nova.account.v3.'+e.toLowerCase();
+function accountCache(){if(!S.acct?.email)return true;if(!acctReady&&acctRev===null)return true;try{localStorage.setItem(accountKey(S.acct.email),JSON.stringify({data:accountSnapshot(),rev:acctRev,last:acctLast}));return true}catch(e){acctNote='Memoria locale piena: non uscire finché il backup non è confermato.';return false}}
+function accountReset(){for(const k of ACCOUNT_FIELDS)delete S[k];Object.assign(S,{name:'',theme:'auto',sb:'auto',done:0,ob:0,hwn:1,w:{wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},tasks:[],chat:[],gr:[],cv:{on:0,name:''},tt:{lessons:[]},agentMd:'',aiAct:'ask',prof:{username:'',avatar:'',study:'',skills:'',hobbies:'',song:null},profConfirmed:'',profPending:0,locShare:0,bgLoc:0,locSession:'',locSessionToken:''});frData=null;frT=0}
+function accountApply(d){for(const k of ACCOUNT_FIELDS)if(d[k]!==undefined)S[k]=JSON.parse(JSON.stringify(d[k]));if(d.prof)S.prof=Object.assign({},S.prof,d.prof);S.cv={on:0,name:''};S.locShare=0;S.bgLoc=0;S.locSession='';S.locSessionToken='';if(!['always','ask','deny'].includes(S.aiAct))S.aiAct='ask';for(const m of S.chat||[])for(const a of m.acts||[])if(['go','pending'].includes(a.st)){a.st='no';a.note='Non rieseguita dopo il ripristino'} }
+let acctLast='',acctT=0,acctHydrating=false,acctRev=null,acctNote='',acctFlight=null,acctConflict=null,acctReady=false;
+if(S.acct?.email){try{if(!localStorage.getItem(accountKey(S.acct.email)))localStorage.setItem(accountKey(S.acct.email),JSON.stringify({data:accountSnapshot(),rev:null,last:''}))}catch(e){}}
+async function accountApi(token,p,m,b){const r=await fetch(API+p,{method:m,headers:{'content-type':'application/json',authorization:'Bearer '+token},body:b?JSON.stringify(b):undefined});const j=await r.json();if(!r.ok){const e=new Error(j.error||'HTTP '+r.status);e.status=r.status;throw e}return j}
+function acctPush(){if(!S.acct?.token)return;accountCache();if(acctHydrating||!acctReady||acctConflict)return;const s=JSON.stringify(accountSnapshot());if(s===acctLast)return;clearTimeout(acctT);acctT=setTimeout(()=>accountFlush(),1800)}
+async function accountFlush(){clearTimeout(acctT);if(acctFlight){await acctFlight;if(JSON.stringify(accountSnapshot())!==acctLast&&!acctConflict)return accountFlush();return !acctConflict&&JSON.stringify(accountSnapshot())===acctLast}if(!S.acct?.token||!acctReady||acctHydrating||acctConflict)return false;const token=S.acct.token,email=S.acct.email,data=accountSnapshot(),s=JSON.stringify(data);if(s===acctLast)return true;acctNote='Salvataggio account…';acctUI();acctFlight=(async()=>{try{const r=await accountApi(token,'/account-data','PUT',{rev:acctRev,data});if(S.acct?.token!==token)return false;acctRev=r.rev;acctLast=s;acctNote='Salvato nell’account · '+new Date(r.updated_at).toLocaleTimeString('it-IT');accountCache();return true}catch(e){if(S.acct?.token!==token)return false;acctNote=e.status===409?'Modifiche su un altro dispositivo. Scegli quale copia tenere.':e.status===413?'Backup troppo grande: dati locali conservati, non uscire.':'Non salvato online: dati ancora su questo telefono. Riprova prima di uscire.';if(e.status===409){acctConflict={local:accountSnapshot()};acctReady=false}return false}finally{acctFlight=null;acctUI()}})();return acctFlight}
+async function acctPull(){const token=S.acct.token,email=S.acct.email;const r=await accountApi(token,'/account-data','GET');if(token!==S.acct?.token)throw new Error('Account cambiato');acctRev=r.rev;let cached=null;try{cached=JSON.parse(localStorage.getItem(accountKey(email))||'null')}catch(e){}if(r.data){const remote=JSON.stringify(r.data);if(cached&&JSON.stringify(cached.data)!==cached.last&&JSON.stringify(cached.data)!==remote){acctConflict={local:cached.data,remote:r};acctNote='Copia locale non salvata e copia online diverse. Nessuna sovrascrittura automatica.';acctReady=false;return true}accountApply(r.data);acctLast=JSON.stringify(accountSnapshot());acctNote='Dati ripristinati dall’account';acctReady=true;save();theme();head();show();tasks();grades();chatDraw();pf();ttPush();return true}
+ const legacy=await accountApi(token,'/sync','GET');if(token!==S.acct?.token)throw new Error('Account cambiato');if(cached?.data)accountApply(cached.data);else if(legacy.json){const j=legacy.json;for(const k of ['name','theme','sb','hwn','introEvery','introOff','w','tt'])if(j[k]!==undefined)S[k]=j[k];if(j.setupComplete){S.done=1;S.ob=2;S.profDone=1}}
+ acctReady=true;acctLast='';acctNote='Primo backup completo da salvare';save();theme();head();show();return !!legacy.json}
+async function accountResolve(useCloud){try{const token=S.acct.token;const r=await accountApi(token,'/account-data','GET');if(token!==S.acct?.token)return;const local=acctConflict?.local||accountSnapshot();try{localStorage.setItem(accountKey(S.acct.email)+'.recovery.'+Date.now(),JSON.stringify(local))}catch(e){toast('Impossibile conservare la copia locale: nessuna modifica');return}acctHydrating=true;accountApply(useCloud&&r.data?r.data:local);acctRev=r.rev;acctLast=useCloud?JSON.stringify(accountSnapshot()):'';acctConflict=null;acctReady=true;acctHydrating=false;save();theme();head();show();tasks();grades();chatDraw();pf();acctUI();if(!useCloud)await accountFlush()}catch(e){toast('Confronto non riuscito: riprova online')}}
+async function accountLogout(){if(!accountCache()){toast(acctNote);return}if(!await accountFlush()){toast('Uscita fermata: backup online non confermato. Riprova Salva ora.');return}locDisable();post({t:'plan',items:[]});delete S.acct;accountReset();acctReady=false;acctRev=null;acctLast='';acctNote='';acctConflict=null;save();acct={mode:'new',stage:'email',email:'',busy:0,err:''};acctUI();obRefresh();tasks();grades();chatDraw();pf()}
+window.addEventListener('online',()=>{if(S.acct?.token&&!acctHydrating&&!acctConflict){if(!acctReady)accountBoot();else accountFlush()}});
+async function accountBoot(){if(!S.acct?.token||acctHydrating)return;const localCV=S.cv;acctHydrating=true;acctUI();try{await acctPull();S.cv=localCV;cvUI();acctHydrating=false;if(!acctConflict)await accountFlush()}catch(e){acctHydrating=false;acctReady=false;acctNote='Ripristino non verificato. Dati locali conservati; riprova online.'}acctUI()}
 async function acctDone(email,token,isNew){
- clearTimeout(acctT);acctHydrating=true;
+ clearTimeout(acctT);if(S.acct?.email&&!accountCache()){toast(acctNote);return}acctHydrating=true;acctReady=false;acctConflict=null;
  const changed=S.acct?.email?.toLowerCase()!==email.toLowerCase();
- if(changed){bgLocStop();S.locShare=0;S.locSession='';S.prof={username:'',avatar:'',study:'',skills:'',hobbies:'',song:null};S.name='';S.profConfirmed='';S.profPending=0;frData=null;frT=0}
+ if(changed){try{localStorage.setItem('nova.recovery.before-account.'+Date.now(),JSON.stringify(accountSnapshot()))}catch(e){acctHydrating=false;toast('Memoria piena: accesso fermato per conservare i dati locali.');return}bgLocStop();accountReset();acctRev=null;acctLast=''}
  S.acct={email:email.toLowerCase(),token};save();
  acct={mode:'new',stage:'email',email:'',busy:0,err:''};
  let had=false,hadP=null,failed=false;
  try{had=await acctPull();hadP=await profPull()}catch(e){failed=true}
  const inOb=!$('#ob').hidden&&OB[obI]&&OB[obI].k==='Account';
  acctHydrating=false;acctUI();
- if(failed||hadP===null){acctHydrating=true;acctUI();toast('Account collegato. Ripristino non riuscito: riprova, senza rifare il setup.');return}
+ if(acctConflict)return;
+ if(failed||hadP===null){acctHydrating=false;acctReady=false;acctNote='Ripristino non riuscito: dati locali conservati. Riprova Salva ora.';acctUI();toast(acctNote);return}
  const returning=!isNew&&(had||hadP===true);
  if(returning){obEnd();toast('Bentornato: configurazione ripristinata')}
  else if(isNew){welcomeAnim(email);if(inOb)obGo(1);acctPush()}
  else{if(inOb){obEnd();toast('Account collegato. Completa solo ciò che manca da Profilo.')}else toast('Account collegato')}
+ if(acctReady)await accountFlush();
 }
 const mailOk=e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
 function acctUI(){$$('.acctb').forEach(b=>{
- if(S.acct&&S.acct.token&&acctHydrating){b.innerHTML='<p class="mut">Ripristino account non completato. Nessuna configurazione locale verrà inviata.</p><button class="btn acRetry">Riprova ripristino</button>';b.querySelector('.acRetry').onclick=()=>acctDone(S.acct.email,S.acct.token,false);return}if(S.acct&&S.acct.token){b.innerHTML='<small>Collegato come <b>'+esc(S.acct.email)+'</b>. La configurazione si sincronizza automaticamente.</small><div class="row" style="margin-top:8px"><button class="btn acO">Esci</button></div>';
-  b.querySelector('.acO').onclick=()=>{locDisable();delete S.acct;save();acct={mode:'new',stage:'email',email:'',busy:0,err:''};acctUI();obRefresh()};return}
+ if(S.acct?.token){if(acctHydrating){b.innerHTML='<p class="mut">Verifica e ripristino account… I dati locali restano conservati.</p>';return}
+ const note=esc(acctNote||'Backup completo non ancora verificato');
+ b.innerHTML='<small>Account <b>'+esc(S.acct.email)+'</b></small><p class="mut">'+note+'</p><small>Foto profilo, compiti, voti, chat IA, orario e preferenze sono privati nel backup account. Chiavi, password, collegamenti servizi e permessi posizione restano sul telefono. Le chat amici restano sul server.</small>'+(acctConflict?'<p>Le due copie restano conservate. Locale: '+esc(acctConflict.local.name||'senza nome')+', '+(acctConflict.local.tasks||[]).length+' compiti, '+(acctConflict.local.chat||[]).length+' messaggi IA. Online: '+esc(acctConflict.remote?.data?.name||'copia su un altro dispositivo')+'. Nessuna scelta è automatica.</p><button class="btn acLocal">Usa questa copia locale</button><button class="btn acCloud">Usa copia online</button>':'<div class="row" style="margin-top:8px"><button class="btn acSave">Salva ora</button><button class="btn acO">Esci</button></div>');
+ if(acctConflict){b.querySelector('.acLocal').onclick=()=>accountResolve(false);b.querySelector('.acCloud').onclick=()=>accountResolve(true)}else{b.querySelector('.acSave').onclick=()=>acctReady?accountFlush():accountBoot();b.querySelector('.acO').onclick=accountLogout}return}
+
  const em='<input id="acE" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="La tua email" value="'+esc(acct.email)+'">';
  const codeIn='<input id="acC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Codice a 6 cifre">';
  const sent='<small>Codice inviato a <b>'+esc(acct.email)+'</b>. Controlla la posta (anche spam): vale 10 minuti.</small>';
@@ -1172,7 +1188,7 @@ async function profPull(){
   if(r&&r.profile&&r.profile.username){
    const sp=r.profile;
    if(!S.profPending){S.prof.username=sp.username;S.profConfirmed=sp.username}
-   if(sp.avatar)S.prof.avatar=sp.avatar;
+   if(sp.avatar&&!S.prof.avatar)S.prof.avatar=sp.avatar;
    if(!S.prof.study&&sp.study)S.prof.study=sp.study;
    if(!S.prof.skills&&sp.skills)S.prof.skills=sp.skills;
    if(!S.prof.hobbies&&sp.hobbies)S.prof.hobbies=sp.hobbies;
@@ -1238,7 +1254,7 @@ function pf(){const p=S.prof,el=$('#pfB');if(!el)return;
   api('/users/profile','GET',null,'?u='+encodeURIComponent(p.username)).then(r=>{if(r&&r.ok){const a=$('#pfNFr');if(a)a.textContent=r.followers||0;const b=$('#pfNS');if(b)b.textContent=r.following||0}}).catch(()=>{});
   frLoad(false).then(()=>{const c=$('#pfNF');if(c&&frData)c.textContent=(frData.friends||[]).length}).catch(()=>{})}
  const pl=$('#pfPl');if(pl)pl.onclick=pfToggle}
-if(S.acct&&S.acct.token)profPull().then(had=>{if(had!==null&&!acctHydrating&&S.profDone&&S.prof.username&&(had===false||S.profPending))profPush()});
+if(S.acct&&S.acct.token)profPull().then(had=>{if(had!==null&&!acctHydrating&&acctReady&&S.profDone&&S.prof.username&&(had===false||S.profPending))profPush()});
 if(S.locSessionToken&&S.locSessionToken!==(S.acct&&S.acct.token)){S.locSession='';S.locShare=0;S.bgLoc=0;save()}
 if(S.locShare&&!S.locSession)setTimeout(()=>afterIntro(()=>locEnable(false)),0);
 setTimeout(()=>afterIntro(()=>{if(S.bgLoc&&S.acct&&S.acct.token&&S.locShare&&S.locSession){try{if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.nova)webkit.messageHandlers.nova.postMessage({t:'bgLoc',on:1,token:S.acct.token,session:S.locSession,sharing:true,restore:true})}catch(e){S.bgLoc=0;save()}}}),0)
@@ -1577,7 +1593,7 @@ window.__novaBgLoc=st=>{if(st==='on'){if(!S.locShare||!S.locSession){bgLocStop()
  else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
  else if(st==='denied'){S.bgLoc=0;save();mapNoteDraw();toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
  else if(st==='wheninuse'){S.bgLoc=0;save();mapNoteDraw();toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
-window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.25.2',ename:'Error',line:0}).catch(()=>{})});
+window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.25.3',ename:'Error',line:0}).catch(()=>{})});
 let locEpoch=0,locPending=false;
 async function locEnable(openMap=true){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();if(openMap){mapInit();mapEntry()}}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
 function locDisable(){locEpoch++;locPending=false;const token=S.acct&&S.acct.token;S.locShare=0;S.locSession='';save();bgLocStop();if(token)api('/location','PUT',{sharing:false}).then(()=>toast('Condivisione spenta sul server')).catch(()=>toast('Offline: spegnimento mappa non confermato. Riconnettiti e riprova.'));}
@@ -1663,6 +1679,7 @@ setInterval(tick,1000);setInterval(rem,15000);setInterval(()=>{if(S.w.wx)wx()},9
 mq.addEventListener('change',layout);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(R.classList.contains('sb'))wake(true);if(S.cv.on)cvRefresh(0);spPoll()}});
 intro();window.__novaMainReady=true;
+if(S.acct?.token)setTimeout(accountBoot,0);
 </script>
 </body>
  </html>
