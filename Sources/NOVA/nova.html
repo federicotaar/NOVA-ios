@@ -337,6 +337,17 @@ main.pg{padding-bottom:112px}
 /* Disable browser double-tap magnification, not pinch zoom or Leaflet gestures. */
 html,body{touch-action:manipulation}
 input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important}
+/* Other-person profile is an opaque destination, not a floating translucent sheet. */
+#dFrP{position:fixed;inset:0;margin:0;width:100%;max-width:none;height:100dvh;max-height:none;padding:0;border:0;border-radius:0;background:var(--bg);color:var(--fg);box-shadow:none;overflow:auto}
+#dFrP::backdrop{background:var(--bg)}
+#dFrP>.sheet{min-height:100%;max-height:none;box-sizing:border-box;padding:calc(16px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));background:var(--bg);border-radius:0;max-width:640px;margin:auto}
+#cvTy{display:flex;align-items:center;gap:8px;min-height:22px;font-style:normal}
+#cvTy:empty{min-height:0;padding-bottom:0}
+.tyDots{display:inline-flex;align-items:center;gap:3px;padding:8px 10px;border-radius:14px;background:var(--fld)}
+.tyDots i{width:5px;height:5px;background:var(--mut);border-radius:50%;animation:typingDot 1.2s ease-in-out infinite}
+.tyDots i:nth-child(2){animation-delay:.15s}.tyDots i:nth-child(3){animation-delay:.3s}
+@keyframes typingDot{0%,65%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-3px);opacity:1}}
+@media(prefers-reduced-motion:reduce){.tyDots i{animation:none;opacity:.8}}
 </style>
 </head>
 <body>
@@ -439,7 +450,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.6</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.7</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -476,7 +487,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
  <div id="frLL" style="display:flex;flex-direction:column;gap:8px;max-height:50dvh;overflow:auto;margin-top:8px"></div>
 </div></dialog>
 <dialog id="dFrP"><div class="sheet">
- <div style="display:flex;align-items:center;gap:8px"><h2 id="frPT" style="flex:1;margin:0">Profilo</h2><button class="btn sm" id="frPX">Chiudi</button></div>
+ <div style="display:flex;align-items:center;gap:8px"><h2 id="frPT" style="flex:1;margin:0">Profilo</h2><button class="btn sm" id="frPX" aria-label="Indietro">Indietro</button></div>
  <div id="frPB" style="margin-top:8px"></div>
 </div></dialog>
 <dialog id="dNC"><div class="sheet">
@@ -550,7 +561,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: codice JS_ERROR, riga '+(Number.isInteger(e.lineno)?e.lineno:0)+'. Puoi inviare uno screenshot senza contenuti privati';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.25.6',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.25.7',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -1296,10 +1307,12 @@ async function frListOpen(kind){frLKind=kind;
   L.querySelectorAll('[data-px]').forEach(b=>b.onclick=()=>frProfOpen(b.dataset.px));
  }catch(e){L.innerHTML='<small class="mut">Non disponibile ora.</small>'}
 }
-async function frProfOpen(u){const B=$('#frPB');if(!B)return;
- B.innerHTML='<small class="mut">Carico…</small>';$('#frPT').textContent='@'+u;$('#dFrP').showModal();
+let frProfileEpoch=0;
+async function frProfOpen(u){const epoch=++frProfileEpoch,owner=S.acct?.token;const B=$('#frPB');if(!B)return;
+ B.innerHTML='<small class="mut">Carico…</small>';$('#frPT').textContent='@'+u;if(!$('#dFrP').open)$('#dFrP').showModal();$('#dFrP').scrollTop=0;
  try{const r=await api('/users/profile','GET',null,'?u='+encodeURIComponent(u));
   if(!r||!r.ok){B.innerHTML='<small class="mut">Profilo non disponibile.</small>';return}
+  if(epoch!==frProfileEpoch||owner!==S.acct?.token||!$('#dFrP').open)return;
   const p=r.profile||{};
   let h='<div class="pfTop"><div class="pfA">'+(p.avatar?esc(p.avatar):esc((u[0]||'?').toUpperCase()))+'</div><h3 style="margin:0">@'+esc(u)+'</h3></div>'
    +'<div class="pfStat"><span><b>'+(r.followers||0)+'</b> follower</span><span><b>'+(r.following||0)+'</b> seguiti</span></div>';
@@ -1318,7 +1331,7 @@ async function frProfOpen(u){const B=$('#frPB');if(!B)return;
   const plb=$('#frPPl');if(plb&&p.song&&p.song.prev)plb.onclick=()=>fpToggle(plb,p.song);
   const fb=$('#frPFol');if(fb)fb.onclick=async()=>{try{const r2=await api(r.you_follow?'/unfollow':'/follow','POST',{username:u});if(r2&&r2.ok){haptic('light');frProfOpen(u)}else toast('Errore')}catch(e){toast('Errore')}};
   const ab=$('#frPAdd');if(ab)ab.onclick=async()=>{try{if(!await profEnsure())return;const r2=await api('/friends/request','POST',{username:u});toast(r2&&r2.ok?'Richiesta inviata a @'+u:((r2&&r2.error)||'Errore'));frLoad(true)}catch(e){toast('Errore')}};
- }catch(e){B.innerHTML='<small class="mut">Non disponibile ora.</small>'}
+ }catch(e){if(epoch===frProfileEpoch&&owner===S.acct?.token)B.innerHTML='<small class="mut">Non disponibile ora.</small>'}
 }
 let fpAu=null,fpPlaying=false;
 let fpBusy=false;
@@ -1333,6 +1346,7 @@ async function fpToggle(btn,s){if(fpBusy)return;
  catch(e){fpPlaying=false;if(btn.isConnected)btn.innerHTML=ic('play');toast('Anteprima non disponibile ora. Riprova più tardi.')}
  finally{fpBusy=false}}
 $('#frLX').onclick=()=>$('#dFrL').close();
+$('#dFrP').addEventListener('close',()=>{frProfileEpoch++;if(fpAu)fpAu.pause();fpPlaying=false});
 $('#frPX').onclick=()=>{if(fpPlaying&&fpAu){fpAu.pause();fpPlaying=false}$('#dFrP').close()};
 function ncOpen(){frLoad(true).then(()=>{const d=frData||{friends:[]};
  if(!d.friends.length){toast('Aggiungi prima un amico dalla pagina Profilo');return}
@@ -1365,8 +1379,11 @@ function cvActSheet(mid){const m=cvMsgs.find(x=>x.id===mid);if(!m||m.deleted)ret
   if(b.dataset.a==='edit'){w.hidden=true;const t=prompt('Modifica messaggio',m.body);if(t&&t.trim()&&t!==m.body){try{await api('/messages/'+mid+'/edit','POST',{body:t.trim()})}catch(x){}convPoll(true)}return}
   w.hidden=true};
  haptic('light')}
-async function convPoll(force){if(!convId)return;
- try{const r=await api('/chats/'+convId+'/messages','GET',null,convLast?'?since='+convLast:'?limit=50');
+let convEpoch=0,cvTypingTimer=0;
+function cvTyping(names){clearTimeout(cvTypingTimer);const el=$('#cvTy');names=names.filter(n=>typeof n==='string').slice(0,8);if(!names.length){el.innerHTML='';return}const label=names.join(', ')+(names.length===1?' sta scrivendo…':' stanno scrivendo…');if(el.dataset.label!==label||!el.firstChild){el.dataset.label=label;el.innerHTML='<span class="tyDots" aria-hidden="true"><i></i><i></i><i></i></span><span>'+esc(label)+'</span>';el.setAttribute('role','status');el.setAttribute('aria-live','polite')}cvTypingTimer=setTimeout(()=>{el.innerHTML='';el.dataset.label=''},6500)}
+async function convPoll(force){if(!convId)return;const cid=convId,owner=S.acct?.token,epoch=convEpoch;const current=()=>cid===convId&&owner===S.acct?.token&&epoch===convEpoch;
+ try{const r=await api('/chats/'+cid+'/messages','GET',null,convLast?'?since='+convLast:'?limit=50');
+  if(!current())return;
   if(r&&r.ok){cvSenders=Object.assign(cvSenders,r.senders||{});
    if(r.reactions)cvReacts=r.reactions;
    if(r.messages&&r.messages.length){const ni=cvMsgs.length;
@@ -1374,16 +1391,16 @@ async function convPoll(force){if(!convId)return;
     else cvMsgs=r.messages;
     convLast=cvMsgs.length?cvMsgs[cvMsgs.length-1].id:convLast;
     cvDraw(cvMsgs.length!==ni);
-    const mx=convLast;if(mx)api('/chats/'+convId+'/read','POST',{last_msg_id:mx}).catch(()=>{})}}
-  const t=await api('/chats/'+convId+'/typing','GET');
-  $('#cvTy').textContent=(t&&t.typing&&t.typing.length)?t.typing.join(', ')+' sta scrivendo…':''}catch(e){$('#cvTy').textContent='Aggiornamento non riuscito. Riprovo tra pochi secondi.'}}
-function convOpen(id,title,examAt){convId=id;convLast=0;typingLast=0;cvMsgs=[];cvSenders={};cvReacts={};
+    const mx=convLast;if(mx)api('/chats/'+cid+'/read','POST',{last_msg_id:mx}).catch(()=>{})}}
+  const t=await api('/chats/'+cid+'/typing','GET');
+  if(!current())return;cvTyping((t&&t.typing)||[])}catch(e){if(current()){cvTyping([]);$('#cvTy').textContent='Aggiornamento non riuscito. Riprovo tra pochi secondi.'}}}
+function convOpen(id,title,examAt){convEpoch++;cvTyping([]);convId=id;convLast=0;typingLast=0;cvMsgs=[];cvSenders={};cvReacts={};
  $('#cvT').textContent=title||'Chat';$('#cvM').innerHTML='';$('#cvTy').textContent='';
  const ce=$('#cvE');if(examAt){const dd=Math.ceil((examAt-Date.now())/86400000);
   ce.hidden=false;ce.textContent=dd>0?'Esame tra '+dd+(dd===1?' giorno':' giorni'):(dd===0?'Esame oggi!':'Esame passato')}else ce.hidden=true;
  $('#conv').hidden=false;
  convPoll(true);clearInterval(convTimer);convTimer=setInterval(convPoll,4000)}
-function convClose(){convId=null;clearInterval(convTimer);$('#conv').hidden=true;frcDraw()}
+function convClose(){convEpoch++;cvTyping([]);convId=null;clearInterval(convTimer);$('#conv').hidden=true;frcDraw()}
 function chatPg(){const a=$('#aic');if(a)a.hidden=true;frcDraw()}
 function avPick(inp,cb){inp.onchange=()=>{const f=inp.files&&inp.files[0];if(!f)return;const img=new Image();
  img.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
@@ -1596,7 +1613,7 @@ window.__novaBgLoc=st=>{if(st==='on'){if(!S.locShare||!S.locSession){bgLocStop()
  else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
  else if(st==='denied'){S.bgLoc=0;save();mapNoteDraw();toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
  else if(st==='wheninuse'){S.bgLoc=0;save();mapNoteDraw();toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
-window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.25.6',ename:'Error',line:0}).catch(()=>{})});
+window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.25.7',ename:'Error',line:0}).catch(()=>{})});
 let locEpoch=0,locPending=false;
 async function locEnable(openMap=true){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();if(openMap){mapInit();mapEntry()}}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
 function locDisable(){locEpoch++;locPending=false;const token=S.acct&&S.acct.token;S.locShare=0;S.locSession='';save();bgLocStop();if(token)api('/location','PUT',{sharing:false}).then(()=>toast('Condivisione spenta sul server')).catch(()=>toast('Offline: spegnimento mappa non confermato. Riconnettiti e riprova.'));}
