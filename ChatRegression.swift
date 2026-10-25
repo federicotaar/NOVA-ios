@@ -123,7 +123,7 @@ final class NativeGlassNavigation:NSObject {
  surface.trackingEvent={[weak self] phase,x in guard let self=self else{return};if phase=="start"{self.dragStart=self.selected}
  let position=max(0,min(4,x/(self.surface.bounds.width/5)-0.5)),delta=(CGFloat(self.dragStart)-position)*(self.web?.bounds.width ?? 390)*0.25
  if phase=="cancel"{self.web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(self.dragStart))",completionHandler:nil);return}
- if phase=="end"{return}
+ if phase=="end"{self.web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(max(0,self.surface.selectedSegmentIndex)))",completionHandler:nil);return}
  self.web?.evaluateJavaScript("window.__nativeNavDrag&&__nativeNavDrag('\(phase)',\(delta))",completionHandler:nil)
  }
  surface.addTarget(self,action:#selector(changed),for:.valueChanged);web.addSubview(surface);surface.isHidden=true
