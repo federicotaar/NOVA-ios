@@ -23,8 +23,11 @@ import WebKit
  document.querySelectorAll('dialog[open]').forEach(d=>d.close());if($('#intro'))$('#intro').remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(2);convOpen(1,'Synthetic chat');
  await new Promise(r=>setTimeout(r,300));$('#cvI').value='Synthetic message';$('#cvI').dispatchEvent(new Event('input'));$('#cvI').dispatchEvent(new Event('input'));if(testTyping.length!==1)throw Error('typing throttle');$('#cvS').click();await new Promise(r=>setTimeout(r,300));
  convClose();convOpen(2,'Synthetic second chat');$('#cvI').value='Second fixture';$('#cvI').dispatchEvent(new Event('input'));if(testTyping.length!==2)throw Error('typing reset');
+ if(getComputedStyle(document.documentElement).touchAction!=='manipulation')throw Error('global touch policy');
+ for(const sel of ['#cvI','#ai']){const f=$(sel);if(parseFloat(getComputedStyle(f).fontSize)<16)throw Error('input focus zoom font '+sel);f.focus();if(visualViewport&&Math.abs(visualViewport.scale-1)>.01)throw Error('native focus scale '+sel);f.blur()}
+ if(document.querySelector('meta[name=viewport]').content.includes('user-scalable=no'))throw Error('pinch disabled');
  if(testSent.length!==1||testSent[0].body!=='Synthetic message')throw Error('send');if(testErrors.length||$('#errB'))throw Error('JS runtime errors');
- webkit.messageHandlers.result.postMessage({ok:true,typing:testTyping.length,sent:testSent.length,errors:testErrors,build:document.body.innerText.includes('2026.10.24.6')});
+ webkit.messageHandlers.result.postMessage({ok:true,typing:testTyping.length,sent:testSent.length,errors:testErrors,zoom:{scale:visualViewport.scale,inputFont:getComputedStyle($('#cvI')).fontSize,touch:getComputedStyle(document.documentElement).touchAction},build:document.body.innerText.includes('2026.10.24.6')});
  }catch(e){webkit.messageHandlers.result.postMessage({ok:false,error:String(e),errors:testErrors})}})();
  """
  self.web.evaluateJavaScript(test,completionHandler:nil)
