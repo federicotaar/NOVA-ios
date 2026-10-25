@@ -480,7 +480,7 @@ html.nativeAppleGlass #pgChat #cm{padding-bottom:180px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.13</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.14</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -800,7 +800,7 @@ const PRIVATE_PROFILE=['username','avatar','study','skills','hobbies','song','ba
 const accountSnapshot=()=>{const d={};for(const k of ACCOUNT_FIELDS)if(S[k]!==undefined)d[k]=S[k];d.prof={};for(const k of PRIVATE_PROFILE)if(S.prof?.[k]!==undefined)d.prof[k]=S.prof[k];return JSON.parse(JSON.stringify(d))};
 const accountKey=e=>'nova.account.v3.'+e.toLowerCase();
 function accountCache(){if(!S.acct?.email)return true;if(!acctReady)return true;try{localStorage.setItem(accountKey(S.acct.email),JSON.stringify({data:accountSnapshot(),rev:acctRev,last:acctLast}));return true}catch(e){acctNote='Memoria locale piena: non uscire finché il backup non è confermato.';return false}}
-function accountReset(){for(const k of ACCOUNT_FIELDS)delete S[k];Object.assign(S,{name:'',theme:'auto',sb:'auto',done:0,ob:0,hwn:1,w:{wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},tasks:[],chat:[],gr:[],cv:{on:0,name:''},tt:{lessons:[]},agentMd:'',aiAct:'ask',prof:{username:'',avatar:'',study:'',skills:'',hobbies:'',song:null},profConfirmed:'',profPending:0,locShare:0,bgLoc:0,locSession:'',locSessionToken:''});frData=null;frT=0}
+function accountReset(){if(typeof convClose==='function')convClose();for(const k of ACCOUNT_FIELDS)delete S[k];Object.assign(S,{name:'',theme:'auto',sb:'auto',done:0,ob:0,hwn:1,w:{wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},tasks:[],chat:[],gr:[],cv:{on:0,name:''},tt:{lessons:[]},agentMd:'',aiAct:'ask',prof:{username:'',avatar:'',study:'',skills:'',hobbies:'',song:null},profConfirmed:'',profPending:0,locShare:0,bgLoc:0,locSession:'',locSessionToken:''});frData=null;frT=0}
 function accountApply(d){for(const k of ACCOUNT_FIELDS)if(d[k]!==undefined)S[k]=JSON.parse(JSON.stringify(d[k]));if(d.prof)S.prof=Object.assign({},S.prof,d.prof);S.cv={on:0,name:''};S.locShare=0;S.bgLoc=0;S.locSession='';S.locSessionToken='';if(!['always','ask','deny'].includes(S.aiAct))S.aiAct='ask';for(const m of S.chat||[])for(const a of m.acts||[])if(['go','pending'].includes(a.st)){a.st='no';a.note='Non rieseguita dopo il ripristino'} }
 let acctLast='',acctT=0,acctHydrating=false,acctRev=null,acctNote='',acctFlight=null,acctConflict=null,acctReady=false;
 if(S.acct?.email){try{if(!localStorage.getItem(accountKey(S.acct.email)))localStorage.setItem(accountKey(S.acct.email),JSON.stringify({data:accountSnapshot(),rev:null,last:''}))}catch(e){}}
@@ -1426,13 +1426,13 @@ async function convPoll(force){if(!convId)return;const cid=convId,owner=S.acct?.
     const mx=convLast;if(mx)api('/chats/'+cid+'/read','POST',{last_msg_id:mx}).catch(()=>{})}}
   const t=await api('/chats/'+cid+'/typing','GET');
   if(!current())return;cvTyping((t&&t.typing)||[])}catch(e){if(current()){cvTyping([]);$('#cvTy').textContent='Aggiornamento non riuscito. Riprovo tra pochi secondi.'}}}
-function convOpen(id,title,examAt){convEpoch++;cvTyping([]);convId=id;convLast=0;typingLast=0;cvMsgs=[];cvSenders={};cvReacts={};
+function convOpen(id,title,examAt){cvCancelMedia();$('#cvI').value='';convEpoch++;cvTyping([]);convId=id;convLast=0;typingLast=0;cvMsgs=[];cvSenders={};cvReacts={};
  $('#cvT').textContent=title||'Chat';$('#cvM').innerHTML='';$('#cvTy').textContent='';
  const ce=$('#cvE');if(examAt){const dd=Math.ceil((examAt-Date.now())/86400000);
   ce.hidden=false;ce.textContent=dd>0?'Esame tra '+dd+(dd===1?' giorno':' giorni'):(dd===0?'Esame oggi!':'Esame passato')}else ce.hidden=true;
  $('#conv').hidden=false;
  convPoll(true);clearInterval(convTimer);convTimer=setInterval(convPoll,4000)}
-function convClose(){convEpoch++;cvTyping([]);convId=null;clearInterval(convTimer);$('#conv').hidden=true;frcDraw()}
+function convClose(){cvCancelMedia();$('#cvI').value='';convEpoch++;cvTyping([]);convId=null;clearInterval(convTimer);$('#conv').hidden=true;frcDraw()}
 function chatPg(){const a=$('#aic');if(a)a.hidden=true;frcDraw()}
 function avPick(inp,cb){inp.onchange=()=>{const f=inp.files&&inp.files[0];if(!f)return;const img=new Image();
  img.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
@@ -1580,35 +1580,40 @@ $('#ncC').onclick=()=>$('#dNC').close();
 $('#ncL').onchange=()=>{const g=$$('#ncL input:checked').length<2;$('#ncG').hidden=g;$('#ncGE').hidden=g};
 $('#cvP').innerHTML=ic('plus');
 $('#cvP').onclick=()=>$('#cvPF').click();
-$('#cvPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||!convId)return;
- try{toast('Carico la foto…');const img=await ttImg(f);
-  const up=await api('/media','POST',{data:img.split(',')[1],mime:'image/jpeg'});
-  await api('/chats/'+convId+'/messages','POST',{kind:'image',media_key:up.url});
-  haptic('success');convPoll(true)}catch(x){toast(x.message||'Foto non inviata')}};
+function cvMediaOwner(){return {id:convId,token:S.acct?.token,email:S.acct?.email,epoch:convEpoch}}
+function cvMediaValid(o){return !!o.id&&o.id===convId&&o.token===S.acct?.token&&o.email===S.acct?.email&&o.epoch===convEpoch}
+$('#cvPF').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||!convId)return;const owner=cvMediaOwner();
+ try{toast('Carico la foto…');const img=await ttImg(f);if(!cvMediaValid(owner))return;
+  const up=await api('/media','POST',{data:img.split(',')[1],mime:'image/jpeg'});if(!cvMediaValid(owner))return;
+  await api('/chats/'+owner.id+'/messages','POST',{kind:'image',media_key:up.url});
+  if(cvMediaValid(owner)){haptic('success');convPoll(true)}}catch(x){if(cvMediaValid(owner))toast(x.message||'Foto non inviata')}};
 
 // ---- voce + QR ----
-let mr=null,mrChunks=[];
+let mr=null,mrChunks=[],mrOwner=null,mrTimer=null,mrStarting=false;
+function cvCancelMedia(){if(mrTimer)clearTimeout(mrTimer);mrTimer=null;mrStarting=false;mrOwner=null;if(mr&&mr.state==='recording')mr.stop();mr=null;mrChunks=[];$('#cvR')?.classList.remove('rec')}
 $('#cvR').innerHTML='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 $('#cvR').onclick=async()=>{
- if(mr&&mr.state==='recording'){mr.stop();return}
- if(!convId)return;
+ if(mr&&mr.state==='recording'){mr.stop();return}if(mrStarting||!convId)return;
  if(typeof MediaRecorder==='undefined'||!navigator.mediaDevices){toast('Audio non supportato su questo dispositivo');return}
+ const owner=cvMediaOwner();mrStarting=true;mrOwner=owner;
  try{const st=await navigator.mediaDevices.getUserMedia({audio:true});
+  if(!cvMediaValid(owner)||mrOwner!==owner){st.getTracks().forEach(t=>t.stop());return}
   let mime='audio/mp4';if(!MediaRecorder.isTypeSupported(mime))mime='audio/webm';if(!MediaRecorder.isTypeSupported(mime))mime='';
-  mr=new MediaRecorder(st,mime?{mimeType:mime}:undefined);mrChunks=[];
-  mr.ondataavailable=e=>{if(e.data.size)mrChunks.push(e.data)};
-  mr.onstop=async()=>{st.getTracks().forEach(t=>t.stop());$('#cvR').classList.remove('rec');
-   const blob=new Blob(mrChunks,{type:mr.mimeType||'audio/mp4'});
-   if(blob.size<500){toast('Registrazione troppo corta');return}
-   if(blob.size>900000){toast('Massimo 60 secondi');return}
-   toast('Invio il vocale…');
-   const fr=new FileReader();fr.onload=async()=>{try{
+  const recorder=new MediaRecorder(st,mime?{mimeType:mime}:undefined),chunks=[];mr=recorder;mrChunks=chunks;mrStarting=false;
+  recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  recorder.onstop=async()=>{st.getTracks().forEach(t=>t.stop());if(mr===recorder){mr=null;$('#cvR').classList.remove('rec');clearTimeout(mrTimer);mrTimer=null}
+   if(!cvMediaValid(owner)||mrOwner!==owner)return;
+   const blob=new Blob(chunks,{type:recorder.mimeType||'audio/mp4'});
+   if(blob.size<500){toast('Registrazione troppo corta');return}if(blob.size>900000){toast('Massimo 60 secondi');return}
+   toast('Invio il vocale…');const fr=new FileReader();fr.onload=async()=>{try{
+    if(!cvMediaValid(owner)||mrOwner!==owner)return;
     const up=await api('/media','POST',{data:String(fr.result).split(',')[1],mime:blob.type});
-    await api('/chats/'+convId+'/messages','POST',{kind:'voice',media_key:up.url});haptic('success');convPoll(true)}catch(x){toast(x.message||'Vocale non inviato')}};
+    if(!cvMediaValid(owner)||mrOwner!==owner)return;
+    await api('/chats/'+owner.id+'/messages','POST',{kind:'voice',media_key:up.url});if(cvMediaValid(owner)){haptic('success');convPoll(true)}}catch(x){if(cvMediaValid(owner))toast(x.message||'Vocale non inviato')}};
    fr.readAsDataURL(blob)};
-  mr.start();$('#cvR').classList.add('rec');haptic('medium');toast('Registrazione: tocca di nuovo per fermare (max 60s)');
-  setTimeout(()=>{if(mr&&mr.state==='recording')mr.stop()},60000);
- }catch(e){toast('Microfono non disponibile: controlla il permesso nelle impostazioni')}};
+  recorder.start();$('#cvR').classList.add('rec');haptic('medium');toast('Registrazione: tocca di nuovo per fermare (max 60s)');
+  mrTimer=setTimeout(()=>{if(mr===recorder&&recorder.state==='recording')recorder.stop()},60000);
+ }catch(e){if(mrOwner===owner){mrStarting=false;mrOwner=null}if(cvMediaValid(owner))toast('Microfono non disponibile: controlla il permesso nelle impostazioni')}};
 let scSt=null,scRAF=0;
 function frQROpen(){if(!S.prof.username){toast('Scegli prima lo username');return}
  $('#qrB').innerHTML='';$('#dQR').showModal();
@@ -1747,7 +1752,7 @@ if(window.__novaNativeGlass){document.documentElement.classList.add('nativeApple
 const cv=$('#conv'),ai=$('#pgChat');const friend=cv&&!cv.hidden&&getComputedStyle(cv).display!=='none',aion=ai&&!ai.hidden&&getComputedStyle(ai).display!=='none'&&ai.getBoundingClientRect().width>0;
  const covered=!!document.querySelector('dialog[open]')||!$('#ob').hidden||!!$('#intro');const mode=covered?'':friend?'friend':aion?'ai':'',row=mode==='friend'?$('.cvfP'):$('#pgChat .cf');window.__nativeComposerMode=mode;
  document.documentElement.classList.toggle('nativeGlassComposer',!!mode);
- let b={t:'nativeComposer',dark:(S.theme==='dark'||S.theme==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches),show:!!mode,mode,account:(S.acct?.email||'')+':'+(mode==='friend'?convId:'ai'),value:$(mode==='friend'?'#cvI':'#ai')?.value||''};
+ let b={t:'nativeComposer',dark:(S.theme==='dark'||S.theme==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches),show:!!mode,mode,recording:mode==='friend'&&$('#cvR').classList.contains('rec'),account:(S.acct?.email||'')+':'+(mode==='friend'?convId:'ai'),value:$(mode==='friend'?'#cvI':'#ai')?.value||''};
  if(row&&mode){const r=row.getBoundingClientRect();Object.assign(b,{x:r.x,y:r.y,w:r.width})}
  const payload=JSON.stringify(b);if(payload!==last){post(b);last=payload}
  };setInterval(syncNative,120);window.addEventListener('pagehide',()=>post({t:'nativeComposer',show:false}));
