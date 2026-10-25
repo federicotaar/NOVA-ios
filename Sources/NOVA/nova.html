@@ -371,6 +371,9 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .composerGlass{background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.025)),rgba(29,31,36,.84);border-color:rgba(255,255,255,.24);box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 5px 18px rgba(0,0,0,.25)}:root:not([data-theme="light"]) #pgChat .cf>.ico,:root:not([data-theme="light"]) .cvfP>.ico{background:rgba(70,72,79,.8);border-color:rgba(255,255,255,.24)}}
 @media(prefers-reduced-transparency:reduce){.composerGlass{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--card)!important}}
 
+
+html.nativeGlassComposer #pgChat .cf,.nativeGlassComposer .cvfP{visibility:hidden}
+html.nativeAppleGlass #tabbar{visibility:hidden}
 </style>
 </head>
 <body>
@@ -473,7 +476,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.9</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.10</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -1045,7 +1048,7 @@ const OB=[
  ACCSTEP,
  {k:'Benvenuto',t:'Ciao, come ti chiamo?',w:'Uso il nome solo per salutarti nell\'app e nelle risposte dell\'assistente. Resta sul tuo telefono.',c:()=>'<input id="oN" maxlength="30" autocomplete="given-name" placeholder="Il tuo nome" value="'+esc(S.name)+'">',on:()=>{const i=$('#oN');i.oninput=()=>{S.name=i.value.trim();save();head()};i.onkeydown=e=>{if(e.key==='Enter')obGo(1)}}},
  {k:'Profilo',t:'Scegli il tuo username',w:'È come gli amici ti trovano nella chat. Se è già preso te lo dico subito; puoi deciderlo anche dopo, ma la chat resta bloccata finché non ne hai uno.',c:()=>'<label class="fl un" style="margin:0"><input id="oU" maxlength="20" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="es. federico.t" value="'+esc(S.prof.username)+'"><span class="st" id="oUs"></span></label>',on:()=>{unWire($('#oU'),$('#oUs'),(u,st)=>{if(st!=='no'){S.prof.username=u;save()}obRefresh()});$('#oU').onkeydown=e=>{if(e.key==='Enter')obGo(1)}},skip:1,done:()=>!!S.prof.username},
- {k:'Profilo',t:'Su di te',w:'Dove studi e cosa ti riesce meglio: finiscono sul tuo profilo e puoi cambiarli quando vuoi.',c:()=>'<label class="fl">Dove studi<input id="oSt" maxlength="60" placeholder="Es. ITI Copernico" value="'+esc(S.prof.study)+'"></label><label class="fl">Punti forti<input id="oSk" maxlength="80" placeholder="Es. informatica, calcio" value="'+esc(S.prof.skills)+'"></label><label class="fl" style="margin:0">Foto profilo (facoltativa)<input id="oAv" type="file" accept="image/*"></label>',on:()=>{$('#oSt').oninput=e=>{S.prof.study=e.target.value.trim();save()};$('#oSk').oninput=e=>{S.prof.skills=e.target.value.trim();save()};avPick($('#oAv'),d=>{S.prof.avatar=d;save();toast('Foto profilo salvata')})},skip:1,done:()=>!!(S.prof.study||S.prof.skills||S.prof.avatar)},
+ {k:'Profilo',t:'Su di te',w:'Dove studi e cosa ti riesce meglio: finiscono sul tuo profilo e puoi cambiarli quando vuoi.',c:()=>'<label class="fl">Dove studi<input id="oSt" maxlength="60" placeholder="Es. ITI Copernico" value="'+esc(S.prof.study)+'"></label><label class="fl">Punti forti<input id="oSk" maxlength="80" placeholder="Es. informatica, calcio" value="'+esc(S.prof.skills)+'"></label><label class="fl" style="margin:0">Foto profilo (visibile agli amici)<input id="oAv" type="file" accept="image/*"></label>',on:()=>{$('#oSt').oninput=e=>{S.prof.study=e.target.value.trim();save()};$('#oSk').oninput=e=>{S.prof.skills=e.target.value.trim();save()};avPick($('#oAv'),d=>{S.prof.avatar=d;save();toast('Foto profilo salvata')})},skip:1,done:()=>!!(S.prof.study||S.prof.skills||S.prof.avatar)},
  {k:'Musica',t:'La tua canzone',w:'Sul profilo: chi la tocca sente un\'anteprima di 30 secondi. La cerchi gratis e senza account (anteprime Deezer di 30 secondi).',c:()=>'<input id="oSoQ" placeholder="Cerca canzone o artista" autocomplete="off"><div id="oSoL"></div><small id="oSoC"></small>',on:()=>{songWire($('#oSoQ'),$('#oSoL'),it=>{S.prof.song=it;save();$('#oSoC').textContent='Scelta: '+it.t+' · '+it.a;obRefresh()});$('#oSoC').textContent=S.prof.song?'Scelta: '+S.prof.song.t+' · '+S.prof.song.a:''},skip:1,done:()=>!!S.prof.song},
  {k:'Aspetto',t:'Che tema preferisci?',w:'Cambia colori e contrasto. "Auto" segue l\'impostazione chiaro/scuro del tuo iPhone, così di sera non ti abbaglia.',c:()=>'<div class="seg" id="oT"><button data-v="auto">Auto</button><button data-v="light">Chiaro</button><button data-v="dark">Scuro</button></div>',on:()=>{const f=()=>$$('#oT button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));f();$('#oT').onclick=e=>{const v=e.target.dataset.v;if(!v)return;S.theme=v;theme();save();f()}}},
  {k:'Widget',t:'Cosa vuoi vedere?',w:'Così la schermata mostra solo quello che ti serve. Puoi cambiare scelta quando vuoi dalle impostazioni.',c:()=>'<div class="chips" id="oW">'+WL.map(([k,l])=>`<button data-w="${k}">${l}</button>`).join('')+'</div>',on:()=>{const f=()=>$$('#oW button').forEach(b=>b.setAttribute('aria-pressed',!!S.w[b.dataset.w]));f();$('#oW').onclick=e=>{const k=e.target.dataset.w;if(!k)return;S.w[k]=S.w[k]?0:1;save();show();f()}}},
@@ -1198,6 +1201,7 @@ async function pfToggle(){const s=S.prof.song;if(!s||pfBusy)return;
  catch(e){pfPlaying=false;pf();toast('Anteprima non disponibile ora. Riprova più tardi.')}
  finally{pfBusy=false}}
 function rndHex(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function friendAvatar(value,username){return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value||'')&&value.length<=120000?'<img src="'+esc(value)+'" alt="Foto profilo di @'+esc(username||'amico')+'">':esc(value&&value.length<=8?value:(username||'?')[0].toUpperCase())}
 let profSaveFlight=null;
 async function profPush(){
  if(!S.acct?.token||!S.prof.username)return false;
@@ -1205,7 +1209,7 @@ async function profPush(){
  const snapshot=JSON.parse(JSON.stringify(S.prof));
  if(!snapshot.ntfy){snapshot.ntfy='nova-'+rndHex(12);S.prof.ntfy=snapshot.ntfy}
  const b={username:snapshot.username,study:snapshot.study||'',skills:snapshot.skills||'',hobbies:snapshot.hobbies||'',song:snapshot.song||null,badges:snapshot.badges||[],ntfy_topic:snapshot.ntfy};
- if(snapshot.avatar&&snapshot.avatar.length<=8)b.avatar=snapshot.avatar;
+ if(snapshot.avatar!==undefined&&snapshot.avatar.length<=120000)b.avatar=snapshot.avatar;
  S.profPending=1;save();
  try{const r=await api('/profile','PUT',b);if(token!==S.acct?.token)return false;
   if(!r||!r.ok)return false;
@@ -1226,6 +1230,7 @@ async function profPull(){
    const sp=r.profile;
    if(!S.profPending){S.prof.username=sp.username;S.profConfirmed=sp.username}
    if(sp.avatar&&!S.prof.avatar)S.prof.avatar=sp.avatar;
+   if(S.prof.avatar&&S.prof.avatar.length>8&&S.prof.avatar!==sp.avatar&&S.prof.avatar.length<=120000){S.profPending=1;setTimeout(()=>{if(ownerToken===S.acct?.token)profEnsure()},0)}
    if(!S.prof.study&&sp.study)S.prof.study=sp.study;
    if(!S.prof.skills&&sp.skills)S.prof.skills=sp.skills;
    if(!S.prof.hobbies&&sp.hobbies)S.prof.hobbies=sp.hobbies;
@@ -1256,7 +1261,7 @@ async function frDraw(){
  el.hidden=false;
  const owner=S.acct.token;await frLoad(false);if(owner!==S.acct?.token)return;
  const d=frData||{friends:[],incoming:[],outgoing:[]};
- const row=(f,btn)=>'<div class="pfRow"'+(f.username?' data-pu="'+esc(f.username)+'" style="cursor:pointer"':'')+'>'+ic('user','wi')+'<div><b>'+(f.username?'@'+esc(f.username):'Username non disponibile online')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
+ const row=(f,btn)=>'<div class="pfRow"'+(f.username?' data-pu="'+esc(f.username)+'" style="cursor:pointer"':'')+'>'+'<div class="pfA" style="width:36px;height:36px;font-size:14px">'+friendAvatar(f.avatar,f.username)+'</div><div><b>'+(f.username?'@'+esc(f.username):'Username non disponibile online')+'</b></div><span style="flex:1"></span>'+btn+'</div>';
  el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">Amici</h3><button class="btn sm" id="frRefresh">Aggiorna</button><button class="btn sm" id="frQR">Il mio QR</button><button class="btn sm" id="frSC">Scansiona</button></div>'
   +(frError?'<small class="mut">Aggiornamento non riuscito. I dati mostrati potrebbero non essere aggiornati.</small>':'')+'<div class="frS"><input id="frQ" placeholder="Cerca per username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"><div id="frL"></div></div>'
   +(d.incoming.length?'<small class="mut">Richieste ricevute</small>'+d.incoming.map(f=>row(f,f.username?'<button class="btn sm pri" data-acc="'+esc(f.username)+'">Accetta</button>':'<button class="btn sm pri" data-acr="'+esc(f.rid||'')+'">Accetta</button>')).join(''):'')
@@ -1266,7 +1271,7 @@ async function frDraw(){
   clearTimeout(L._t);if(q.length<2){L.innerHTML='';return}
   L._t=setTimeout(async()=>{try{const r=await api('/users/search','GET',null,'?q='+encodeURIComponent(q));
    L._rs=(r&&r.users)||[];
-   L.innerHTML=L._rs.length?L._rs.map((u,i)=>'<div class="sngR" data-pu="'+esc(u.username)+'" style="cursor:pointer" data-i="'+i+'"><div class="pfA" style="width:30px;height:30px;font-size:13px">'+(u.avatar?esc(u.avatar):esc((u.username||'?')[0].toUpperCase()))+'</div><div style="min-width:0;flex:1"><div>@'+esc(u.username)+'</div></div><button class="btn sm" data-add="'+esc(u.username)+'">Aggiungi</button></div>').join(''):'<small class="mut">Nessun utente trovato.</small>';
+   L.innerHTML=L._rs.length?L._rs.map((u,i)=>'<div class="sngR" data-pu="'+esc(u.username)+'" style="cursor:pointer" data-i="'+i+'"><div class="pfA" style="width:30px;height:30px;font-size:13px">'+friendAvatar(u.avatar,u.username)+'</div><div style="min-width:0;flex:1"><div>@'+esc(u.username)+'</div></div><button class="btn sm" data-add="'+esc(u.username)+'">Aggiungi</button></div>').join(''):'<small class="mut">Nessun utente trovato.</small>';
    L.querySelectorAll('[data-pu]').forEach(rw=>rw.onclick=e=>{if(e.target.closest('[data-add]'))return;frProfOpen(rw.dataset.pu)});
    L.querySelectorAll('[data-add]').forEach(b=>b.onclick=async()=>{if(!await profEnsure())return;const r2=await api('/friends/request','POST',{username:b.dataset.add});
     if(r2&&r2.ok){toast('Richiesta inviata a @'+b.dataset.add);frLoad(true).then(frDraw)}else toast((r2&&r2.error)||'Errore')})}catch(e2){L.innerHTML='<small class="mut">Ricerca non disponibile.</small>'}},400)};
@@ -1326,7 +1331,7 @@ async function frListOpen(kind){frLKind=kind;
  try{let users=[];
   if(kind==='amici'){await frLoad(true);users=(frData&&frData.friends)||[]}
   else{const r=await api('/follows','GET',null,'?kind='+(kind==='seguiti'?'following':'followers'));users=(r&&r.users)||[]}
-  L.innerHTML=users.length?users.map(u=>'<button class="fcR" data-px="'+esc(u.username)+'"><div class="pfA" style="width:36px;height:36px;font-size:14px">'+(u.avatar?esc(u.avatar):esc((u.username||'?')[0].toUpperCase()))+'</div><div class="tt"><b>@'+esc(u.username)+'</b></div></button>').join(''):'<small class="mut">Nessuno qui ancora.</small>';
+  L.innerHTML=users.length?users.map(u=>'<button class="fcR" data-px="'+esc(u.username)+'"><div class="pfA" style="width:36px;height:36px;font-size:14px">'+friendAvatar(u.avatar,u.username)+'</div><div class="tt"><b>@'+esc(u.username)+'</b></div></button>').join(''):'<small class="mut">Nessuno qui ancora.</small>';
   L.querySelectorAll('[data-px]').forEach(b=>b.onclick=()=>frProfOpen(b.dataset.px));
  }catch(e){L.innerHTML='<small class="mut">Non disponibile ora.</small>'}
 }
@@ -1337,7 +1342,7 @@ async function frProfOpen(u){const epoch=++frProfileEpoch,owner=S.acct?.token;co
   if(!r||!r.ok){B.innerHTML='<small class="mut">Profilo non disponibile.</small>';return}
   if(epoch!==frProfileEpoch||owner!==S.acct?.token||!$('#dFrP').open)return;
   const p=r.profile||{};
-  let h='<div class="pfTop"><div class="pfA">'+(p.avatar?esc(p.avatar):esc((u[0]||'?').toUpperCase()))+'</div><h3 style="margin:0">@'+esc(u)+'</h3></div>'
+  let h='<div class="pfTop"><div class="pfA">'+friendAvatar(p.avatar,u)+'</div><h3 style="margin:0">@'+esc(u)+'</h3></div>'
    +'<div class="pfStat"><span><b>'+(r.followers||0)+'</b> follower</span><span><b>'+(r.following||0)+'</b> seguiti</span></div>';
   if(r.limited){h+='<p class="mut" style="text-align:center;font-size:13px">Diventa amico di @'+esc(u)+' per vedere il suo profilo completo.</p>'}
   else{
@@ -1427,7 +1432,7 @@ function convClose(){convEpoch++;cvTyping([]);convId=null;clearInterval(convTime
 function chatPg(){const a=$('#aic');if(a)a.hidden=true;frcDraw()}
 function avPick(inp,cb){inp.onchange=()=>{const f=inp.files&&inp.files[0];if(!f)return;const img=new Image();
  img.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-  const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,256,256);cb(c.toDataURL('image/jpeg',.85))}catch(e){toast('Immagine non valida')}};
+  const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,256,256);cb(c.toDataURL('image/jpeg',.65))}catch(e){toast('Immagine non valida')}};
  img.src=URL.createObjectURL(f)}}
 async function songFind(q){const r=await fetch(API+'/song/search?q='+encodeURIComponent(q));const j=await r.json();
  if(j&&j.ok===false)throw new Error(j.error||'upstream');
@@ -1724,6 +1729,24 @@ mq.addEventListener('change',layout);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(R.classList.contains('sb'))wake(true);if(S.cv.on)cvRefresh(0);spPoll()}});
 intro();window.__novaMainReady=true;
 if(S.acct?.token)setTimeout(accountBoot,0);
+</script>
+<script>
+// Native-only control surface handshake. No CSS effect is called native Liquid Glass.
+if(window.__novaNativeGlass){document.documentElement.classList.add('nativeAppleGlass');
+ let last='',navLast='',navStart=0;
+ window.__nativeComposerInput=(mode,value)=>{const f=$(mode==='friend'?'#cvI':'#ai');if(f){f.value=value;f.dispatchEvent(new Event('input',{bubbles:true}))}};
+ window.__nativeComposerAction=(mode,action,owner)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId:'ai')))return;if(mode!==(window.__nativeComposerMode||''))return;const ids=mode==='friend'?{photo:'cvP',mic:'cvR',send:'cvS'}:{photo:'aiP',permissions:'aiM',send:'aiS'};const b=$('#'+ids[action]);if(b&&!b.disabled)b.click();last=''};
+ window.__nativeNavSelect=i=>{pg(i,i>pgI?1:-1);navLast=''};
+ window.__nativeNavDrag=(phase,dx)=>{if(phase==='start'){navStart=pgI;return}if(phase==='end'){PGS.forEach(id=>{const e=$('#'+id);e.style.transition='';e.style.transform=''});pg(Math.max(0,Math.min(4,navStart-Math.round(dx/(innerWidth*.25)))));navLast='';return}const width=innerWidth;const offset=Math.max(-navStart,Math.min(4-navStart,-dx/(width*.25)));PGS.forEach((id,j)=>{const e=$('#'+id);e.hidden=Math.abs(j-navStart-offset)>1;e.style.transition='none';e.style.transform='translateX('+((j-navStart-offset)*100)+'%)'})};
+ const syncNative=()=>{const tb=$('#tabbar');if(tb){const r=tb.getBoundingClientRect();const n={t:'nativeNavigation',show:!tb.hidden&&getComputedStyle(tb).display!=='none'&&!document.body.classList.contains('ovl'),selected:pgI,x:r.x,y:r.y,w:r.width};const ns=JSON.stringify(n);if(ns!==navLast){post(n);navLast=ns}}
+const cv=$('#conv'),ai=$('#pgChat');const friend=cv&&!cv.hidden&&getComputedStyle(cv).display!=='none',aion=ai&&!ai.hidden&&getComputedStyle(ai).display!=='none'&&ai.getBoundingClientRect().width>0;
+ const mode=friend?'friend':aion?'ai':'',row=mode==='friend'?$('.cvfP'):$('#pgChat .cf');window.__nativeComposerMode=mode;
+ document.documentElement.classList.toggle('nativeGlassComposer',!!mode);
+ let b={t:'nativeComposer',show:!!mode,mode,account:(S.acct?.email||'')+':'+(mode==='friend'?convId:'ai'),value:$(mode==='friend'?'#cvI':'#ai')?.value||''};
+ if(row&&mode){const r=row.getBoundingClientRect();Object.assign(b,{x:r.x,y:r.y,w:r.width})}
+ const payload=JSON.stringify(b);if(payload!==last){post(b);last=payload}
+ };setInterval(syncNative,120);window.addEventListener('pagehide',()=>post({t:'nativeComposer',show:false}));
+}
 </script>
 </body>
  </html>
