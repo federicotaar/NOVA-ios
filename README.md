@@ -101,3 +101,7 @@ I pulsanti nativi rispettano la dimensione del testo del controllo originale e r
 ### Copertura controlli personalizzati
 
 La migrazione include il pulsante Nuova chat, giorni del calendario, azioni dei compiti, scelte a chip, reazioni e pulsanti testuali. Le righe chat con foto e anteprima conservano il contenuto originale: la loro presentazione resta da verificare separatamente. Nessun bersaglio di tocco, conferma o permesso viene sostituito.
+
+### Righe chat native
+
+Le righe chat usano una superficie Apple Glass con foto, titolo e anteprima separati. L’immagine fornita dal profilo resta nella riga, senza ricavare foto mancanti o alterare i dati degli amici. Le azioni restano sui controlli originali.
