@@ -1706,7 +1706,7 @@ final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
  let position=max(0,min(4,x/(self.surface.bounds.width/5)-0.5)),delta=(CGFloat(self.dragStart)-position)*(self.web?.bounds.width ?? 390)*0.25
  if phase=="cancel"{self.web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(self.dragStart))",completionHandler:nil);return}
  if phase=="end"{self.web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(max(0,self.surface.selectedSegmentIndex)))",completionHandler:nil);return}
- self.web?.evaluateJavaScript("window.__nativeNavDrag&&__nativeNavDrag('\(phase)',\(delta))",completionHandler:nil)
+ // Native lens tracks touch, content stays on its current page until release.
  }
  let observer=UILongPressGestureRecognizer(target:self,action:#selector(observeDrag(_:)));observer.minimumPressDuration=0;observer.allowableMovement=10000;observer.cancelsTouchesInView=false;observer.delaysTouchesBegan=false;observer.delaysTouchesEnded=false;observer.delegate=self;surface.addGestureRecognizer(observer)
  surface.addTarget(self,action:#selector(changed),for:.valueChanged);web.addSubview(surface);surface.isHidden=true
@@ -1734,5 +1734,5 @@ final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
  func sync(_ b:[String:Any]){syncMap(b);syncAvatar(b);surface.isHidden = !(b["show"] as? Bool ?? false);backdrop.isHidden=surface.isHidden;if surface.isHidden{return};backdrop.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);backdrop.frame=surface.frame;backdrop.layer.cornerRadius=32;selected=b["selected"] as? Int ?? 0;if !surface.isTracking{surface.selectedSegmentIndex=selected}}
  func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldRecognizeSimultaneouslyWith otherGestureRecognizer:UIGestureRecognizer)->Bool{return true}
  @objc func observeDrag(_ g:UILongPressGestureRecognizer){let phase:String;switch g.state{case .began:phase="start";case .changed:phase="move";case .ended:phase="end";case .cancelled,.failed:phase="cancel";default:return};surface.trackingEvent?(phase,g.location(in:surface).x)}
- @objc func changed(){web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(surface.selectedSegmentIndex))",completionHandler:nil)}
+ @objc func changed(){if surface.isTracking{return};web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(surface.selectedSegmentIndex))",completionHandler:nil)}
 }
