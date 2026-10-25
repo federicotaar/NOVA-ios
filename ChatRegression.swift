@@ -23,9 +23,7 @@ import PhotosUI
  func webView(_ webView:WKWebView,didFinish navigation:WKNavigation!){DispatchQueue.main.asyncAfter(deadline:.now()+2){
  self.web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(4);setTimeout(()=>window.scrollTo(0,450),100);",completionHandler:nil)
  DispatchQueue.main.asyncAfter(deadline:.now()+2){self.saveImage("native-nav.png");try? Data().write(to:FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0].appendingPathComponent("nav-ready"))
- if #available(iOS 26.0,*),let nav=self.navigation as? NativeGlassNavigation{
- for (delay,index) in [(Double,Int)](){DispatchQueue.main.asyncAfter(deadline:.now()+delay){if nav.buttons.count>index{nav.buttons[index].sendActions(for:.touchUpInside)}}}}
- DispatchQueue.main.asyncAfter(deadline:.now()+120){
+ DispatchQueue.main.asyncAfter(deadline:.now()+600){
  self.web.evaluateJavaScript("pg(2);convOpen(1,'Study group');",completionHandler:nil)
  DispatchQueue.main.asyncAfter(deadline:.now()+2){self.testNative()}
  }
@@ -111,25 +109,11 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
 
 @available(iOS 26.0, *)
 final class NativeGlassNavigation:NSObject {
- weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var selected=0
- init(web:WKWebView){super.init();self.web=web;let effect=UIGlassEffect(style:.clear);effect.isInteractive=true;surface.effect=effect;surface.cornerConfiguration = .capsule();surface.accessibilityIdentifier="nativeLiquidGlassNavigation";web.addSubview(surface);surface.isHidden=true
- surface.contentView.addSubview(highlight);let lens=UIGlassEffect(style:.clear);lens.isInteractive=true;highlight.effect=lens;highlight.isUserInteractionEnabled=false;highlight.cornerConfiguration = .capsule()
- for (i,item) in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){let b=UIButton(type:.system);b.tag=i;b.setImage(UIImage(systemName:item.0),for:.normal);b.accessibilityLabel=item.1;b.addTarget(self,action:#selector(tap(_:)),for:.touchUpInside);surface.contentView.addSubview(b);buttons.append(b)}
- surface.addGestureRecognizer(UIPanGestureRecognizer(target:self,action:#selector(pan(_:))))
+ weak var web:WKWebView?;let surface=UISegmentedControl(items:[]);var selected=0
+ init(web:WKWebView){super.init();self.web=web;surface.accessibilityIdentifier="nativeLiquidGlassNavigation"
+ for(i,item)in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){surface.insertSegment(with:UIImage(systemName:item.0,withConfiguration:UIImage.SymbolConfiguration(pointSize:24)),at:i,animated:false)}
+ surface.addTarget(self,action:#selector(changed),for:.valueChanged);web.addSubview(surface);surface.isHidden=true
  }
- func sync(_ b:[String:Any]){surface.isHidden = !(b["show"] as? Bool ?? false);if surface.isHidden{return};surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);selected=b["selected"] as? Int ?? 0
- let width=(surface.bounds.width-12)/5
- for(i,button)in buttons.enumerated(){button.frame=CGRect(x:6+CGFloat(i)*width,y:7,width:width,height:50);button.tintColor = .label;button.accessibilityTraits = i==selected ? [.button,.selected]:[.button]}
- let target=buttons[max(0,min(4,selected))].frame
- if dragging{return};if highlight.frame == .zero{highlight.frame=target}else if highlight.frame != target{UIView.animate(withDuration:0.38,delay:0,usingSpringWithDamping:0.78,initialSpringVelocity:0,options:[.beginFromCurrentState,.allowUserInteraction]){self.highlight.frame=target}}
- highlight.backgroundColor = .clear
- }
- @objc func tap(_ button:UIButton){web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(button.tag))",completionHandler:nil)}
- var dragStart=0;var dragging=false
- @objc func pan(_ g:UIPanGestureRecognizer){let dx=g.translation(in:surface).x;let phase=g.state == .began ? "start":g.state == .ended || g.state == .cancelled ? "end":"move"
- if g.state == .began{dragStart=selected;dragging=true;highlight.layer.removeAllAnimations()}
- let width=(surface.bounds.width-12)/5
- if g.state == .changed{let position=max(0,min(4,CGFloat(dragStart)-dx/((web?.bounds.width ?? 390)*0.25)));highlight.frame=CGRect(x:6+position*width,y:7,width:width,height:50)}
- if phase == "end"{dragging=false}
- web?.evaluateJavaScript("window.__nativeNavDrag&&__nativeNavDrag('\(phase)',\(dx))",completionHandler:nil)}
+ func sync(_ b:[String:Any]){surface.isHidden = !(b["show"] as? Bool ?? false);if surface.isHidden{return};surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);selected=b["selected"] as? Int ?? 0;if !surface.isTracking{surface.selectedSegmentIndex=selected}}
+ @objc func changed(){web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(surface.selectedSegmentIndex))",completionHandler:nil)}
 }
