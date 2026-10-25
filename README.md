@@ -109,3 +109,7 @@ Le righe chat usano una superficie Apple Glass con foto, titolo e anteprima sepa
 La conversazione e il pannello reazioni nascondono le superfici native della pagina sottostante. Le icone dei compiti sono mappate esplicitamente; le altre icone SVG vengono confrontate dopo normalizzazione del markup.
 
 Il filtro della barra di navigazione non si applica ai pulsanti di un pannello azioni aperto: anche Chiudi mantiene la superficie nativa. Intro e onboarding restano fuori da questa migrazione e non sono dichiarati completati.
+
+### Prima apertura
+
+Le superfici native includono i pulsanti della configurazione iniziale: Indietro, Avanti, Salta, scelte tema/widget e azioni dei servizi. I bersagli originali conservano eventi, conferme e permessi. Nessun servizio viene autorizzato o configurato automaticamente. L’intro conserva il gesto Tocca per saltare e la durata originale: non viene aggiunto un nuovo pulsante né un nuovo passaggio.
