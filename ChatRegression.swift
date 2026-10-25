@@ -10,7 +10,7 @@ import PhotosUI
  localStorage.setItem('nova.v1',JSON.stringify({introOff:1,ob:2,done:1,profDone:1,theme:'dark',name:'Synthetic',acct:{token:'fixture-only',email:'me@test.invalid'},prof:{username:'fixture'},w:{wx:0}}));
  window.testErrors=[];window.testTyping=[];window.testSent=[];
  window.addEventListener('error',e=>testErrors.push(e.message||'error'));
- window.fetch=async(url,opt={})=>{url=String(url);let method=opt.method||'GET',j={ok:true,profile:null,friends:[],incoming:[],outgoing:[],chats:[],typing:[]};
+ window.fetch=async(url,opt={})=>{url=String(url);let method=opt.method||'GET',j={ok:true,profile:null,friends:[],incoming:[],outgoing:[],chats:[],typing:[],url:'/synthetic.jpg'};
  if(url.includes('/typing')&&method==='POST')testTyping.push(url);
  if(url.includes('/messages')){if(method==='POST')testSent.push(JSON.parse(opt.body||'{}'));j={ok:true,messages:Array.from({length:18},(_,i)=>({id:i+1,sender:i%2?'me@test.invalid':'friend@test.invalid',kind:'text',body:['Maths review at 17:00','Bring the blue notebook','See you after class'][i%3]})),senders:{'friend@test.invalid':'Example'},reactions:{}}}return {ok:true,status:200,json:async()=>j};};
  """
@@ -29,20 +29,24 @@ import PhotosUI
  }}
  func testNative(){if #available(iOS 26.0,*),let c=composer as? NativeGlassComposer{
  guard !c.surface.isHidden else{return fail("Native composer handshake absent")}
- // Picker presentation captured separately; visual/send/keyboard fixture must not depend on system photo library service.
- DispatchQueue.main.asyncAfter(deadline:.now()+1){
+ c.input.text="Draft survives cancellation";c.changed();c.picker(PHPickerViewController(configuration:PHPickerConfiguration()),didFinishPicking:[])
+ guard c.input.text=="Draft survives cancellation" else{return fail("cancel lost draft")}
+ c.pickerOwner=c.account;c.pickerMode=c.mode
+ let image=UIGraphicsImageRenderer(size:CGSize(width:24,height:24)).image{ctx in UIColor.blue.setFill();ctx.fill(CGRect(x:0,y:0,width:24,height:24))}
+ c.consumeImageProvider(NSItemProvider(object:image))
+ DispatchQueue.main.asyncAfter(deadline:.now()+2){
 
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
- c.input.text="Native action fixture";c.changed();c.submit()
+ c.input.text="Native action fixture";c.changed();c.submit();c.submit()
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
  self.web.evaluateJavaScript("JSON.stringify({sent:testSent,errors:testErrors,draft:$('#cvI').value})"){value,error in
- guard let text=value as? String,let data=text.data(using:.utf8),let result=try? JSONSerialization.jsonObject(with:data) as? [String:Any],let sent=result["sent"] as? [[String:Any]],sent.count==1,sent[0]["body"] as? String == "Native action fixture" else{return self.fail("native send roundtrip failed")}
+ guard let text=value as? String,let data=text.data(using:.utf8),let result=try? JSONSerialization.jsonObject(with:data) as? [String:Any],let sent=result["sent"] as? [[String:Any]],sent.filter({$0["kind"] as? String == "image"}).count==1,sent.filter({$0["body"] as? String == "Native action fixture"}).count==1,sent.count==2 else{return self.fail("native send roundtrip failed")}
  c.input.text="Draft for our study plan";c.changed();c.input.becomeFirstResponder()
  DispatchQueue.main.asyncAfter(deadline:.now()+3){
  let rect=c.surface.convert(c.input.bounds,from:c.input);let bottom=c.surface.frame.maxY;let visible=self.web.bounds.height-c.keyboard
  guard bottom<=visible+2 else{return self.fail("native input overlaps keyboard")}
  self.web.evaluateJavaScript("$('#cvM').scrollTop=Math.max(0,$('#cvM').scrollHeight-$('#cvM').clientHeight-70)",completionHandler:nil)
- self.result(["ok":true,"nativeEffect":"UIGlassEffect.clear","nativeComposerVisible":!c.surface.isHidden,"nativeInput":c.input.text ?? "","keyboardHeight":c.keyboard,"composerBottom":bottom,"visibleBottom":visible,"nativeSendCount":sent.count,"errors":result["errors"] ?? [],"inputWidth":rect.width])
+ self.result(["ok":true,"nativeEffect":"UIGlassEffect.clear","nativeComposerVisible":!c.surface.isHidden,"nativeInput":c.input.text ?? "","keyboardHeight":c.keyboard,"composerBottom":bottom,"visibleBottom":visible,"nativeSendCount":sent.count,"nativePhotoProviderPipeline":true,"nativeCancelDraftRetained":true,"doubleSendSingleText":true,"errors":result["errors"] ?? [],"inputWidth":rect.width])
  }
  }
  }
@@ -79,7 +83,7 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
  let m=b["mode"] as? String ?? "",a=b["account"] as? String ?? ""
  if mode != m || account != a{input.resignFirstResponder();mode=m;account=a;input.text=b["value"] as? String ?? ""}
  let value=b["value"] as? String ?? "";if value != remote{input.text=value;remote=value}
- mic.isHidden=m != "friend";permissions.isHidden=m != "ai";photo.accessibilityLabel=m=="friend" ? "Invia foto":"Aggiungi foto";surface.isHidden=false
+ mic.setImage(UIImage(systemName:(b["recording"] as? Bool ?? false) ? "stop.circle.fill":"mic"),for:.normal);mic.tintColor=(b["recording"] as? Bool ?? false) ? .systemRed:.label;mic.isHidden=m != "friend";permissions.isHidden=m != "ai";photo.accessibilityLabel=m=="friend" ? "Invia foto":"Aggiungi foto";surface.isHidden=false
  surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;input.textColor = .label
  row=CGRect(x:(b["x"] as? CGFloat ?? 10),y:(b["y"] as? CGFloat ?? 0),width:(b["w"] as? CGFloat ?? web.bounds.width-20),height:56);layout()
  }
@@ -89,13 +93,15 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
  func quoted(_ s:String)->String{String(data:try! JSONSerialization.data(withJSONObject:[s]),encoding:.utf8)!.dropFirst().dropLast().description}
  @objc func changed(){let text=String((input.text ?? "").prefix(mode=="friend" ? 4000:1500));if input.text != text{input.text=text};remote=text;script("window.__nativeComposerInput&&__nativeComposerInput("+quoted(mode)+","+quoted(text)+","+quoted(account)+")")}
  @objc func permission(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'permissions',"+quoted(account)+")")}
- var pickerOwner="",pickerMode=""
- @objc func pick(){guard let web=web,var controller=web.window?.rootViewController else{return};while let presented=controller.presentedViewController{controller=presented};pickerOwner=account;pickerMode=mode;var config=PHPickerConfiguration();config.filter = .images;config.selectionLimit=1;let picker=PHPickerViewController(configuration:config);picker.delegate=self;controller.present(picker,animated:true)}
- func picker(_ picker:PHPickerViewController,didFinishPicking results:[PHPickerResult]){picker.dismiss(animated:true);guard let provider=results.first?.itemProvider,provider.canLoadObject(ofClass:UIImage.self) else{return};let owner=pickerOwner,m=pickerMode
+ var pickerOwner="",pickerMode="";weak var activePicker:PHPickerViewController?
+ @objc func pick(){guard let web=web,var controller=web.window?.rootViewController else{return};while let presented=controller.presentedViewController{controller=presented};pickerOwner=account;pickerMode=mode;var config=PHPickerConfiguration();config.filter = .images;config.selectionLimit=1;let picker=PHPickerViewController(configuration:config);picker.delegate=self;activePicker=picker;controller.present(picker,animated:true)}
+ func picker(_ picker:PHPickerViewController,didFinishPicking results:[PHPickerResult]){picker.dismiss(animated:true);guard let provider=results.first?.itemProvider,provider.canLoadObject(ofClass:UIImage.self) else{return};consumeImageProvider(provider)
+ }
+ func consumeImageProvider(_ provider:NSItemProvider){let owner=pickerOwner,m=pickerMode
  provider.loadObject(ofClass:UIImage.self){[weak self] image,_ in guard let self=self,let img=image as? UIImage else{return};let ratio=min(1,1600/max(img.size.width,img.size.height));let size=CGSize(width:img.size.width*ratio,height:img.size.height*ratio);let resized=UIGraphicsImageRenderer(size:size).image{_ in img.draw(in:CGRect(origin:.zero,size:size))};guard let data=resized.jpegData(compressionQuality:0.75) else{return};DispatchQueue.main.async{guard self.account==owner,self.mode==m else{return};self.script("window.__nativeComposerPhoto&&__nativeComposerPhoto("+self.quoted(m)+","+self.quoted(owner)+","+self.quoted(data.base64EncodedString())+")")}}
  }
  @objc func record(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'mic',"+quoted(account)+")")}
- @objc func submit(){changed();script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'send',"+quoted(account)+")")}
+ @objc func submit(){guard !(input.text ?? "").trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else{return};changed();script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'send',"+quoted(account)+")");input.text="";remote=""}
  func textFieldShouldReturn(_ textField:UITextField)->Bool{submit();return false}
 }
 
