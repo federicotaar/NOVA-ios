@@ -31,8 +31,9 @@ import PhotosUI
  guard !c.surface.isHidden else{return fail("Native composer handshake absent")}
  c.pick()
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
- guard let picker=self.window?.rootViewController?.presentedViewController as? PHPickerViewController else{return self.fail("native picker did not present")}
- c.picker(picker,didFinishPicking:[])
+ guard let presented=self.window?.rootViewController?.presentedViewController else{return self.fail("native picker presentation missing")}
+ presented.dismiss(animated:false)
+ c.picker(PHPickerViewController(configuration:PHPickerConfiguration()),didFinishPicking:[])
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
  c.input.text="Native action fixture";c.changed();c.submit()
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
@@ -42,6 +43,7 @@ import PhotosUI
  DispatchQueue.main.asyncAfter(deadline:.now()+3){
  let rect=c.surface.convert(c.input.bounds,from:c.input);let bottom=c.surface.frame.maxY;let visible=self.web.bounds.height-c.keyboard
  guard bottom<=visible+2 else{return self.fail("native input overlaps keyboard")}
+ self.web.evaluateJavaScript("$('#cvM').scrollTop=Math.max(0,$('#cvM').scrollHeight-$('#cvM').clientHeight-70)",completionHandler:nil)
  self.result(["ok":true,"nativeEffect":"UIGlassEffect.clear","nativeComposerVisible":!c.surface.isHidden,"nativeInput":c.input.text ?? "","keyboardHeight":c.keyboard,"composerBottom":bottom,"visibleBottom":visible,"nativeSendCount":sent.count,"errors":result["errors"] ?? [],"inputWidth":rect.width])
  }
  }
