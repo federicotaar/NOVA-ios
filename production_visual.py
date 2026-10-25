@@ -5,7 +5,7 @@ fixture += '''
  const demoCanvas=document.createElement('canvas');demoCanvas.width=demoCanvas.height=64;const demoCtx=demoCanvas.getContext('2d');demoCtx.fillStyle='#6877ef';demoCtx.fillRect(0,0,64,64);demoCtx.fillStyle='#fff';demoCtx.font='bold 36px sans-serif';demoCtx.fillText('N',17,45);const demoAvatar=demoCanvas.toDataURL('image/png');const demoState=JSON.parse(localStorage.getItem('nova.v1'));demoState.prof.avatar=demoAvatar;demoState.tasks=[{id:'synthetic-task',title:'Synthetic homework',subj:'Maths',due:'2026-10-30T17:00',done:0}];localStorage.setItem('nova.v1',JSON.stringify(demoState));const oldDemoFetch=window.fetch;window.fetch=async(...args)=>{const res=await oldDemoFetch(...args),oldJson=res.json;res.json=async()=>{const j=await oldJson();if(j.friends)j.friends.forEach(f=>f.avatar=demoAvatar);if(j.chats)j.chats=[{id:'synthetic',type:'dm',title:'Example friend',avatar:demoAvatar,unread:0}];return j};return res};
 '''
 s=s.replace('        let web = WKWebView(frame:', '        config.userContentController.addUserScript(WKUserScript(source:"""'+fixture+'""",injectionTime:.atDocumentStart,forMainFrameOnly:true))\n        let web = WKWebView(frame:',1)
-s=s.replace('        return web\n', '''        visualProductionRun(web)
+s=s.replace('        return web\n', '''        visualReactionRun(web)
         return web
 ''',1)
 s+=r'''
@@ -45,3 +45,13 @@ func visualProductionRun(_ web:WKWebView){
 func visualProductionSave(_ web:WKWebView,_ name:String){guard let window=web.window else{return};let image=UIGraphicsImageRenderer(bounds:window.bounds).image{_ in window.drawHierarchy(in:window.bounds,afterScreenUpdates:true)};let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? image.pngData()?.write(to:dir.appendingPathComponent(name));if name=="production-grades-glass.png"{web.evaluateJavaScript("JSON.stringify({errors:testErrors,bodyError:document.querySelector('#errB')?.textContent})"){v,e in try? String(describing:v).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8)};try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
 '''
 s=s.replace('iOS26.0','iOS 26.0');Path('/tmp/NOVAProductionVisual.swift').write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+x=p.read_text()+r"""
+func visualReactionRun(_ web:WKWebView){
+ DispatchQueue.main.asyncAfter(deadline:.now()+8){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(2);convOpen(1,'Study group')",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+14){web.evaluateJavaScript("cvActSheet(cvMsgs[0]?.id);JSON.stringify({messages:cvMsgs.length,first:cvMsgs[0]?.id,hidden:$('#cvAct').hidden,buttons:$('#cvAct').querySelectorAll('button').length})"){v,e in let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? String(describing:v ?? e).write(to:dir.appendingPathComponent("reaction-state.txt"),atomically:true,encoding:.utf8)}}
+ DispatchQueue.main.asyncAfter(deadline:.now()+20){visualProductionSave(web,"production-reactions.png");let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];web.evaluateJavaScript("JSON.stringify({errors:testErrors,actions:$('#cvAct').hidden,bodyError:document.querySelector('#errB')?.textContent})"){v,e in try? String(describing:v).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
+}
+"""
+p.write_text(x)
