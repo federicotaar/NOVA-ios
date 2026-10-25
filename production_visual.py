@@ -25,16 +25,16 @@ func visualProductionRun(_ web:WKWebView){
  DispatchQueue.main.asyncAfter(deadline:.now()+36){web.evaluateJavaScript("toast(\"Condivisione spenta sul server\")",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+37){visualProductionSave(web,"production-centered-notice.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+43){web.evaluateJavaScript("pg(4);$('#bSet').click()",completionHandler:nil)}
- DispatchQueue.main.asyncAfter(deadline:.now()+46){visualProductionSave(web,"production-settings-top.png")}
- DispatchQueue.main.asyncAfter(deadline:.now()+48){web.evaluateJavaScript("const el=$$('.settingsSection')[1],scroll=$('.settingsScroll');scroll.scrollTop=el.offsetTop-scroll.offsetTop",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+47){visualProductionSave(web,"production-settings-top.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+48){web.evaluateJavaScript("(()=>{let el=$$('.settingsSection')[1],scroll=$('.settingsScroll');scroll.scrollTop=el.offsetTop-scroll.offsetTop})()",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+51){visualProductionSave(web,"production-settings-appearance.png")}
- DispatchQueue.main.asyncAfter(deadline:.now()+53){web.evaluateJavaScript("const el=$$('.settingsSection')[4],scroll=$('.settingsScroll');scroll.scrollTop=el.offsetTop-scroll.offsetTop",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+53){web.evaluateJavaScript("(()=>{let el=$$('.settingsSection')[4],scroll=$('.settingsScroll');scroll.scrollTop=el.offsetTop-scroll.offsetTop})()",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+56){visualProductionSave(web,"production-settings-privacy.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+58){web.evaluateJavaScript("$('#dSet').close();pg(0)",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+61){visualProductionSave(web,"production-home-glass.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+63){web.evaluateJavaScript("pg(1)",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+66){visualProductionSave(web,"production-grades-glass.png")}
 }
-func visualProductionSave(_ web:WKWebView,_ name:String){guard let window=web.window else{return};let image=UIGraphicsImageRenderer(bounds:window.bounds).image{_ in window.drawHierarchy(in:window.bounds,afterScreenUpdates:true)};let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? image.pngData()?.write(to:dir.appendingPathComponent(name));if name=="production-grades-glass.png"{try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
+func visualProductionSave(_ web:WKWebView,_ name:String){guard let window=web.window else{return};let image=UIGraphicsImageRenderer(bounds:window.bounds).image{_ in window.drawHierarchy(in:window.bounds,afterScreenUpdates:true)};let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? image.pngData()?.write(to:dir.appendingPathComponent(name));if name=="production-grades-glass.png"{web.evaluateJavaScript("JSON.stringify({errors:testErrors,bodyError:document.querySelector('#errB')?.textContent})"){v,e in try? String(describing:v).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8)};try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
 '''
 s=s.replace('iOS26.0','iOS 26.0');Path('/tmp/NOVAProductionVisual.swift').write_text(s)
