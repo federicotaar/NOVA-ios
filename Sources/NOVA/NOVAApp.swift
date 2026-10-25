@@ -1638,12 +1638,12 @@ extension Bridge: CLLocationManagerDelegate {
 @available(iOS 26.0, *)
 final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewControllerDelegate {
  weak var web: WKWebView?
- let surface=UIVisualEffectView(effect: UIGlassEffect())
+ let surface=UIVisualEffectView(effect: UIGlassEffect(style:.clear))
  let permissions=UIButton(type:.system)
  let photo=UIButton(type:.system), mic=UIButton(type:.system), send=UIButton(type:.system), input=UITextField()
  var mode="", account="", remote="";var row=CGRect.zero;var keyboard:CGFloat=0
  init(web:WKWebView){super.init();self.web=web
- let effect=UIGlassEffect();effect.isInteractive=true;surface.effect=effect;surface.layer.cornerRadius=28;surface.clipsToBounds=true
+ let effect=UIGlassEffect(style:.clear);effect.isInteractive=true;surface.effect=effect;surface.cornerConfiguration = .capsule()
  surface.accessibilityIdentifier="nativeLiquidGlassComposer"
  input.placeholder="Scrivi un messaggio";input.font = .systemFont(ofSize:16);input.delegate=self;input.accessibilityLabel="Messaggio";input.returnKeyType = .send
  input.addTarget(self,action:#selector(changed),for:.editingChanged)
@@ -1661,6 +1661,7 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
  if mode != m || account != a{input.resignFirstResponder();mode=m;account=a;input.text=b["value"] as? String ?? ""}
  let value=b["value"] as? String ?? "";if value != remote{input.text=value;remote=value}
  mic.isHidden=m != "friend";permissions.isHidden=m != "ai";photo.accessibilityLabel=m=="friend" ? "Invia foto":"Aggiungi foto";surface.isHidden=false
+ surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;input.textColor = .label
  row=CGRect(x:(b["x"] as? CGFloat ?? 10),y:(b["y"] as? CGFloat ?? 0),width:(b["w"] as? CGFloat ?? web.bounds.width-20),height:56);layout()
  }
  func layout(){guard let web=web else{return};var r=row;if keyboard>0{r.origin.y=min(r.origin.y,web.bounds.height-keyboard-64)};surface.frame=r;web.bringSubviewToFront(surface)}
@@ -1681,13 +1682,13 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
 
 @available(iOS 26.0, *)
 final class NativeGlassNavigation:NSObject {
- weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect());var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect());var selected=0
- init(web:WKWebView){super.init();self.web=web;let effect=UIGlassEffect();effect.isInteractive=true;surface.effect=effect;surface.layer.cornerRadius=32;surface.clipsToBounds=true;surface.accessibilityIdentifier="nativeLiquidGlassNavigation";web.addSubview(surface);surface.isHidden=true
- surface.contentView.addSubview(highlight);highlight.isUserInteractionEnabled=false;highlight.layer.cornerRadius=25;highlight.clipsToBounds=true
+ weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var selected=0
+ init(web:WKWebView){super.init();self.web=web;let effect=UIGlassEffect(style:.clear);effect.isInteractive=true;surface.effect=effect;surface.cornerConfiguration = .capsule();surface.accessibilityIdentifier="nativeLiquidGlassNavigation";web.addSubview(surface);surface.isHidden=true
+ surface.contentView.addSubview(highlight);highlight.isUserInteractionEnabled=false;highlight.cornerConfiguration = .capsule()
  for (i,item) in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){let b=UIButton(type:.system);b.tag=i;b.setImage(UIImage(systemName:item.0),for:.normal);b.accessibilityLabel=item.1;b.addTarget(self,action:#selector(tap(_:)),for:.touchUpInside);surface.contentView.addSubview(b);buttons.append(b)}
  surface.addGestureRecognizer(UIPanGestureRecognizer(target:self,action:#selector(pan(_:))))
  }
- func sync(_ b:[String:Any]){surface.isHidden = !(b["show"] as? Bool ?? false);if surface.isHidden{return};surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);selected=b["selected"] as? Int ?? 0
+ func sync(_ b:[String:Any]){surface.isHidden = !(b["show"] as? Bool ?? false);if surface.isHidden{return};surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);selected=b["selected"] as? Int ?? 0
  let width=(surface.bounds.width-12)/5
  for(i,button)in buttons.enumerated(){button.frame=CGRect(x:6+CGFloat(i)*width,y:7,width:width,height:50);button.tintColor = .label;button.accessibilityTraits = i==selected ? [.button,.selected]:[.button]}
  highlight.frame=buttons[max(0,min(4,selected))].frame
