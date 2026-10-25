@@ -1741,7 +1741,7 @@ if(window.__novaNativeGlass){document.documentElement.classList.add('nativeApple
  window.__nativeComposerPhoto=(mode,owner,data)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId:'ai')))return;const bytes=Uint8Array.from(atob(data),c=>c.charCodeAt(0)),file=new File([bytes],'photo.jpg',{type:'image/jpeg'}),transfer=new DataTransfer();transfer.items.add(file);const input=$(mode==='friend'?'#cvPF':'#aiPF');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}))};
  const syncNative=()=>{const tb=$('#tabbar');if(tb){const r=tb.getBoundingClientRect();const n={t:'nativeNavigation',show:!tb.hidden&&getComputedStyle(tb).display!=='none'&&!document.body.classList.contains('ovl')&&$('#conv').hidden&&!document.querySelector('dialog[open]')&&$('#ob').hidden&&!$('#intro'),selected:pgI,x:r.x,y:r.y,w:r.width};const ns=JSON.stringify(n);if(ns!==navLast){post(n);navLast=ns}}
 const cv=$('#conv'),ai=$('#pgChat');const friend=cv&&!cv.hidden&&getComputedStyle(cv).display!=='none',aion=ai&&!ai.hidden&&getComputedStyle(ai).display!=='none'&&ai.getBoundingClientRect().width>0;
- const mode=friend?'friend':aion?'ai':'',row=mode==='friend'?$('.cvfP'):$('#pgChat .cf');window.__nativeComposerMode=mode;
+ const covered=!!document.querySelector('dialog[open]')||!$('#ob').hidden||!!$('#intro');const mode=covered?'':friend?'friend':aion?'ai':'',row=mode==='friend'?$('.cvfP'):$('#pgChat .cf');window.__nativeComposerMode=mode;
  document.documentElement.classList.toggle('nativeGlassComposer',!!mode);
  let b={t:'nativeComposer',show:!!mode,mode,account:(S.acct?.email||'')+':'+(mode==='friend'?convId:'ai'),value:$(mode==='friend'?'#cvI':'#ai')?.value||''};
  if(row&&mode){const r=row.getBoundingClientRect();Object.assign(b,{x:r.x,y:r.y,w:r.width})}
@@ -1750,4 +1750,4 @@ const cv=$('#conv'),ai=$('#pgChat');const friend=cv&&!cv.hidden&&getComputedStyl
 }
 </script>
 </body>
- </html>
+                                                      </html>
