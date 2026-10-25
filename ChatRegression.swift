@@ -22,9 +22,13 @@ import PhotosUI
  }
  func webView(_ webView:WKWebView,didFinish navigation:WKNavigation!){DispatchQueue.main.asyncAfter(deadline:.now()+2){
  self.web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(4);setTimeout(()=>window.scrollTo(0,450),100);",completionHandler:nil)
- DispatchQueue.main.asyncAfter(deadline:.now()+2){self.saveImage("native-nav.png")
+ DispatchQueue.main.asyncAfter(deadline:.now()+2){self.saveImage("native-nav.png");try? Data().write(to:FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0].appendingPathComponent("nav-ready"))
+ if #available(iOS 26.0,*),let nav=self.navigation as? NativeGlassNavigation{
+ for (delay,index) in [(3.0,0),(6.0,4)]{DispatchQueue.main.asyncAfter(deadline:.now()+delay){let controls=nav.surface.subviews.compactMap{$0 as? UIControl}.sorted{$0.frame.minX<$1.frame.minX};if controls.count>index{controls[index].sendActions(for:.touchUpInside)}}}}
+ DispatchQueue.main.asyncAfter(deadline:.now()+12){
  self.web.evaluateJavaScript("pg(2);convOpen(1,'Study group');",completionHandler:nil)
  DispatchQueue.main.asyncAfter(deadline:.now()+2){self.testNative()}
+ }
  }
  }}
  func testNative(){if #available(iOS 26.0,*),let c=composer as? NativeGlassComposer{
