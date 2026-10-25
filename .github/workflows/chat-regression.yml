@@ -52,7 +52,8 @@ jobs:
           ---
           - launchApp
           - extendedWaitUntil:
-              visible: "Profilo"
+              visible:
+                id: "nativeLiquidGlassNavigation"
               timeout: 30000
           - takeScreenshot: evidence/nav-before
           - swipe:
@@ -85,5 +86,7 @@ jobs:
           name: NOVA-real-nav-drag
           path: |
             evidence/*.png
+            evidence/*.mp4
+            /tmp/**/*.png
             /tmp/.maestro/**/*.png
             /Users/runner/.maestro/**/*.png
