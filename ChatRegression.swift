@@ -1,8 +1,20 @@
 import UIKit
 import WebKit
+import ObjectiveC.runtime
 @main final class ChatTestApp: UIResponder, UIApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
  var window:UIWindow?;var web:WKWebView!
  func application(_ application:UIApplication,didFinishLaunchingWithOptions:[UIApplication.LaunchOptionsKey:Any]?)->Bool{
+ // Test-only: permit synthetic focus to display the real simulator keyboard.
+ if let cls=NSClassFromString("WKContentView") {
+ let sel=NSSelectorFromString("_elementDidFocus:userIsInteracting:blurPreviousNode:activityStateChanges:userObject:")
+ if let method=class_getInstanceMethod(cls,sel){
+ let imp=method_getImplementation(method)
+ typealias Fn = @convention(c) (AnyObject,Selector,UnsafeRawPointer,Bool,Bool,UInt,AnyObject?)->Void
+ let original=unsafeBitCast(imp,to:Fn.self)
+ let block:@convention(block) (AnyObject,UnsafeRawPointer,Bool,Bool,UInt,AnyObject?)->Void = { object,info,_,blur,changes,user in original(object,sel,info,true,blur,changes,user) }
+ method_setImplementation(method,imp_implementationWithBlock(block))
+ }
+ }
  let c=WKWebViewConfiguration();c.userContentController.add(self,name:"result")
  let fixture="""
  localStorage.setItem('nova.v1',JSON.stringify({introOff:1,ob:2,done:1,profDone:1,name:'Synthetic',acct:{token:'fixture-only',email:'me@test.invalid'},prof:{username:'fixture'},w:{wx:0}}));
