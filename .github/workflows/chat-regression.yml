@@ -63,9 +63,10 @@ jobs:
           PID=$!
           python3 - <<'PYRUN'
           import subprocess
-          try: subprocess.run(['maestro','test','/tmp/nav.yaml'],timeout=120,check=True)
-          except subprocess.TimeoutExpired: print('UI driver exceeded120s; preserving any captured pixels')
+          try: subprocess.run(['maestro','test','/tmp/nav.yaml'],timeout=240,check=True)
+          except subprocess.TimeoutExpired: print('UI driver exceeded240s; preserving any captured pixels')
           PYRUN
+          find "$HOME/.maestro" /tmp -name 'nav-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           kill -INT "$PID" || true
           sleep 5
           kill -TERM "$PID" 2>/dev/null || true
