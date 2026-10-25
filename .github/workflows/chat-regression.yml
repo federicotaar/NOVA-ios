@@ -29,6 +29,8 @@ jobs:
           defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool NO
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl spawn "$UDID" defaults write com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool YES
+          xcrun simctl spawn "$UDID" defaults write com.apple.Preferences DidShowContinuousPathIntroduction -bool YES
           xcrun simctl install "$UDID" /tmp/ChatTest.app
           xcrun simctl launch "$UDID" site.federicotaranu.nova.chattest
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
