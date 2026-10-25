@@ -30,8 +30,10 @@ import PhotosUI
  func testNative(){if #available(iOS 26.0,*),let c=composer as? NativeGlassComposer{
  guard !c.surface.isHidden else{return fail("Native composer handshake absent")}
  c.pick()
+ DispatchQueue.main.asyncAfter(deadline:.now()+1){
  guard let picker=self.window?.rootViewController?.presentedViewController as? PHPickerViewController else{return self.fail("native picker did not present")}
  c.picker(picker,didFinishPicking:[])
+ DispatchQueue.main.asyncAfter(deadline:.now()+1){
  c.input.text="Native action fixture";c.changed();c.submit()
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
  self.web.evaluateJavaScript("JSON.stringify({sent:testSent,errors:testErrors,draft:$('#cvI').value})"){value,error in
@@ -44,6 +46,7 @@ import PhotosUI
  }
  }
  }
+ }}
  }else{fail("Simulator does not support iOS26 Liquid Glass")}}
  func saveImage(_ name:String){guard let view=window else{return};let renderer=UIGraphicsImageRenderer(bounds:view.bounds);let image=renderer.image{_ in view.drawHierarchy(in:view.bounds,afterScreenUpdates:true)};if let data=image.pngData(){try? data.write(to:FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0].appendingPathComponent(name))}}
  func fail(_ message:String){result(["ok":false,"error":message])}
