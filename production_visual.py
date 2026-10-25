@@ -34,7 +34,8 @@ func visualProductionRun(_ web:WKWebView){
  DispatchQueue.main.asyncAfter(deadline:.now()+61){visualProductionSave(web,"production-home-glass.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+63){web.evaluateJavaScript("openTT()",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+66){visualProductionSave(web,"production-chips.png")}
- DispatchQueue.main.asyncAfter(deadline:.now()+68){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());pg(2);convOpen(1,'Study group');setTimeout(()=>cvActSheet(2),300)",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+68){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());pg(2);convOpen(1,'Study group')",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+71){web.evaluateJavaScript("cvActSheet(2);JSON.stringify({messages:cvMsgs.length,hidden:$('#cvAct').hidden,buttons:$('#cvAct').querySelectorAll('button').length})"){v,e in print("REACTION_STATE",v ?? "nil",e ?? "nil")}}
  DispatchQueue.main.asyncAfter(deadline:.now()+72){visualProductionSave(web,"production-reactions.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+74){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());document.querySelector('#cvAct').hidden=true;convClose();pg(0)",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+77){visualProductionSave(web,"production-task-controls.png")}
