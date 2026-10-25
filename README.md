@@ -46,6 +46,8 @@ Screenshot reali di una build di sviluppo nel simulatore iOS, con dati e messagg
 | Stato | Attività | Nota |
 | --- | --- | --- |
 | 🟡 **In corso** | **Implementazione Liquid Glass** | Composer, navigazione con lente Apple, rifrazione ai bordi e controlli della mappa. Verifiche visive e integrazione su dispositivo ancora in corso. |
+| 🟡 **In corso** | Impostazioni organizzate | Nuova pagina opaca a sezioni, interruttori nativi Apple e controlli glass. In verifica: nessuna modifica automatica alle scelte o ai permessi. |
+| 🟡 **In corso** | Pulsanti glass in tutta l'app | Migrazione progressiva dei controlli, con verifiche schermata per schermata. Non ancora completa. |
 | 🟡 **In corso** | Ritorno dalla chat AI all'elenco | Correzione della visibilità dell'elenco e test di navigazione. |
 | 🟡 **In corso** | Avatar e isolamento account | Foto del profilo nella navigazione, visibilità tra amici accettati e aggiornamenti al cambio account. |
 | 🟡 **In verifica** | Foto, vocali e notifiche | Controlli su annullamento, cambio chat, permessi e comportamento sui dispositivi. |
