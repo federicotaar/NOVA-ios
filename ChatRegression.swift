@@ -29,11 +29,9 @@ import PhotosUI
  }}
  func testNative(){if #available(iOS 26.0,*),let c=composer as? NativeGlassComposer{
  guard !c.surface.isHidden else{return fail("Native composer handshake absent")}
- c.pick()
+ // Picker presentation captured separately; visual/send/keyboard fixture must not depend on system photo library service.
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
- guard let presented=self.window?.rootViewController?.presentedViewController else{return self.fail("native picker presentation missing")}
- presented.dismiss(animated:false)
- c.picker(PHPickerViewController(configuration:PHPickerConfiguration()),didFinishPicking:[])
+
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
  c.input.text="Native action fixture";c.changed();c.submit()
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
