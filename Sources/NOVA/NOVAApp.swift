@@ -1682,7 +1682,7 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
 
 @available(iOS 26.0, *)
 final class NativeGlassNavigation:NSObject {
- weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var selected=0
+ weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect(style:.regular));var selected=0
  init(web:WKWebView){super.init();self.web=web;let effect=UIGlassEffect(style:.clear);effect.isInteractive=true;surface.effect=effect;surface.cornerConfiguration = .capsule();surface.accessibilityIdentifier="nativeLiquidGlassNavigation";web.addSubview(surface);surface.isHidden=true
  surface.contentView.addSubview(highlight);highlight.isUserInteractionEnabled=false;highlight.cornerConfiguration = .capsule()
  for (i,item) in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){let b=UIButton(type:.system);b.tag=i;b.setImage(UIImage(systemName:item.0),for:.normal);b.accessibilityLabel=item.1;b.addTarget(self,action:#selector(tap(_:)),for:.touchUpInside);surface.contentView.addSubview(b);buttons.append(b)}
@@ -1692,6 +1692,7 @@ final class NativeGlassNavigation:NSObject {
  let width=(surface.bounds.width-12)/5
  for(i,button)in buttons.enumerated(){button.frame=CGRect(x:6+CGFloat(i)*width,y:7,width:width,height:50);button.tintColor = .label;button.accessibilityTraits = i==selected ? [.button,.selected]:[.button]}
  highlight.frame=buttons[max(0,min(4,selected))].frame
+ highlight.backgroundColor = UIColor.secondarySystemFill
  }
  @objc func tap(_ button:UIButton){web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(button.tag))",completionHandler:nil)}
  @objc func pan(_ g:UIPanGestureRecognizer){let dx=g.translation(in:surface).x;let phase=g.state == .began ? "start":g.state == .ended || g.state == .cancelled ? "end":"move";web?.evaluateJavaScript("window.__nativeNavDrag&&__nativeNavDrag('\(phase)',\(dx))",completionHandler:nil)}
