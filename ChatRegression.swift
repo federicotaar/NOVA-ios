@@ -1,6 +1,7 @@
 import UIKit
 import WebKit
 import ObjectiveC.runtime
+import PhotosUI
 @main final class ChatTestApp: UIResponder, UIApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
  var window:UIWindow?;var web:WKWebView!;var composer:AnyObject?;var glassNav:AnyObject?
  func application(_ application:UIApplication,didFinishLaunchingWithOptions:[UIApplication.LaunchOptionsKey:Any]?)->Bool{
@@ -57,7 +58,7 @@ import ObjectiveC.runtime
 }
 // Native iOS26 Liquid Glass message control; older versions keep the web composer.
 @available(iOS 26.0, *)
-final class NativeGlassComposer: NSObject, UITextFieldDelegate {
+final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewControllerDelegate {
  weak var web: WKWebView?
  let surface=UIVisualEffectView(effect: UIGlassEffect())
  let permissions=UIButton(type:.system)
@@ -88,9 +89,13 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate {
  @objc func keyboardChanged(_ n:Notification){guard let web=web,let frame=n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else{return};let f=web.convert(frame,from:nil);keyboard=max(0,web.bounds.maxY-f.minY);layout()}
  func script(_ s:String){web?.evaluateJavaScript(s,completionHandler:nil)}
  func quoted(_ s:String)->String{String(data:try! JSONSerialization.data(withJSONObject:[s]),encoding:.utf8)!.dropFirst().dropLast().description}
- @objc func changed(){let text=String((input.text ?? "").prefix(mode=="friend" ? 4000:1500));if input.text != text{input.text=text};remote=text;script("window.__nativeComposerInput&&__nativeComposerInput("+quoted(mode)+","+quoted(text)+")")}
+ @objc func changed(){let text=String((input.text ?? "").prefix(mode=="friend" ? 4000:1500));if input.text != text{input.text=text};remote=text;script("window.__nativeComposerInput&&__nativeComposerInput("+quoted(mode)+","+quoted(text)+","+quoted(account)+")")}
  @objc func permission(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'permissions',"+quoted(account)+")")}
- @objc func pick(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'photo',"+quoted(account)+")")}
+ var pickerOwner="",pickerMode=""
+ @objc func pick(){guard let web=web,var controller=web.window?.rootViewController else{return};while let presented=controller.presentedViewController{controller=presented};pickerOwner=account;pickerMode=mode;var config=PHPickerConfiguration();config.filter = .images;config.selectionLimit=1;let picker=PHPickerViewController(configuration:config);picker.delegate=self;controller.present(picker,animated:true)}
+ func picker(_ picker:PHPickerViewController,didFinishPicking results:[PHPickerResult]){picker.dismiss(animated:true);guard let provider=results.first?.itemProvider,provider.canLoadObject(ofClass:UIImage.self) else{return};let owner=pickerOwner,m=pickerMode
+ provider.loadObject(ofClass:UIImage.self){[weak self] image,_ in guard let self=self,let img=image as? UIImage else{return};let ratio=min(1,1600/max(img.size.width,img.size.height));let size=CGSize(width:img.size.width*ratio,height:img.size.height*ratio);let resized=UIGraphicsImageRenderer(size:size).image{_ in img.draw(in:CGRect(origin:.zero,size:size))};guard let data=resized.jpegData(compressionQuality:0.75) else{return};DispatchQueue.main.async{guard self.account==owner,self.mode==m else{return};self.script("window.__nativeComposerPhoto&&__nativeComposerPhoto("+self.quoted(m)+","+self.quoted(owner)+","+self.quoted(data.base64EncodedString())+")")}}
+ }
  @objc func record(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'mic',"+quoted(account)+")")}
  @objc func submit(){changed();script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'send',"+quoted(account)+")")}
  func textFieldShouldReturn(_ textField:UITextField)->Bool{submit();return false}
