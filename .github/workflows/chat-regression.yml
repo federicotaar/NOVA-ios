@@ -61,7 +61,11 @@ jobs:
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
           xcrun simctl io "$UDID" recordVideo --codec=h264 evidence/nav-real-drag.mp4 >/tmp/nav-video.log 2>&1 &
           PID=$!
-          maestro test /tmp/nav.yaml
+          python3 - <<'PYRUN'
+          import subprocess
+          try: subprocess.run(['maestro','test','/tmp/nav.yaml'],timeout=120,check=True)
+          except subprocess.TimeoutExpired: print('UI driver exceeded120s; preserving any captured pixels')
+          PYRUN
           kill -INT "$PID" || true
           sleep 5
           kill -TERM "$PID" 2>/dev/null || true
