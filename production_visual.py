@@ -22,7 +22,13 @@ func visualProductionRun(_ web:WKWebView){
  DispatchQueue.main.asyncAfter(deadline:.now()+28){visualProductionSave(web,"production-keyboard.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+32){web.endEditing(true);web.evaluateJavaScript("try{convClose()}catch(e){testErrors.push(String(e))};document.querySelectorAll('dialog[open]').forEach(d=>d.close());document.body.classList.remove('ovl');$('#conv').hidden=true;pg(3);JSON.stringify({page:pgI,conv:$('#conv').hidden,errors:testErrors})"){v,e in print("MAP_VISUAL_STATE",v ?? "nil",e ?? "nil")}}
  DispatchQueue.main.asyncAfter(deadline:.now()+35){visualProductionSave(web,"production-map.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+38){web.evaluateJavaScript("pg(4);$('#bSet').click()",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+41){visualProductionSave(web,"production-settings-top.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+43){web.evaluateJavaScript("$('#dSet').scrollTop=650",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+46){visualProductionSave(web,"production-settings-notifications.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+48){web.evaluateJavaScript("$('#dSet').scrollTop=$('#dSet').scrollHeight",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+51){visualProductionSave(web,"production-settings-privacy.png")}
 }
-func visualProductionSave(_ web:WKWebView,_ name:String){guard let window=web.window else{return};let image=UIGraphicsImageRenderer(bounds:window.bounds).image{_ in window.drawHierarchy(in:window.bounds,afterScreenUpdates:true)};let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? image.pngData()?.write(to:dir.appendingPathComponent(name));if name=="production-map.png"{try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
+func visualProductionSave(_ web:WKWebView,_ name:String){guard let window=web.window else{return};let image=UIGraphicsImageRenderer(bounds:window.bounds).image{_ in window.drawHierarchy(in:window.bounds,afterScreenUpdates:true)};let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? image.pngData()?.write(to:dir.appendingPathComponent(name));if name=="production-settings-privacy.png"{try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
 '''
 s=s.replace('iOS26.0','iOS 26.0');Path('/tmp/NOVAProductionVisual.swift').write_text(s)
