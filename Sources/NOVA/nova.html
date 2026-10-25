@@ -481,7 +481,7 @@ html.nativeAppleGlass #pgChat #cm{padding-bottom:180px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.18</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.19</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -1311,7 +1311,7 @@ function aiOpen(){const b=$('#chatB'),a=$('#aic');if(!a)return;
  if(gqHas){b.hidden=true}
  else{b.hidden=false;b.innerHTML='<p class="mut" style="margin:0">Per parlare con l\'assistente serve la tua chiave Groq (gratuita, resta solo su questo telefono). <a href="#" id="cGK" style="color:var(--acc)">Apri le impostazioni</a></p>';const l=$('#cGK');if(l)l.onclick=e=>{e.preventDefault();sheet();$('#dSet').showModal()}}
  haptic('light')}
-async function frcDraw(){const el=$('#frc');if(!el)return;el.hidden=false;
+let frcEpoch=0;async function frcDraw(){const epoch=++frcEpoch,owner=S.acct?.token;const current=()=>epoch===frcEpoch&&owner===S.acct?.token;const el=$('#frc');if(!el)return;el.hidden=false;
  let aiPrev='Il tuo assistente di studio';
  try{const last=S.chat&&S.chat.length?S.chat[S.chat.length-1]:null;
   if(last){const c=typeof last.c==='string'?last.c:(last.c&&last.c.text?String(last.c.text):'');if(c)aiPrev=c.slice(0,60)}}catch(e){}
@@ -1321,13 +1321,13 @@ async function frcDraw(){const el=$('#frc');if(!el)return;el.hidden=false;
  if(!S.prof.username){el.innerHTML=aiRow+'<p class="mut" style="text-align:center;padding:16px">Scegli il tuo username (Profilo › Modifica) per chattare con gli amici.</p>';$('#fcFab').hidden=true;bind();return}
  $('#fcFab').hidden=false;
  el.innerHTML=aiRow+'<small class="mut" style="text-align:center;display:block;padding:8px">Carico le chat…</small>';
- try{const r=await api('/chats','GET');
+ try{const r=await api('/chats','GET');if(!current())return;
   const cs=(r&&r.chats)||[];
   el.innerHTML=aiRow
-   +(cs.length?cs.map(c=>'<button class="fcR" data-c="'+c.id+'" data-t="'+esc(c.title||'Chat')+'"'+(c.exam_at?' data-ex="'+c.exam_at+'"':'')+'><div class="pfA" style="width:40px;height:40px;font-size:16px">'+esc((c.title||'?')[0].toUpperCase())+'</div><div class="tt"><b>'+esc(c.title||'Chat')+'</b><small>'+(c.last?esc(c.last.kind==='text'?c.last.body.slice(0,60):(c.last.kind==='image'?'📷 Foto':'🎤 Vocale')):'Nessun messaggio')+'</small></div>'+(c.unread?'<span class="fcUn">'+c.unread+'</span>':'')+'</button>').join(''):'<small class="mut" style="text-align:center;display:block;padding:14px">Nessuna chat con gli amici ancora: tocca + per crearne una.</small>');
+   +(cs.length?cs.map(c=>'<button class="fcR" data-c="'+c.id+'" data-t="'+esc(c.title||'Chat')+'"'+(c.exam_at?' data-ex="'+c.exam_at+'"':'')+'><div class="pfA" style="width:40px;height:40px;font-size:16px">'+(c.type==='dm'&&c.avatar?friendAvatar(c.avatar,c.title):esc((c.title||'?')[0].toUpperCase()))+'</div><div class="tt"><b>'+esc(c.title||'Chat')+'</b><small>'+(c.last?esc(c.last.kind==='text'?c.last.body.slice(0,60):(c.last.kind==='image'?'📷 Foto':'🎤 Vocale')):'Nessun messaggio')+'</small></div>'+(c.unread?'<span class="fcUn">'+c.unread+'</span>':'')+'</button>').join(''):'<small class="mut" style="text-align:center;display:block;padding:14px">Nessuna chat con gli amici ancora: tocca + per crearne una.</small>');
   bind();
   el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>convOpen(b.dataset.c,b.dataset.t,b.dataset.ex?+b.dataset.ex:0));
- }catch(e){el.innerHTML=aiRow+'<small class="mut" style="text-align:center;display:block;padding:8px">Chat non disponibile ora.</small>';bind()}
+ }catch(e){if(!current())return;el.innerHTML=aiRow+'<small class="mut" style="text-align:center;display:block;padding:8px">Chat non disponibile ora.</small>';bind()}
 }
 let frLKind='amici';
 async function frListOpen(kind){frLKind=kind;
