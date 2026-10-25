@@ -8,7 +8,7 @@ s=s.replace('        let web = WKWebView(frame:', '        config.userContentCon
 s=s.replace('        return web\n', '''        visualProductionRun(web)
         return web
 ''',1)
-s+='''
+s+=r'''
 #if DEBUG
 #endif
 func visualProductionRun(_ web:WKWebView){
@@ -22,6 +22,8 @@ func visualProductionRun(_ web:WKWebView){
  DispatchQueue.main.asyncAfter(deadline:.now()+28){visualProductionSave(web,"production-keyboard.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+32){web.endEditing(true);web.evaluateJavaScript("try{convClose()}catch(e){testErrors.push(String(e))};document.querySelectorAll('dialog[open]').forEach(d=>d.close());document.body.classList.remove('ovl');$('#conv').hidden=true;pg(3);JSON.stringify({page:pgI,conv:$('#conv').hidden,errors:testErrors})"){v,e in print("MAP_VISUAL_STATE",v ?? "nil",e ?? "nil")}}
  DispatchQueue.main.asyncAfter(deadline:.now()+35){visualProductionSave(web,"production-map.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+36){web.evaluateJavaScript("toast(\"Condivisione spenta sul server\")",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+37){visualProductionSave(web,"production-centered-notice.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+38){web.evaluateJavaScript("pg(4);$('#bSet').click()",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+41){visualProductionSave(web,"production-settings-top.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+43){web.evaluateJavaScript("$('#dSet').scrollTop=650",completionHandler:nil)}
