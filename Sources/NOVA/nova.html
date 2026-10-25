@@ -348,6 +348,14 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
 .tyDots i:nth-child(2){animation-delay:.15s}.tyDots i:nth-child(3){animation-delay:.3s}
 @keyframes typingDot{0%,65%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-3px);opacity:1}}
 @media(prefers-reduced-motion:reduce){.tyDots i{animation:none;opacity:.8}}
+#dFrP .frPageHead{display:flex;align-items:center;gap:14px;position:sticky;top:0;background:var(--bg);z-index:2;padding:0 0 12px;border-bottom:1px solid var(--line)}
+#dFrP .frPageHead h2{font-size:19px;margin:0;font-weight:700;flex:1}
+#dFrP .frPageHead button{background:transparent;color:var(--fg);font-size:30px;border:0;padding:0;width:36px;height:40px}
+#dFrP .pfTop{align-items:flex-start;text-align:left;padding:12px 0;gap:12px}
+#dFrP .pfTop .pfA{width:88px;height:88px;font-size:30px}
+#dFrP .pfStat{justify-content:flex-start;gap:28px;padding:12px 0 20px}
+#dFrP .pfStat span{display:flex;flex-direction:column;gap:3px;font-size:13px}
+#dFrP .pfStat b{font-size:18px;color:var(--fg)}
 </style>
 </head>
 <body>
@@ -450,7 +458,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.7</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.8</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -487,7 +495,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
  <div id="frLL" style="display:flex;flex-direction:column;gap:8px;max-height:50dvh;overflow:auto;margin-top:8px"></div>
 </div></dialog>
 <dialog id="dFrP"><div class="sheet">
- <div style="display:flex;align-items:center;gap:8px"><h2 id="frPT" style="flex:1;margin:0">Profilo</h2><button class="btn sm" id="frPX" aria-label="Indietro">Indietro</button></div>
+ <header class="frPageHead"><button class="ico" id="frPX" aria-label="Indietro">&#8249;</button><h2 id="frPT">Profilo</h2></header>
  <div id="frPB" style="margin-top:8px"></div>
 </div></dialog>
 <dialog id="dNC"><div class="sheet">
@@ -561,7 +569,7 @@ let nid=0;const nw={};
 function nat(t,op,d){return new Promise(r=>{const i=++nid;nw[i]=r;try{webkit.messageHandlers.nova.postMessage(Object.assign({t:t,op:op,id:i},d||{}))}catch(e){delete nw[i];r({ok:0,err:'bridge'})}})}
 window.__novaCV=(i,p)=>{const r=nw[i];delete nw[i];r&&r(p)};
 window.addEventListener('error',e=>{try{let b=document.getElementById('errB');if(!b){b=document.createElement('div');b.id='errB';b.style.cssText='position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:99;background:#3b0d0d;color:#ffb4b4;font-size:11px;padding:8px 10px;border-radius:10px;border:1px solid #7a2626';document.body.appendChild(b)}b.textContent='Errore app: codice JS_ERROR, riga '+(Number.isInteger(e.lineno)?e.lineno:0)+'. Puoi inviare uno screenshot senza contenuti privati';b.onclick=()=>b.remove();
- if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.25.7',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
+ if(!window.__errT||Date.now()-window.__errT>30000){window.__errT=Date.now();try{if(S.diag!==0&&S.acct&&S.acct.token){const _en=['TypeError','ReferenceError','SyntaxError','RangeError','EvalError','URIError'].indexOf(e.error&&e.error.name)>=0?e.error.name:'Error';api('/client-error','POST',{build:'2026.10.25.8',ename:_en,line:Math.min(Math.max(parseInt(e.lineno)||0,0),99999)}).catch(()=>{})}}catch(_2){}}}catch(_){}});
 const cv=(op,d)=>nat('classeviva',op,d),gq=(op,d)=>nat('groq',op,d),spo=(op,d)=>nat('spotify',op,d),fid=(op,d)=>nat('faceid',op,d);
 const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 cloud:'<path d="M7 18a4 4 0 0 1-.4-8 5.5 5.5 0 0 1 10.6 1A3.5 3.5 0 0 1 17 18z"/>',fog:'<path d="M4 9h16M3 13h18M6 17h12"/>',
@@ -1613,7 +1621,7 @@ window.__novaBgLoc=st=>{if(st==='on'){if(!S.locShare||!S.locSession){bgLocStop()
  else if(st==='off'){S.bgLoc=0;save();mapNoteDraw()}
  else if(st==='denied'){S.bgLoc=0;save();mapNoteDraw();toast('Permesso posizione negato: attivalo in Impostazioni > NOVA > Posizione > Sempre')}
  else if(st==='wheninuse'){S.bgLoc=0;save();mapNoteDraw();toast('iOS ha concesso solo "Mentre usi l\'app": scegli Sempre in Impostazioni > NOVA > Posizione')}};
-window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.25.7',ename:'Error',line:0}).catch(()=>{})});
+window.addEventListener('unhandledrejection',()=>{if(S.diag===0||!S.acct?.token)return;const now=Date.now();if(window.__errT&&now-window.__errT<30000)return;window.__errT=now;api('/client-error','POST',{build:'2026.10.25.8',ename:'Error',line:0}).catch(()=>{})});
 let locEpoch=0,locPending=false;
 async function locEnable(openMap=true){const token=S.acct&&S.acct.token;if(!token){toast('Collega prima un account NOVA');return}locPending=true;mapNoteDraw();const epoch=++locEpoch;try{const c=await api('/location/session','GET');if(epoch!==locEpoch||token!==S.acct?.token)return;const r=await api('/location/session','POST',{rev:c.rev});if(epoch!==locEpoch||token!==S.acct?.token)return;locPending=false;S.locSession=r.session;S.locSessionToken=token;S.locShare=1;save();mapNoteDraw();if(openMap){mapInit();mapEntry()}}catch(e){locPending=false;S.locShare=0;save();mapNoteDraw();toast('Condivisione non attivata: riprova')}}
 function locDisable(){locEpoch++;locPending=false;const token=S.acct&&S.acct.token;S.locShare=0;S.locSession='';save();bgLocStop();if(token)api('/location','PUT',{sharing:false}).then(()=>toast('Condivisione spenta sul server')).catch(()=>toast('Offline: spegnimento mappa non confermato. Riconnettiti e riprova.'));}
