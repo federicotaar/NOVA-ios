@@ -51,6 +51,7 @@ struct WebContainer: UIViewRepresentable {
         bridge.web = web
         if #available(iOS 26.0, *) { bridge.nativeComposer = NativeGlassComposer(web:web)
             bridge.nativeNavigation = NativeGlassNavigation(web:web)
+            bridge.nativeSettings = NativeSettingsControls(web:web)
             config.userContentController.addUserScript(WKUserScript(source:"window.__novaNativeGlass=true",injectionTime:.atDocumentStart,forMainFrameOnly:true)) }
         bridge.start()
         #if SWIFT_PACKAGE
@@ -72,6 +73,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     weak var web: WKWebView?
     var nativeComposer: AnyObject?
     var nativeNavigation: AnyObject?
+    var nativeSettings: AnyObject?
     private let center = UNUserNotificationCenter.current()
     private var introAudio: AVAudioPlayer?
     private var introClips: [AVAudioPlayer] = []
@@ -525,7 +527,9 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let t = body["t"] as? String else { return }
-        if t == "nativeNavigation" {
+        if t == "nativeSettings" {
+            if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let settings=nativeSettings as? NativeSettingsControls { settings.sync(body) }; return
+        } else if t == "nativeNavigation" {
             if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let navigation=nativeNavigation as? NativeGlassNavigation { navigation.sync(body) }; return
         } else if t == "nativeComposer" {
             if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let composer = nativeComposer as? NativeGlassComposer { composer.sync(body) }
@@ -1735,4 +1739,20 @@ final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
  func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldRecognizeSimultaneouslyWith otherGestureRecognizer:UIGestureRecognizer)->Bool{return true}
  @objc func observeDrag(_ g:UILongPressGestureRecognizer){let phase:String;switch g.state{case .began:phase="start";case .changed:phase="move";case .ended:phase="end";case .cancelled,.failed:phase="cancel";default:return};surface.trackingEvent?(phase,g.location(in:surface).x)}
  @objc func changed(){if surface.isTracking{return};web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(surface.selectedSegmentIndex))",completionHandler:nil)}
+}
+
+// Real system switches sit over the opaque settings rows; the existing handlers own all state and permissions.
+@available(iOS 26.0, *)
+final class NativeSettingsControls:NSObject {
+ weak var web:WKWebView?;var switches:[String:UISwitch]=[:];var owner="";var epoch=0;var shown=false
+ let done=UIButton(type:.system)
+ init(web:WKWebView){super.init();self.web=web;var c=UIButton.Configuration.glass();c.title="Fatto";done.configuration=c;done.accessibilityIdentifier="nativeSettingsDone";done.addTarget(self,action:#selector(closeSettings),for:.touchUpInside);done.isHidden=true;web.addSubview(done)}
+ func quoted(_ value:String)->String{let d=try! JSONSerialization.data(withJSONObject:[value]);return String(String(data:d,encoding:.utf8)!.dropFirst().dropLast())}
+ @objc func closeSettings(){guard shown else{return};web?.evaluateJavaScript("window.__nativeSettingsClose&&__nativeSettingsClose(\(quoted(owner)),\(epoch))",completionHandler:nil)}
+ @objc func changed(_ sender:UISwitch){guard shown,let id=sender.accessibilityIdentifier else{return};sender.isEnabled=false;web?.evaluateJavaScript("window.__nativeSettingsToggle&&__nativeSettingsToggle(\(quoted(id)),\(quoted(owner)),\(epoch),\(!sender.isOn))",completionHandler:nil)}
+ func sync(_ b:[String:Any]){guard let web=web else{return};shown=b["show"] as? Bool ?? false;owner=b["account"] as? String ?? "";epoch=b["epoch"] as? Int ?? 0;let dark=b["dark"] as? Bool ?? false;done.overrideUserInterfaceStyle=dark ? .dark:.light;done.isHidden = !shown
+ if let r=b["done"] as? [String:Any]{done.frame=CGRect(x:r["x"] as? CGFloat ?? 0,y:r["y"] as? CGFloat ?? 0,width:r["w"] as? CGFloat ?? 76,height:r["h"] as? CGFloat ?? 44)}
+ var active=Set<String>();for row in b["items"] as? [[String:Any]] ?? []{guard let id=row["id"] as? String else{continue};guard ["bHw","bIntro","bFid","bDiag","bNtfyPv","settingsWidget_wx","settingsWidget_bat","settingsWidget_cal","settingsWidget_task","settingsWidget_nx","settingsWidget_sp"].contains(id) else{continue};active.insert(id);let control:UISwitch;if let old=switches[id]{control=old}else{control=UISwitch();control.accessibilityIdentifier=id;control.addTarget(self,action:#selector(changed(_:)),for:.valueChanged);web.addSubview(control);switches[id]=control};control.overrideUserInterfaceStyle=dark ? .dark:.light;control.accessibilityLabel=row["label"] as? String;control.setOn(row["on"] as? Bool ?? false,animated:false);control.isEnabled = !(row["disabled"] as? Bool ?? false);control.frame.origin=CGPoint(x:row["x"] as? CGFloat ?? 0,y:row["y"] as? CGFloat ?? 0);control.isHidden = !shown || !(row["show"] as? Bool ?? false);if !control.isHidden{web.bringSubviewToFront(control)}}
+ for(id,c)in switches where !active.contains(id){c.isHidden=true};if shown{web.bringSubviewToFront(done)}
+ }
 }
