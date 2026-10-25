@@ -27,7 +27,7 @@ import WebKit
  for(const sel of ['#cvI','#ai']){const f=$(sel);if(parseFloat(getComputedStyle(f).fontSize)<16)throw Error('input focus zoom font '+sel);f.focus();if(visualViewport&&Math.abs(visualViewport.scale-1)>.01)throw Error('native focus scale '+sel);f.blur()}
  if(document.querySelector('meta[name=viewport]').content.includes('user-scalable=no'))throw Error('pinch disabled');
  if(testSent.length!==1||testSent[0].body!=='Synthetic message')throw Error('send');if(testErrors.length||$('#errB'))throw Error('JS runtime errors');
- webkit.messageHandlers.result.postMessage({ok:true,typing:testTyping.length,sent:testSent.length,errors:testErrors,zoom:{scale:visualViewport.scale,inputFont:getComputedStyle($('#cvI')).fontSize,touch:getComputedStyle(document.documentElement).touchAction},build:document.body.innerText.includes('2026.10.24.6')});
+ $('#cvI').value='Synthetic glass draft';$('#cvI').focus();await new Promise(r=>setTimeout(r,2000));const rect=$('#cvI').getBoundingClientRect();if(rect.bottom>visualViewport.height+visualViewport.offsetTop+2)throw Error('composer below keyboard');webkit.messageHandlers.result.postMessage({ok:true,composer:{bottom:rect.bottom,viewport:visualViewport.height,focused:document.activeElement.id},typing:testTyping.length,sent:testSent.length,errors:testErrors,zoom:{scale:visualViewport.scale,inputFont:getComputedStyle($('#cvI')).fontSize,touch:getComputedStyle(document.documentElement).touchAction},build:document.body.innerText.includes('2026.10.24.6')});
  }catch(e){webkit.messageHandlers.result.postMessage({ok:false,error:String(e),errors:testErrors})}})();
  """
  self.web.evaluateJavaScript(test,completionHandler:nil)
