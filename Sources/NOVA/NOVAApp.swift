@@ -48,6 +48,8 @@ struct WebContainer: UIViewRepresentable {
         web.backgroundColor = .black
         web.scrollView.backgroundColor = .black
         bridge.web = web
+        if #available(iOS 26.0, *) { bridge.nativeComposer = NativeGlassComposer(web:web)
+            config.userContentController.addUserScript(WKUserScript(source:"window.__novaNativeGlass=true",injectionTime:.atDocumentStart,forMainFrameOnly:true)) }
         bridge.start()
         #if SWIFT_PACKAGE
         let bundle = Bundle.module
@@ -66,6 +68,7 @@ struct WebContainer: UIViewRepresentable {
 /// Ponte nativo: batteria reale, schermo acceso in carica, notifiche locali, ClasseViva.
 final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUserNotificationCenterDelegate, AVAudioPlayerDelegate {
     weak var web: WKWebView?
+    var nativeComposer: AnyObject?
     private let center = UNUserNotificationCenter.current()
     private var introAudio: AVAudioPlayer?
     private var introClips: [AVAudioPlayer] = []
@@ -519,7 +522,10 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let t = body["t"] as? String else { return }
-        if t == "perm" {
+        if t == "nativeComposer" {
+            if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let composer = nativeComposer as? NativeGlassComposer { composer.sync(body) }
+            return
+        } else if t == "perm" {
             center.requestAuthorization(options: [.alert, .sound, .badge]) { ok, _ in
                 let p = ok ? "granted" : "denied"
                 DispatchQueue.main.async { self.web?.evaluateJavaScript("__novaPerm('\(p)')") }
@@ -1622,4 +1628,44 @@ extension Bridge: CLLocationManagerDelegate {
             break
         }
     }
+}
+// Native iOS26 Liquid Glass message control; older versions keep the web composer.
+@available(iOS 26.0, *)
+final class NativeGlassComposer: NSObject, UITextFieldDelegate {
+ weak var web: WKWebView?
+ let surface=UIVisualEffectView(effect: UIGlassEffect())
+ let permissions=UIButton(type:.system)
+ let photo=UIButton(type:.system), mic=UIButton(type:.system), send=UIButton(type:.system), input=UITextField()
+ var mode="", account="", remote="";var row=CGRect.zero;var keyboard:CGFloat=0
+ init(web:WKWebView){super.init();self.web=web
+ let effect=UIGlassEffect();effect.isInteractive=true;surface.effect=effect;surface.layer.cornerRadius=28;surface.clipsToBounds=true
+ surface.accessibilityIdentifier="nativeLiquidGlassComposer"
+ input.placeholder="Scrivi un messaggio";input.font = .systemFont(ofSize:16);input.delegate=self;input.accessibilityLabel="Messaggio";input.returnKeyType = .send
+ input.addTarget(self,action:#selector(changed),for:.editingChanged)
+ for (b,symbol,label) in [(permissions,"slider.horizontal.3","Permessi azioni"),(photo,"plus","Invia foto"),(mic,"mic","Messaggio vocale"),(send,"arrow.up.circle.fill","Invia")]{b.setImage(UIImage(systemName:symbol),for:.normal);b.accessibilityLabel=label;b.tintColor = .label;b.translatesAutoresizingMaskIntoConstraints=false;NSLayoutConstraint.activate([b.widthAnchor.constraint(equalToConstant:44),b.heightAnchor.constraint(equalToConstant:44)])}
+ permissions.addTarget(self,action:#selector(permission),for:.touchUpInside)
+ photo.addTarget(self,action:#selector(pick),for:.touchUpInside);mic.addTarget(self,action:#selector(record),for:.touchUpInside);send.addTarget(self,action:#selector(submit),for:.touchUpInside)
+ let stack=UIStackView(arrangedSubviews:[photo,permissions,input,mic,send]);stack.spacing=4;stack.alignment = .center;stack.translatesAutoresizingMaskIntoConstraints=false;surface.contentView.addSubview(stack)
+ NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:surface.contentView.leadingAnchor,constant:5),stack.trailingAnchor.constraint(equalTo:surface.contentView.trailingAnchor,constant:-5),stack.topAnchor.constraint(equalTo:surface.contentView.topAnchor,constant:5),stack.bottomAnchor.constraint(equalTo:surface.contentView.bottomAnchor,constant:-5)])
+ web.addSubview(surface);surface.isHidden=true
+ NotificationCenter.default.addObserver(self,selector:#selector(keyboardChanged(_:)),name:UIResponder.keyboardWillChangeFrameNotification,object:nil)
+ }
+ func sync(_ b:[String:Any]){guard let web=web else{return};let show=b["show"] as? Bool ?? false
+ if !show{surface.isHidden=true;input.resignFirstResponder();mode="";return}
+ let m=b["mode"] as? String ?? "",a=b["account"] as? String ?? ""
+ if mode != m || account != a{input.resignFirstResponder();mode=m;account=a;input.text=b["value"] as? String ?? ""}
+ let value=b["value"] as? String ?? "";if value != remote{input.text=value;remote=value}
+ mic.isHidden=m != "friend";permissions.isHidden=m != "ai";photo.accessibilityLabel=m=="friend" ? "Invia foto":"Aggiungi foto";surface.isHidden=false
+ row=CGRect(x:(b["x"] as? CGFloat ?? 10),y:(b["y"] as? CGFloat ?? 0),width:(b["w"] as? CGFloat ?? web.bounds.width-20),height:56);layout()
+ }
+ func layout(){guard let web=web else{return};var r=row;if keyboard>0{r.origin.y=min(r.origin.y,web.bounds.height-keyboard-64)};surface.frame=r;web.bringSubviewToFront(surface)}
+ @objc func keyboardChanged(_ n:Notification){guard let web=web,let frame=n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else{return};let f=web.convert(frame,from:nil);keyboard=max(0,web.bounds.maxY-f.minY);layout()}
+ func script(_ s:String){web?.evaluateJavaScript(s,completionHandler:nil)}
+ func quoted(_ s:String)->String{String(data:try! JSONSerialization.data(withJSONObject:[s]),encoding:.utf8)!.dropFirst().dropLast().description}
+ @objc func changed(){let text=String((input.text ?? "").prefix(mode=="friend" ? 4000:1500));if input.text != text{input.text=text};remote=text;script("window.__nativeComposerInput&&__nativeComposerInput("+quoted(mode)+","+quoted(text)+")")}
+ @objc func permission(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'permissions',"+quoted(account)+")")}
+ @objc func pick(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'photo',"+quoted(account)+")")}
+ @objc func record(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'mic',"+quoted(account)+")")}
+ @objc func submit(){changed();script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'send',"+quoted(account)+")")}
+ func textFieldShouldReturn(_ textField:UITextField)->Bool{submit();return false}
 }
