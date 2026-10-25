@@ -52,6 +52,7 @@ struct WebContainer: UIViewRepresentable {
         if #available(iOS 26.0, *) { bridge.nativeComposer = NativeGlassComposer(web:web)
             bridge.nativeNavigation = NativeGlassNavigation(web:web)
             bridge.nativeSettings = NativeSettingsControls(web:web)
+            bridge.nativeToast = NativeStatusNotice(web:web)
             config.userContentController.addUserScript(WKUserScript(source:"window.__novaNativeGlass=true",injectionTime:.atDocumentStart,forMainFrameOnly:true)) }
         bridge.start()
         #if SWIFT_PACKAGE
@@ -74,6 +75,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     var nativeComposer: AnyObject?
     var nativeNavigation: AnyObject?
     var nativeSettings: AnyObject?
+    var nativeToast: AnyObject?
     private let center = UNUserNotificationCenter.current()
     private var introAudio: AVAudioPlayer?
     private var introClips: [AVAudioPlayer] = []
@@ -527,7 +529,9 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let t = body["t"] as? String else { return }
-        if t == "nativeSettings" {
+        if t == "nativeToast" {
+            if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let notice=nativeToast as? NativeStatusNotice { notice.show(body) }; return
+        } else if t == "nativeSettings" {
             if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let settings=nativeSettings as? NativeSettingsControls { settings.sync(body) }; return
         } else if t == "nativeNavigation" {
             if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let navigation=nativeNavigation as? NativeGlassNavigation { navigation.sync(body) }; return
@@ -1755,4 +1759,11 @@ final class NativeSettingsControls:NSObject {
  var active=Set<String>();for row in b["items"] as? [[String:Any]] ?? []{guard let id=row["id"] as? String else{continue};guard ["bHw","bIntro","bFid","bDiag","bNtfyPv","settingsWidget_wx","settingsWidget_bat","settingsWidget_cal","settingsWidget_task","settingsWidget_nx","settingsWidget_sp"].contains(id) else{continue};active.insert(id);let control:UISwitch;if let old=switches[id]{control=old}else{control=UISwitch();control.accessibilityIdentifier=id;control.addTarget(self,action:#selector(changed(_:)),for:.valueChanged);web.addSubview(control);switches[id]=control};control.overrideUserInterfaceStyle=dark ? .dark:.light;control.accessibilityLabel=row["label"] as? String;control.setOn(row["on"] as? Bool ?? false,animated:false);control.isEnabled = !(row["disabled"] as? Bool ?? false);control.frame.origin=CGPoint(x:row["x"] as? CGFloat ?? 0,y:row["y"] as? CGFloat ?? 0);control.isHidden = !shown || !(row["show"] as? Bool ?? false);if !control.isHidden{web.bringSubviewToFront(control)}}
  for(id,c)in switches where !active.contains(id){c.isHidden=true};if shown{web.bringSubviewToFront(done)}
  }
+}
+
+@available(iOS 26.0, *)
+final class NativeStatusNotice:NSObject {
+ weak var web:WKWebView?;let card=UIVisualEffectView(effect:UIGlassEffect(style:.clear));let label=UILabel();var dismissal:DispatchWorkItem?
+ init(web:WKWebView){super.init();self.web=web;card.cornerConfiguration = .capsule();card.isUserInteractionEnabled=false;label.font = .preferredFont(forTextStyle:.body);label.adjustsFontForContentSizeCategory=true;label.numberOfLines=0;label.textAlignment = .center;label.textColor = .label;card.contentView.addSubview(label);card.accessibilityIdentifier="nativeCenteredStatus";card.isHidden=true;web.addSubview(card)}
+ func show(_ b:[String:Any]){guard let web=web,let text=b["text"] as? String,!text.isEmpty else{return};dismissal?.cancel();label.text=String(text.prefix(1000));card.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;let width=min(web.bounds.width-40,360),size=label.sizeThatFits(CGSize(width:width-40,height:web.bounds.height*0.55));let height=min(max(64,size.height+36),web.bounds.height*0.65);card.frame=CGRect(x:(web.bounds.width-width)/2,y:(web.bounds.height-height)/2,width:width,height:height);label.frame=card.bounds.insetBy(dx:20,dy:18);card.layer.cornerRadius=min(32,height/2);card.isHidden=false;card.alpha=1;web.bringSubviewToFront(card);UIAccessibility.post(notification:.announcement,argument:text);let work=DispatchWorkItem{[weak self] in self?.card.isHidden=true};dismissal=work;DispatchQueue.main.asyncAfter(deadline:.now()+5,execute:work)}
 }
