@@ -117,7 +117,7 @@ final class NativeLensSegments:UISegmentedControl {
 }
 @available(iOS 26.0, *)
 final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
- weak var web:WKWebView?;let surface=NativeLensSegments(items:[]);let backdrop=UIVisualEffectView(effect:UIGlassEffect(style:.regular));var dragStart=0;var selected=0
+ weak var web:WKWebView?;let surface=NativeLensSegments(items:[]);let backdrop=UIVisualEffectView(effect:UIGlassEffect(style:.regular));var dragStart=0;var selected=0;var avatarBinding=""
  init(web:WKWebView){super.init();self.web=web;surface.accessibilityIdentifier="nativeLiquidGlassNavigation"
  for(i,item)in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){
  let image=UIGraphicsImageRenderer(size:CGSize(width:60,height:46)).image{_ in
@@ -136,7 +136,19 @@ final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
  let observer=UILongPressGestureRecognizer(target:self,action:#selector(observeDrag(_:)));observer.minimumPressDuration=0;observer.allowableMovement=10000;observer.cancelsTouchesInView=false;observer.delaysTouchesBegan=false;observer.delaysTouchesEnded=false;observer.delegate=self;surface.addGestureRecognizer(observer)
  surface.addTarget(self,action:#selector(changed),for:.valueChanged);web.addSubview(surface);surface.isHidden=true
  }
- func sync(_ b:[String:Any]){surface.isHidden = !(b["show"] as? Bool ?? false);backdrop.isHidden=surface.isHidden;if surface.isHidden{return};backdrop.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);backdrop.frame=surface.frame;backdrop.layer.cornerRadius=32;selected=b["selected"] as? Int ?? 0;if !surface.isTracking{surface.selectedSegmentIndex=selected}}
+ func syncAvatar(_ b:[String:Any]){
+ let account=b["account"] as? String ?? "",raw=b["avatar"] as? String ?? "",binding=account+":"+raw+":"+String(b["dark"] as? Bool ?? false)
+ guard binding != avatarBinding else{return};avatarBinding=binding
+ let dark=b["dark"] as? Bool ?? false;let ink:UIColor=dark ? .white:.black
+ var photo:UIImage?=nil
+ if !account.isEmpty,raw.count<=160000,raw.hasPrefix("data:image/"),let comma=raw.firstIndex(of:","),let data=Data(base64Encoded:String(raw[raw.index(after:comma)...])){photo=UIImage(data:data)}
+ let image=UIGraphicsImageRenderer(size:CGSize(width:60,height:46)).image{ctx in
+ if let photo=photo{ctx.cgContext.saveGState();UIBezierPath(ovalIn:CGRect(x:17,y:0,width:26,height:26)).addClip();photo.draw(in:CGRect(x:17,y:0,width:26,height:26));ctx.cgContext.restoreGState()}else{UIImage(systemName:"person.crop.circle",withConfiguration:UIImage.SymbolConfiguration(pointSize:22))?.withTintColor(ink,renderingMode:.alwaysOriginal).draw(in:CGRect(x:17,y:0,width:26,height:26))}
+ let attrs:[NSAttributedString.Key:Any]=[.font:UIFont.systemFont(ofSize:10,weight:.semibold),.foregroundColor:ink];let text="Profilo" as NSString;let size=text.size(withAttributes:attrs);text.draw(at:CGPoint(x:(60-size.width)/2,y:30),withAttributes:attrs)
+ }.withRenderingMode(.alwaysOriginal)
+ surface.setImage(image,forSegmentAt:4)
+ }
+ func sync(_ b:[String:Any]){syncAvatar(b);surface.isHidden = !(b["show"] as? Bool ?? false);backdrop.isHidden=surface.isHidden;if surface.isHidden{return};backdrop.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);backdrop.frame=surface.frame;backdrop.layer.cornerRadius=32;selected=b["selected"] as? Int ?? 0;if !surface.isTracking{surface.selectedSegmentIndex=selected}}
  func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldRecognizeSimultaneouslyWith otherGestureRecognizer:UIGestureRecognizer)->Bool{return true}
  @objc func observeDrag(_ g:UILongPressGestureRecognizer){let phase:String;switch g.state{case .began:phase="start";case .changed:phase="move";case .ended:phase="end";case .cancelled,.failed:phase="cancel";default:return};surface.trackingEvent?(phase,g.location(in:surface).x)}
  @objc func changed(){web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(surface.selectedSegmentIndex))",completionHandler:nil)}
