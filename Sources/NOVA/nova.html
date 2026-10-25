@@ -480,7 +480,7 @@ html.nativeAppleGlass #pgChat #cm{padding-bottom:180px}
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.14</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.15</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
@@ -1743,16 +1743,16 @@ if(S.acct?.token)setTimeout(accountBoot,0);
 // Native-only control surface handshake. No CSS effect is called native Liquid Glass.
 if(window.__novaNativeGlass){document.documentElement.classList.add('nativeAppleGlass');
  let last='',navLast='',navStart=0;
- window.__nativeComposerInput=(mode,value,owner)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId:'ai')))return;const f=$(mode==='friend'?'#cvI':'#ai');if(f){f.value=value;f.dispatchEvent(new Event('input',{bubbles:true}))}};
- window.__nativeComposerAction=(mode,action,owner)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId:'ai')))return;if(mode!==(window.__nativeComposerMode||''))return;const ids=mode==='friend'?{photo:'cvP',mic:'cvR',send:'cvS'}:{photo:'aiP',permissions:'aiM',send:'aiS'};const b=$('#'+ids[action]);if(b&&!b.disabled)b.click();last=''};
+ window.__nativeComposerInput=(mode,value,owner)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId+':'+convEpoch:'ai')))return;const f=$(mode==='friend'?'#cvI':'#ai');if(f){f.value=value;f.dispatchEvent(new Event('input',{bubbles:true}))}};
+ window.__nativeComposerAction=(mode,action,owner)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId+':'+convEpoch:'ai')))return;if(mode!==(window.__nativeComposerMode||''))return;const ids=mode==='friend'?{photo:'cvP',mic:'cvR',send:'cvS'}:{photo:'aiP',permissions:'aiM',send:'aiS'};const b=$('#'+ids[action]);if(b&&!b.disabled)b.click();last=''};
  window.__nativeNavSelect=i=>{pg(i,i>pgI?1:-1);navLast=''};
  window.__nativeNavDrag=(phase,dx)=>{if(phase==='start'){navStart=pgI;return}if(phase==='end'){PGS.forEach(id=>{const e=$('#'+id);e.style.transition='';e.style.transform=''});pg(Math.max(0,Math.min(4,navStart-Math.round(dx/(innerWidth*.25)))));navLast='';return}const width=innerWidth;const offset=Math.max(-navStart,Math.min(4-navStart,-dx/(width*.25)));PGS.forEach((id,j)=>{const e=$('#'+id);e.hidden=Math.abs(j-navStart-offset)>1;e.style.transition='none';e.style.transform='translateX('+((j-navStart-offset)*100)+'%)'})};
- window.__nativeComposerPhoto=(mode,owner,data)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId:'ai')))return;const bytes=Uint8Array.from(atob(data),c=>c.charCodeAt(0)),file=new File([bytes],'photo.jpg',{type:'image/jpeg'}),transfer=new DataTransfer();transfer.items.add(file);const input=$(mode==='friend'?'#cvPF':'#aiPF');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}))};
+ window.__nativeComposerPhoto=(mode,owner,data)=>{if(owner!==((S.acct?.email||'')+':'+(mode==='friend'?convId+':'+convEpoch:'ai')))return;const bytes=Uint8Array.from(atob(data),c=>c.charCodeAt(0)),file=new File([bytes],'photo.jpg',{type:'image/jpeg'}),transfer=new DataTransfer();transfer.items.add(file);const input=$(mode==='friend'?'#cvPF':'#aiPF');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}))};
  const syncNative=()=>{const tb=$('#tabbar');if(tb){const r=tb.getBoundingClientRect();const n={t:'nativeNavigation',dark:(S.theme==='dark'||S.theme==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches),show:!tb.hidden&&getComputedStyle(tb).display!=='none'&&!document.body.classList.contains('ovl')&&$('#conv').hidden&&!document.querySelector('dialog[open]')&&$('#ob').hidden&&!$('#intro'),selected:pgI,x:r.x,y:r.y,w:r.width};const ns=JSON.stringify(n);if(ns!==navLast){post(n);navLast=ns}}
 const cv=$('#conv'),ai=$('#pgChat');const friend=cv&&!cv.hidden&&getComputedStyle(cv).display!=='none',aion=ai&&!ai.hidden&&getComputedStyle(ai).display!=='none'&&ai.getBoundingClientRect().width>0;
  const covered=!!document.querySelector('dialog[open]')||!$('#ob').hidden||!!$('#intro');const mode=covered?'':friend?'friend':aion?'ai':'',row=mode==='friend'?$('.cvfP'):$('#pgChat .cf');window.__nativeComposerMode=mode;
  document.documentElement.classList.toggle('nativeGlassComposer',!!mode);
- let b={t:'nativeComposer',dark:(S.theme==='dark'||S.theme==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches),show:!!mode,mode,recording:mode==='friend'&&$('#cvR').classList.contains('rec'),account:(S.acct?.email||'')+':'+(mode==='friend'?convId:'ai'),value:$(mode==='friend'?'#cvI':'#ai')?.value||''};
+ let b={t:'nativeComposer',dark:(S.theme==='dark'||S.theme==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches),show:!!mode,mode,recording:mode==='friend'&&$('#cvR').classList.contains('rec'),account:(S.acct?.email||'')+':'+(mode==='friend'?convId+':'+convEpoch:'ai'),value:$(mode==='friend'?'#cvI':'#ai')?.value||''};
  if(row&&mode){const r=row.getBoundingClientRect();Object.assign(b,{x:r.x,y:r.y,w:r.width})}
  const payload=JSON.stringify(b);if(payload!==last){post(b);last=payload}
  };setInterval(syncNative,120);window.addEventListener('pagehide',()=>post({t:'nativeComposer',show:false}));
