@@ -107,3 +107,5 @@ La migrazione include il pulsante Nuova chat, giorni del calendario, azioni dei 
 Le righe chat usano una superficie Apple Glass con foto, titolo e anteprima separati. L’immagine fornita dal profilo resta nella riga, senza ricavare foto mancanti o alterare i dati degli amici. Le azioni restano sui controlli originali.
 
 La conversazione e il pannello reazioni nascondono le superfici native della pagina sottostante. Le icone dei compiti sono mappate esplicitamente; le altre icone SVG vengono confrontate dopo normalizzazione del markup.
+
+Il filtro della barra di navigazione non si applica ai pulsanti di un pannello azioni aperto: anche Chiudi mantiene la superficie nativa. Intro e onboarding restano fuori da questa migrazione e non sono dichiarati completati.
