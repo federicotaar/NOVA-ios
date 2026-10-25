@@ -12,7 +12,7 @@ import PhotosUI
  window.addEventListener('error',e=>testErrors.push(e.message||'error'));
  window.fetch=async(url,opt={})=>{url=String(url);let method=opt.method||'GET',j={ok:true,profile:null,friends:[],incoming:[],outgoing:[],chats:[],typing:[]};
  if(url.includes('/typing')&&method==='POST')testTyping.push(url);
- if(url.includes('/messages')){if(method==='POST')testSent.push(JSON.parse(opt.body||'{}'));j={ok:true,messages:[{id:1,sender:'friend@test.invalid',kind:'text',body:'Synthetic hello'},{id:2,sender:'me@test.invalid',kind:'text',body:'Synthetic reply'}],senders:{'friend@test.invalid':'Example'},reactions:{}}}return {ok:true,status:200,json:async()=>j};};
+ if(url.includes('/messages')){if(method==='POST')testSent.push(JSON.parse(opt.body||'{}'));j={ok:true,messages:Array.from({length:18},(_,i)=>({id:i+1,sender:i%2?'me@test.invalid':'friend@test.invalid',kind:'text',body:['Maths review at 17:00','Bring the blue notebook','See you after class'][i%3]})),senders:{'friend@test.invalid':'Example'},reactions:{}}}return {ok:true,status:200,json:async()=>j};};
  """
  c.userContentController.addUserScript(WKUserScript(source:fixture,injectionTime:.atDocumentStart,forMainFrameOnly:true))
  web=WKWebView(frame:.zero,configuration:c);web.navigationDelegate=self;web.isOpaque=false;web.backgroundColor = .black
@@ -21,19 +21,22 @@ import PhotosUI
  let u=Bundle.main.url(forResource:"nova",withExtension:"html")!;web.loadFileURL(u,allowingReadAccessTo:u.deletingLastPathComponent());return true
  }
  func webView(_ webView:WKWebView,didFinish navigation:WKNavigation!){DispatchQueue.main.asyncAfter(deadline:.now()+2){
- self.web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(4);",completionHandler:nil)
+ self.web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(4);setTimeout(()=>window.scrollTo(0,250),100);",completionHandler:nil)
  DispatchQueue.main.asyncAfter(deadline:.now()+2){self.saveImage("native-nav.png")
- self.web.evaluateJavaScript("pg(2);convOpen(1,'Synthetic chat');",completionHandler:nil)
+ self.web.evaluateJavaScript("pg(2);convOpen(1,'Study group');",completionHandler:nil)
  DispatchQueue.main.asyncAfter(deadline:.now()+2){self.testNative()}
  }
  }}
  func testNative(){if #available(iOS 26.0,*),let c=composer as? NativeGlassComposer{
  guard !c.surface.isHidden else{return fail("Native composer handshake absent")}
+ c.pick()
+ guard let picker=self.window?.rootViewController?.presentedViewController as? PHPickerViewController else{return self.fail("native picker did not present")}
+ c.picker(picker,didFinishPicking:[])
  c.input.text="Native action fixture";c.changed();c.submit()
  DispatchQueue.main.asyncAfter(deadline:.now()+1){
  self.web.evaluateJavaScript("JSON.stringify({sent:testSent,errors:testErrors,draft:$('#cvI').value})"){value,error in
  guard let text=value as? String,let data=text.data(using:.utf8),let result=try? JSONSerialization.jsonObject(with:data) as? [String:Any],let sent=result["sent"] as? [[String:Any]],sent.count==1,sent[0]["body"] as? String == "Native action fixture" else{return self.fail("native send roundtrip failed")}
- c.input.text="Genuine Apple Liquid Glass";c.changed();c.input.becomeFirstResponder()
+ c.input.text="Draft for our study plan";c.changed();c.input.becomeFirstResponder()
  DispatchQueue.main.asyncAfter(deadline:.now()+3){
  let rect=c.surface.convert(c.input.bounds,from:c.input);let bottom=c.surface.frame.maxY;let visible=self.web.bounds.height-c.keyboard
  guard bottom<=visible+2 else{return self.fail("native input overlaps keyboard")}
@@ -95,7 +98,7 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
 
 @available(iOS 26.0, *)
 final class NativeGlassNavigation:NSObject {
- weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var selected=0
+ weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect(style:.regular));var selected=0
  init(web:WKWebView){super.init();self.web=web;let effect=UIGlassEffect(style:.clear);effect.isInteractive=true;surface.effect=effect;surface.cornerConfiguration = .capsule();surface.accessibilityIdentifier="nativeLiquidGlassNavigation";web.addSubview(surface);surface.isHidden=true
  surface.contentView.addSubview(highlight);highlight.isUserInteractionEnabled=false;highlight.cornerConfiguration = .capsule()
  for (i,item) in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){let b=UIButton(type:.system);b.tag=i;b.setImage(UIImage(systemName:item.0),for:.normal);b.accessibilityLabel=item.1;b.addTarget(self,action:#selector(tap(_:)),for:.touchUpInside);surface.contentView.addSubview(b);buttons.append(b)}
@@ -105,6 +108,7 @@ final class NativeGlassNavigation:NSObject {
  let width=(surface.bounds.width-12)/5
  for(i,button)in buttons.enumerated(){button.frame=CGRect(x:6+CGFloat(i)*width,y:7,width:width,height:50);button.tintColor = .label;button.accessibilityTraits = i==selected ? [.button,.selected]:[.button]}
  highlight.frame=buttons[max(0,min(4,selected))].frame
+ highlight.backgroundColor = UIColor.secondarySystemFill
  }
  @objc func tap(_ button:UIButton){web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(button.tag))",completionHandler:nil)}
  @objc func pan(_ g:UIPanGestureRecognizer){let dx=g.translation(in:surface).x;let phase=g.state == .began ? "start":g.state == .ended || g.state == .cancelled ? "end":"move";web?.evaluateJavaScript("window.__nativeNavDrag&&__nativeNavDrag('\(phase)',\(dx))",completionHandler:nil)}
