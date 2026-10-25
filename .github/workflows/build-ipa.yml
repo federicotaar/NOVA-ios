@@ -79,7 +79,25 @@ jobs:
           fi
 
       - name: Build unsigned IPA
-        run: xtool dev build --ipa -c release
+        run: |
+          set -e
+          xtool dev build --ipa -c release
+          IPA="$(ls xtool/*.ipa | head -n1)"
+          mkdir /tmp/nova-sdk26
+          unzip -q "$IPA" -d /tmp/nova-sdk26
+          APP=/tmp/nova-sdk26/Payload/NOVA.app
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version)
+          sed 's/let bundle = Bundle.module/let bundle = Bundle.main/' Sources/NOVA/NOVAApp.swift > /tmp/NOVAProduction.swift
+          xcrun swiftc -parse-as-library -O -target arm64-apple-ios17.0 -sdk "$SDK" /tmp/NOVAProduction.swift -o "$APP/NOVA"
+          cp Sources/NOVA/nova.html "$APP/nova.html"
+          /usr/libexec/PlistBuddy -c "Add :DTSDKName string iphoneos$SDK_VERSION" "$APP/Info.plist"
+          xcrun vtool -show-build "$APP/NOVA"
+          xcrun vtool -show-build "$APP/NOVA" | grep -E 'sdk[[:space:]]+26'
+          codesign --force --sign - "$APP"
+          rm "$IPA"
+          (cd /tmp/nova-sdk26 && zip -qry "$GITHUB_WORKSPACE/$IPA" Payload)
+
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -107,4 +125,3 @@ jobs:
           cp "$IPA" "NOVA-$BUILD_TAG.ipa"
           gh release create "$REL" --title "NOVA $BUILD_TAG (unsigned ipa)" --notes "NOVA.ipa non firmato, build $BUILD_TAG. Installa con AltStore o Sideloadly. Ultima build sempre qui: https://github.com/federicotaranudev/NOVA-ios/releases/latest/download/NOVA.ipa"
           gh release upload "$REL" "$IPA" "NOVA-$BUILD_TAG.ipa"
-
