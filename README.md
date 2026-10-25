@@ -1,98 +1,90 @@
 <p align="center">
-  <img src="assets/1-icon1024.png" width="120" alt="Icona di NOVA">
+  <img src="assets/1-icon1024.png" width="104" alt="NOVA">
 </p>
-
 <h1 align="center">NOVA</h1>
-
+<p align="center"><strong>Studio, persone e giornata. In un unico posto.</strong></p>
+<p align="center">Una dashboard per iPhone con compiti, voti, orario, assistente AI e chat.</p>
 <p align="center">
-  La dashboard personale per la scuola: compiti, verifiche, voti, orario e widget, con un assistente AI che organizza lo studio al posto tuo.<br>
-  Native iOS, dati sul telefono, nessun account obbligatorio.
-</p>
-
-<p align="center">
-  <a href="https://github.com/federicotaranudev/NOVA-ios/actions/workflows/build-ipa.yml"><img src="https://github.com/federicotaranudev/NOVA-ios/actions/workflows/build-ipa.yml/badge.svg" alt="Build"></a>
-  <a href="https://github.com/federicotaranudev/NOVA-ios/releases/latest"><img src="https://img.shields.io/github/v/release/federicotaranudev/NOVA-ios?label=ultima%20versione" alt="Ultima release"></a>
-  <img src="https://img.shields.io/badge/piattaforma-iOS%2016%2B-black" alt="iOS 16+">
+  <a href="#installazione">Installazione</a> · <a href="#anteprima">Anteprima</a> · <a href="#stato-del-progetto">Stato del progetto</a> · <a href="#privacy-e-controllo">Privacy</a>
 </p>
 
 ---
 
-## Cos'è NOVA
+## La tua giornata, a colpo d'occhio
 
-NOVA è un'app per iPhone pensata per la vita scolastica di tutti i giorni. Al centro c'è una dashboard chiara e veloce; intorno, un ponte nativo in Swift che la collega alle funzioni vere di iOS: notifiche locali, aggiornamenti in background, Portachiavi e widget.
+NOVA riunisce il lavoro scolastico e gli strumenti per organizzarlo: compiti e verifiche, calendario, voti, orario e promemoria. L'assistente AI è una chat a cui chiedere aiuto; amici e gruppi hanno conversazioni separate.
 
-L'idea di base: il registro elettronico resta la fonte dei dati, NOVA li rende utili. Compiti e verifiche arrivano da ClasseViva, l'assistente AI li legge e programma i promemoria al momento giusto, e i widget tengono orario e scadenze sempre sott'occhio.
+Il progetto è in sviluppo attivo. Una build disponibile al download non significa che ogni funzione sia stata verificata su ogni dispositivo. Le novità in corso sono indicate sotto, senza confonderle con le funzioni già presenti.
 
-## Funzionalità
+## Anteprima
 
-### Studio e compiti
+<table>
+  <tr>
+    <td align="center"><img src="assets/1-chat-list.png" width="250" alt="Elenco chat NOVA con contenuti dimostrativi"><br><strong>Chat</strong><br>Assistente e conversazioni in un solo elenco.</td>
+    <td align="center"><img src="assets/2-composer-preview.png" width="250" alt="Anteprima del composer Liquid Glass in sviluppo, con tastiera e messaggi sintetici"><br><strong>Liquid Glass · In sviluppo</strong><br>Anteprima del composer nativo.</td>
+  </tr>
+</table>
 
-- **Compiti e verifiche da ClasseViva**: import automatico di compiti, verifiche e annotazioni dei prof dalle API ufficiali, con aggiornamento manuale dal pulsante "Aggiorna" e periodico a ogni apertura dell'app
-- **Compiti manuali**: si possono aggiungere a mano, con priorità (alta/media/bassa) e promemoria singoli
-- **Calendario in app** con il dettaglio del giorno e dei compiti, visibile anche in StandBy
-- **Voti**: medie per materia e il voto che serve per arrivare al 6
-- **Prossima verifica** con conto alla rovescia
+Screenshot reali di una build di sviluppo nel simulatore iOS, con dati e messaggi sintetici. Non sono chat di utenti reali. Il secondo screenshot mostra lavoro in corso, non una promessa che ogni release abbia già lo stesso risultato su iPhone.
 
-### Assistente AI e promemoria intelligenti
+## Già presente nell'app
 
-- **Pianificazione automatica dei promemoria**: a ogni aggiornamento di ClasseViva, l'assistente legge compiti e verifiche, decide gli orari migliori (mattina presto per le cose del giorno, sera prima per quelle di domani, preavviso per le verifiche) e programma le notifiche locali, che suonano anche ad app chiusa
-- **Senza chiave AI**, NOVA usa orari automatici di riserva con la stessa logica di base
-- **Avviso per i compiti nuovi**: quando iOS concede un aggiornamento in background e compaiono novità dal registro, arriva una notifica subito
-- **Chat dell'assistente** per aiuto su compiti, verifiche e studio (Groq, con la tua chiave gratuita)
-- **Foto dell'orario**: l'assistente la legge e compila l'orario settimanale, poi lo controlli tu
+| Area | Cosa offre |
+| --- | --- |
+| **Dashboard** | Compiti manuali, calendario, prossime verifiche, batteria e meteo su richiesta. |
+| **Scuola** | Collegamento a ClasseViva per importare dati del registro, voti e orario modificabile. |
+| **Assistente** | Chat AI tramite Groq con la propria chiave, lettura della foto dell'orario e permessi per le azioni. |
+| **Persone** | Account NOVA, username, profili, richieste di amicizia, messaggi e gruppi. |
+| **Mappa amici** | Condivisione della posizione facoltativa e modalità Fantasma. Nessuna condivisione da attivare per usare il resto dell'app. |
+| **Widget** | Orario, lezioni, fine scuola e calendario. La disponibilità dei dati dipende dalla firma e dall'accesso all'App Group. |
+| **Notifiche** | Promemoria locali e integrazione ntfy per avvisi sociali. Richiedono configurazione e permessi; non sono un servizio push nativo APNs. |
 
-### Widget
+"Presente" descrive la funzione disponibile nel progetto, non una garanzia di assenza di bug. Per i limiti pratici, leggi le note di installazione e lo stato qui sotto.
 
-Quattro widget, su home screen e (dove indicato) lock screen:
+## Stato del progetto
 
-| Widget | Cosa mostra | Dove |
+| Stato | Attività | Nota |
 | --- | --- | --- |
-| **Prossima materia** | Lezione in corso o successiva, con barra di avanzamento e aula | Home + lock screen |
-| **Lezioni di oggi** | L'orario del giorno con orari e aule | Home + lock screen |
-| **Fine scuola** | Quanto manca all'ultima campanella | Home + lock screen |
-| **Calendario del mese** | Il mese con pallino rosso sulle verifiche e blu sui compiti | Home screen |
+| 🟡 **In corso** | **Implementazione Liquid Glass** | Composer, navigazione con lente Apple, rifrazione ai bordi e controlli della mappa. Verifiche visive e integrazione su dispositivo ancora in corso. |
+| 🟡 **In corso** | Ritorno dalla chat AI all'elenco | Correzione della visibilità dell'elenco e test di navigazione. |
+| 🟡 **In corso** | Avatar e isolamento account | Foto del profilo nella navigazione, visibilità tra amici accettati e aggiornamenti al cambio account. |
+| 🟡 **In verifica** | Foto, vocali e notifiche | Controlli su annullamento, cambio chat, permessi e comportamento sui dispositivi. |
+| 🔜 **Prossimamente** | Consegna delle correzioni in corso | Dopo le verifiche della build. Nessuna data promessa. |
 
-L'orario settimanale è modificabile nell'app, con un campo **aula** per ogni lezione: i widget seguono le modifiche e mostrano dove andare. La sincronizzazione app → widget richiede che l'App Group sia accessibile: con la firma gratuita può non esserlo (vedi **Limiti noti**), e in quel caso i widget usano l'orario incorporato senza le tue modifiche.
-
-### E in più
-
-- **Meteo** locale e **batteria** reale del telefono
-- **Spotify** miniplayer (richiede Premium e un tuo Client ID)
-- **Account NOVA** opzionale: salva la configurazione online per ritrovarla dopo una reinstallazione
-- Tema chiaro/scuro/automatico, intro solo al primo avvio, animazione di benvenuto alla registrazione
-
-## Privacy
-
-- Password di ClasseViva, chiave Groq e token Spotify restano **solo nel Portachiavi di iOS sul telefono** e vengono usati unicamente verso i servizi ufficiali (ClasseViva, api.groq.com, Spotify). Non sono nel codice né in questo repository
-- Compiti, voti e impostazioni vivono nella memoria locale dell'app
-- L'account NOVA è facoltativo: online finisce solo la configurazione, mai le credenziali dei servizi
+Le voci "In corso" e "Prossimamente" non sono funzioni da considerare concluse. Le priorità possono cambiare in base ai test.
 
 ## Installazione
 
-L'app è distribuita come ipa **non firmato**; la firma avviene in fase di installazione:
+1. Apri [Releases](https://github.com/federicotaranudev/NOVA-ios/releases) e scegli una versione, leggendo le sue note. Le versioni precedenti restano disponibili.
+2. Scarica il file `.ipa` della versione scelta. È **non firmato**: serve un metodo di sideloading, per esempio AltStore o Sideloadly.
+3. Per aggiornare, mantieni lo stesso identificativo dell'app e installa sopra la copia esistente. Non cancellare l'app come primo tentativo per correggere un problema.
 
-1. Scarica sempre l'ultima versione da qui: [NOVA.ipa](https://github.com/federicotaranudev/NOVA-ios/releases/latest/download/NOVA.ipa)
-2. Installala con [AltStore](https://altstore.io) o [Sideloadly](https://sideloadly.io) (basta un Apple ID gratuito)
-3. Aggiorna **sopra** l'installazione esistente, senza cancellare l'app: così impostazioni e accessi restano
+**Requisiti:** iOS 17 o successivo. I nuovi controlli Liquid Glass richiedono iOS 26; sui sistemi precedenti resta l'interfaccia alternativa.
 
-Con un Apple ID gratuito la firma dura 7 giorni e va rinnovata da AltStore/Sideloadly. Ogni versione resta disponibile nella sua release, così si può sempre tornare indietro.
+La firma gratuita ha limiti di durata e di App ID. I widget possono richiedere un App ID aggiuntivo. La sincronizzazione tra app e widget può essere limitata se l'App Group non è disponibile con la firma usata.
 
-## Limiti noti
+## Privacy e controllo
 
-- **Le notifiche sui compiti nuovi non sono istantanee**: iOS decide quando concedere gli aggiornamenti in background (in base a uso, batteria e risparmio energetico). I promemoria programmati, invece, sono notifiche locali e suonano puntuali anche ad app chiusa
-- **Sincronizzazione app → widget**: con la firma gratuita, la condivisione dell'orario con i widget (App Group) può non essere disponibile su alcune installazioni. In quel caso i widget dell'orario usano un orario incorporato come riserva, ma le modifiche fatte nell'app (comprese le aule) e il calendario del mese non possono arrivare ai widget; l'app segnala quando succede
-- La pianificazione AI dei promemoria richiede una chiave Groq gratuita e avviene quando l'app aggiorna ClasseViva; senza chiave valgono gli orari automatici di riserva
+- L'account NOVA può salvare online configurazione e dati dell'app per il ripristino. Il progetto non va descritto come "tutto solo sul telefono".
+- Credenziali ClasseViva e chiavi dei servizi restano sul dispositivo e non fanno parte del backup NOVA. Le richieste ai servizi usati dall'app passano ai rispettivi fornitori.
+- Le conversazioni sociali usano il backend NOVA. Non sono dichiarate cifrate end-to-end.
+- La condivisione della posizione è facoltativa. Fantasma disattiva la visibilità; gli orari di aggiornamento contano, e una posizione vecchia non è una posizione in diretta.
+- Il codice ntfy personale è privato: non pubblicarlo in screenshot o segnalazioni.
 
-## Struttura del progetto
+## Limiti da conoscere
 
+- iOS decide quando concedere attività in background. Non c'è una promessa di controllo continuo del registro o di aggiornamenti istantanei ad app chiusa.
+- Promemoria e notifiche dipendono dai permessi e dalla configurazione del dispositivo. L'integrazione ntfy richiede l'app ntfy e l'iscrizione al proprio codice.
+- L'assistente richiede una chiave Groq e una connessione. Le risposte AI possono sbagliare: controlla i dati importanti prima di usarli.
+- Le immagini del simulatore non sostituiscono una verifica sul telefono. Le release di prova possono avere difetti aperti.
+
+## Struttura
+
+```text
+Sources/NOVA/NOVAApp.swift    Interfaccia e integrazioni native iOS
+Sources/NOVA/nova.html        Dashboard e logica dell'app locale
+Sources/NOVAWidget/           Widget iOS
+.github/workflows/           Build e controlli automatici
 ```
-Sources/NOVA/NOVAApp.swift      Ponte nativo: WebView, notifiche, ClasseViva, Groq, Spotify, Portachiavi
-Sources/NOVA/nova.html          La web app locale (dashboard, impostazioni, assistente)
-Sources/NOVAWidget/             Estensione widget (home screen e lock screen)
-.github/workflows/build-ipa.yml Build automatica dell'ipa a ogni push
-xtool.yml, Package.swift        Progetto SwiftPM compilato con xtool, senza Xcode
-```
 
-## Build
-
-A ogni push, GitHub Actions compila l'ipa non firmato con [xtool](https://github.com/xtool-org/xtool) e lo pubblica in una release dedicata alla versione (`v<aaaa.mm.gg.n>`), senza mai sovrascrivere le versioni già pubblicate. Il link stabile qui sopra punta sempre all'ultima.
+Le build vengono pubblicate come release versionate. Le vecchie release vengono conservate, non sostituite dal file di una nuova versione.
