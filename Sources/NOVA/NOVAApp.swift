@@ -49,6 +49,7 @@ struct WebContainer: UIViewRepresentable {
         web.scrollView.backgroundColor = .black
         bridge.web = web
         if #available(iOS 26.0, *) { bridge.nativeComposer = NativeGlassComposer(web:web)
+            bridge.nativeNavigation = NativeGlassNavigation(web:web)
             config.userContentController.addUserScript(WKUserScript(source:"window.__novaNativeGlass=true",injectionTime:.atDocumentStart,forMainFrameOnly:true)) }
         bridge.start()
         #if SWIFT_PACKAGE
@@ -69,6 +70,7 @@ struct WebContainer: UIViewRepresentable {
 final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUserNotificationCenterDelegate, AVAudioPlayerDelegate {
     weak var web: WKWebView?
     var nativeComposer: AnyObject?
+    var nativeNavigation: AnyObject?
     private let center = UNUserNotificationCenter.current()
     private var introAudio: AVAudioPlayer?
     private var introClips: [AVAudioPlayer] = []
@@ -522,7 +524,9 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let t = body["t"] as? String else { return }
-        if t == "nativeComposer" {
+        if t == "nativeNavigation" {
+            if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let navigation=nativeNavigation as? NativeGlassNavigation { navigation.sync(body) }; return
+        } else if t == "nativeComposer" {
             if message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host.isEmpty, #available(iOS 26.0, *), let composer = nativeComposer as? NativeGlassComposer { composer.sync(body) }
             return
         } else if t == "perm" {
@@ -1668,4 +1672,21 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate {
  @objc func record(){script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'mic',"+quoted(account)+")")}
  @objc func submit(){changed();script("window.__nativeComposerAction&&__nativeComposerAction("+quoted(mode)+",'send',"+quoted(account)+")")}
  func textFieldShouldReturn(_ textField:UITextField)->Bool{submit();return false}
+}
+
+@available(iOS 26.0, *)
+final class NativeGlassNavigation:NSObject {
+ weak var web:WKWebView?;let surface=UIVisualEffectView(effect:UIGlassEffect());var buttons:[UIButton]=[];let highlight=UIVisualEffectView(effect:UIGlassEffect());var selected=0
+ init(web:WKWebView){super.init();self.web=web;let effect=UIGlassEffect();effect.isInteractive=true;surface.effect=effect;surface.layer.cornerRadius=32;surface.clipsToBounds=true;surface.accessibilityIdentifier="nativeLiquidGlassNavigation";web.addSubview(surface);surface.isHidden=true
+ surface.contentView.addSubview(highlight);highlight.isUserInteractionEnabled=false;highlight.layer.cornerRadius=25;highlight.clipsToBounds=true
+ for (i,item) in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){let b=UIButton(type:.system);b.tag=i;b.setImage(UIImage(systemName:item.0),for:.normal);b.accessibilityLabel=item.1;b.addTarget(self,action:#selector(tap(_:)),for:.touchUpInside);surface.contentView.addSubview(b);buttons.append(b)}
+ surface.addGestureRecognizer(UIPanGestureRecognizer(target:self,action:#selector(pan(_:))))
+ }
+ func sync(_ b:[String:Any]){surface.isHidden = !(b["show"] as? Bool ?? false);if surface.isHidden{return};surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);selected=b["selected"] as? Int ?? 0
+ let width=(surface.bounds.width-12)/5
+ for(i,button)in buttons.enumerated(){button.frame=CGRect(x:6+CGFloat(i)*width,y:7,width:width,height:50);button.tintColor = .label;button.accessibilityTraits = i==selected ? [.button,.selected]:[.button]}
+ highlight.frame=buttons[max(0,min(4,selected))].frame
+ }
+ @objc func tap(_ button:UIButton){web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(button.tag))",completionHandler:nil)}
+ @objc func pan(_ g:UIPanGestureRecognizer){let dx=g.translation(in:surface).x;let phase=g.state == .began ? "start":g.state == .ended || g.state == .cancelled ? "end":"move";web?.evaluateJavaScript("window.__nativeNavDrag&&__nativeNavDrag('\(phase)',\(dx))",completionHandler:nil)}
 }
