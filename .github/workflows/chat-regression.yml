@@ -37,6 +37,7 @@ jobs:
           for i in $(seq 1 45); do [ -f "$CONTAINER/Documents/regression.json" ] && break; sleep 1; done
           mkdir -p evidence
           cp "$CONTAINER/Documents/regression.json" evidence/
+          cp "$CONTAINER/Documents/native-nav.png" evidence/
           xcrun simctl io "$UDID" screenshot evidence/chat-native.png
           cat evidence/regression.json
           python3 -c 'import json;assert json.load(open("evidence/regression.json"))["ok"]'
