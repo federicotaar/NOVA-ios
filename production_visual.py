@@ -2,7 +2,7 @@ from pathlib import Path
 s=Path('Sources/NOVA/NOVAApp.swift').read_text()
 r=Path('ChatRegression.swift').read_text();fixture=r.split(' let fixture="""',1)[1].split('"""',1)[0]
 fixture += '''
- const demoCanvas=document.createElement('canvas');demoCanvas.width=demoCanvas.height=64;const demoCtx=demoCanvas.getContext('2d');demoCtx.fillStyle='#6877ef';demoCtx.fillRect(0,0,64,64);demoCtx.fillStyle='#fff';demoCtx.font='bold 36px sans-serif';demoCtx.fillText('N',17,45);const demoAvatar=demoCanvas.toDataURL('image/png');const demoState=JSON.parse(localStorage.getItem('nova.v1'));demoState.prof.avatar=demoAvatar;localStorage.setItem('nova.v1',JSON.stringify(demoState));const oldDemoFetch=window.fetch;window.fetch=async(...args)=>{const res=await oldDemoFetch(...args),oldJson=res.json;res.json=async()=>{const j=await oldJson();if(j.friends)j.friends.forEach(f=>f.avatar=demoAvatar);if(j.chats)j.chats=[{id:'synthetic',type:'dm',title:'Example friend',avatar:demoAvatar,unread:0}];return j};return res};
+ const demoCanvas=document.createElement('canvas');demoCanvas.width=demoCanvas.height=64;const demoCtx=demoCanvas.getContext('2d');demoCtx.fillStyle='#6877ef';demoCtx.fillRect(0,0,64,64);demoCtx.fillStyle='#fff';demoCtx.font='bold 36px sans-serif';demoCtx.fillText('N',17,45);const demoAvatar=demoCanvas.toDataURL('image/png');const demoState=JSON.parse(localStorage.getItem('nova.v1'));demoState.prof.avatar=demoAvatar;demoState.tasks=[{id:'synthetic-task',title:'Synthetic homework',subj:'Maths',due:'2026-10-30T17:00',done:0}];localStorage.setItem('nova.v1',JSON.stringify(demoState));const oldDemoFetch=window.fetch;window.fetch=async(...args)=>{const res=await oldDemoFetch(...args),oldJson=res.json;res.json=async()=>{const j=await oldJson();if(j.friends)j.friends.forEach(f=>f.avatar=demoAvatar);if(j.chats)j.chats=[{id:'synthetic',type:'dm',title:'Example friend',avatar:demoAvatar,unread:0}];return j};return res};
 '''
 s=s.replace('        let web = WKWebView(frame:', '        config.userContentController.addUserScript(WKUserScript(source:"""'+fixture+'""",injectionTime:.atDocumentStart,forMainFrameOnly:true))\n        let web = WKWebView(frame:',1)
 s=s.replace('        return web\n', '''        visualProductionRun(web)
@@ -32,8 +32,14 @@ func visualProductionRun(_ web:WKWebView){
  DispatchQueue.main.asyncAfter(deadline:.now()+56){visualProductionSave(web,"production-settings-privacy.png")}
  DispatchQueue.main.asyncAfter(deadline:.now()+58){web.evaluateJavaScript("$('#dSet').close();pg(0)",completionHandler:nil)}
  DispatchQueue.main.asyncAfter(deadline:.now()+61){visualProductionSave(web,"production-home-glass.png")}
- DispatchQueue.main.asyncAfter(deadline:.now()+63){web.evaluateJavaScript("pg(1)",completionHandler:nil)}
- DispatchQueue.main.asyncAfter(deadline:.now()+66){visualProductionSave(web,"production-grades-glass.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+63){web.evaluateJavaScript("ttOpen()",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+66){visualProductionSave(web,"production-chips.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+68){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());pg(2);convOpen(1,'Study group');setTimeout(()=>cvMenu(2),300)",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+72){visualProductionSave(web,"production-reactions.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+74){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());document.querySelector('#cvMenu')?.remove();convClose();pg(0)",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+77){visualProductionSave(web,"production-task-controls.png")}
+ DispatchQueue.main.asyncAfter(deadline:.now()+80){web.evaluateJavaScript("pg(1)",completionHandler:nil)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+83){visualProductionSave(web,"production-grades-glass.png")}
 }
 func visualProductionSave(_ web:WKWebView,_ name:String){guard let window=web.window else{return};let image=UIGraphicsImageRenderer(bounds:window.bounds).image{_ in window.drawHierarchy(in:window.bounds,afterScreenUpdates:true)};let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? image.pngData()?.write(to:dir.appendingPathComponent(name));if name=="production-grades-glass.png"{web.evaluateJavaScript("JSON.stringify({errors:testErrors,bodyError:document.querySelector('#errB')?.textContent})"){v,e in try? String(describing:v).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8)};try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
 '''
