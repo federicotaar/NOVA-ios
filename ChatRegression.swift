@@ -117,7 +117,7 @@ final class NativeLensSegments:UISegmentedControl {
 }
 @available(iOS 26.0, *)
 final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
- weak var web:WKWebView?;let surface=NativeLensSegments(items:[]);let backdrop=UIVisualEffectView(effect:UIGlassEffect(style:.clear));var dragStart=0;var selected=0;var avatarBinding="";var mapViews:[String:UIVisualEffectView]=[:];var mapButtons:[String:UIButton]=[:];var mapOwner=""
+ weak var web:WKWebView?;let surface=NativeLensSegments(items:[]);let backdrop=UIVisualEffectView(effect:UIGlassEffect(style:.regular));var dragStart=0;var selected=0;var avatarBinding="";var mapViews:[String:UIVisualEffectView]=[:];var mapButtons:[String:UIButton]=[:];var mapOwner=""
  init(web:WKWebView){super.init();self.web=web;surface.accessibilityIdentifier="nativeLiquidGlassNavigation"
  for(i,item)in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){
  let image=UIGraphicsImageRenderer(size:CGSize(width:60,height:46)).image{_ in
