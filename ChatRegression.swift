@@ -108,10 +108,24 @@ final class NativeGlassComposer: NSObject, UITextFieldDelegate, PHPickerViewCont
 }
 
 @available(iOS 26.0, *)
+final class NativeLensSegments:UISegmentedControl {
+ var trackingEvent:((String,CGFloat)->Void)?
+ override func beginTracking(_ touch:UITouch,with event:UIEvent?)->Bool{let accepted=super.beginTracking(touch,with:event);if accepted{trackingEvent?("start",touch.location(in:self).x)};return accepted}
+ override func continueTracking(_ touch:UITouch,with event:UIEvent?)->Bool{let accepted=super.continueTracking(touch,with:event);trackingEvent?("move",touch.location(in:self).x);return accepted}
+ override func endTracking(_ touch:UITouch?,with event:UIEvent?){super.endTracking(touch,with:event);trackingEvent?("end",touch?.location(in:self).x ?? 0)}
+ override func cancelTracking(with event:UIEvent?){super.cancelTracking(with:event);trackingEvent?("cancel",0)}
+}
+@available(iOS 26.0, *)
 final class NativeGlassNavigation:NSObject {
- weak var web:WKWebView?;let surface=UISegmentedControl(items:[]);var selected=0
+ weak var web:WKWebView?;let surface=NativeLensSegments(items:[]);var dragStart=0;var selected=0
  init(web:WKWebView){super.init();self.web=web;surface.accessibilityIdentifier="nativeLiquidGlassNavigation"
  for(i,item)in [("house","Home"),("chart.bar","Voti"),("bubble.left.and.bubble.right","Chat"),("mappin","Mappa"),("person.crop.circle","Profilo")].enumerated(){surface.insertSegment(with:UIImage(systemName:item.0,withConfiguration:UIImage.SymbolConfiguration(pointSize:24)),at:i,animated:false)}
+ surface.trackingEvent={[weak self] phase,x in guard let self=self else{return};if phase=="start"{self.dragStart=self.selected}
+ let position=max(0,min(4,x/(self.surface.bounds.width/5)-0.5)),delta=(CGFloat(self.dragStart)-position)*(self.web?.bounds.width ?? 390)*0.25
+ if phase=="cancel"{self.web?.evaluateJavaScript("window.__nativeNavSelect&&__nativeNavSelect(\(self.dragStart))",completionHandler:nil);return}
+ if phase=="end"{return}
+ self.web?.evaluateJavaScript("window.__nativeNavDrag&&__nativeNavDrag('\(phase)',\(delta))",completionHandler:nil)
+ }
  surface.addTarget(self,action:#selector(changed),for:.valueChanged);web.addSubview(surface);surface.isHidden=true
  }
  func sync(_ b:[String:Any]){surface.isHidden = !(b["show"] as? Bool ?? false);if surface.isHidden{return};surface.overrideUserInterfaceStyle=(b["dark"] as? Bool ?? false) ? .dark:.light;surface.frame=CGRect(x:b["x"] as? CGFloat ?? 10,y:b["y"] as? CGFloat ?? 0,width:b["w"] as? CGFloat ?? 300,height:64);selected=b["selected"] as? Int ?? 0;if !surface.isTracking{surface.selectedSegmentIndex=selected}}
