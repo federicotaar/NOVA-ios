@@ -356,6 +356,21 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
 #dFrP .pfStat{justify-content:flex-start;gap:28px;padding:12px 0 20px}
 #dFrP .pfStat span{display:flex;flex-direction:column;gap:3px;font-size:13px}
 #dFrP .pfStat b{font-size:18px;color:var(--fg)}
+
+/* Translucent chat composer. Actions retain their existing handlers and labels. */
+#pgChat .cf,.cf.cvfP{background:transparent;border:0;box-shadow:none;padding:0;gap:8px;align-items:center}
+.composerGlass{display:flex;flex:1;min-width:0;align-items:center;gap:4px;padding:5px;border-radius:999px;border:1px solid rgba(255,255,255,.38);background:linear-gradient(135deg,rgba(255,255,255,.5),rgba(255,255,255,.12)),rgba(228,231,236,.8);box-shadow:inset 0 1px 1px rgba(255,255,255,.72),inset 0 -1px 2px rgba(0,0,0,.06),0 5px 18px rgba(0,0,0,.12);-webkit-backdrop-filter:blur(24px) saturate(155%);backdrop-filter:blur(24px) saturate(155%)}
+#pgChat .composerGlass input,.cvfP .composerGlass input{min-width:0;width:0;flex:1;border:0;background:transparent;font-size:16px;padding:10px 9px;line-height:22px;color:var(--fg);outline-offset:-3px;border-radius:999px}
+.composerGlass input::placeholder{color:var(--mut);opacity:1}
+#pgChat .cf .ico,.cf.cvfP .ico{width:44px;height:44px;min-width:44px;flex:none;border-radius:50%;color:var(--fg);background:rgba(220,223,229,.8);border:1px solid rgba(255,255,255,.4);box-shadow:inset 0 1px 1px rgba(255,255,255,.6);padding:0;display:inline-flex;align-items:center;justify-content:center}
+#pgChat .composerGlass .ico,.cvfP .composerGlass .ico{width:40px;height:40px;min-width:40px;border:0;background:transparent;box-shadow:none}
+#pgChat .composerGlass #aiS,.cvfP .composerGlass #cvS{background:var(--fg);color:var(--bg);width:40px;height:40px;min-width:40px}
+#pgChat .cf .ico:focus-visible,.cvfP .ico:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+:root[data-theme="dark"] .composerGlass{background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.025)),rgba(29,31,36,.84);border-color:rgba(255,255,255,.24);box-shadow:inset 0 1px 1px rgba(255,255,255,.25),inset 0 -1px 2px rgba(0,0,0,.3),0 5px 18px rgba(0,0,0,.25)}
+:root[data-theme="dark"] #pgChat .cf>.ico,:root[data-theme="dark"] .cvfP>.ico{background:rgba(70,72,79,.8);border-color:rgba(255,255,255,.24);box-shadow:inset 0 1px 1px rgba(255,255,255,.25)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .composerGlass{background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.025)),rgba(29,31,36,.84);border-color:rgba(255,255,255,.24);box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 5px 18px rgba(0,0,0,.25)}:root:not([data-theme="light"]) #pgChat .cf>.ico,:root:not([data-theme="light"]) .cvfP>.ico{background:rgba(70,72,79,.8);border-color:rgba(255,255,255,.24)}}
+@media(prefers-reduced-transparency:reduce){.composerGlass{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--card)!important}}
+
 </style>
 </head>
 <body>
@@ -387,7 +402,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
   <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><button class="ico" id="aiBack" aria-label="Torna alle chat" style="background:var(--bg3);color:var(--tx)">&#8249;</button><span style="flex:1"></span><button class="btn sm" id="aiMD">agent.md</button><button class="btn sm" id="aiX">Nuova chat</button></div>
   <section class="card" id="chatB" hidden></section>
   <div id="cm"></div>
-  <div class="cf"><div id="aiAt" hidden></div><button class="ico" id="aiP" aria-label="Aggiungi foto"></button><button class="ico" id="aiM" type="button" aria-haspopup="true" aria-label="Permessi azioni">/</button><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button><input type="file" id="aiPF" accept="image/*" hidden></div>
+  <div class="cf"><div id="aiAt" hidden></div><button class="ico" id="aiP" aria-label="Aggiungi foto"></button><button class="ico" id="aiM" type="button" aria-haspopup="true" aria-label="Permessi azioni">/</button><div class="composerGlass"><input id="ai" placeholder="Scrivi un messaggio" maxlength="1500" autocomplete="off"><button class="ico" id="aiS" aria-label="Invia"></button></div><input type="file" id="aiPF" accept="image/*" hidden></div>
   <div id="aiMP" hidden><button data-m="always">Sempre — esegui subito</button><button data-m="ask">Chiedi prima</button><button data-m="deny">Mai — niente azioni</button></div>
  </div>
  <button id="fcFab" hidden aria-label="Nuova chat">+</button>
@@ -425,7 +440,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
  <div class="cvh"><button class="ico" id="cvB" aria-label="Indietro" style="background:var(--bg3);color:var(--tx)">&#8249;</button><b id="cvT"></b><span class="cvExam" id="cvE" hidden></span></div>
  <div id="cvM"></div>
  <div id="cvTy"></div>
- <div class="cf cvfP"><button class="ico" id="cvP" aria-label="Invia foto"></button><input id="cvI" placeholder="Scrivi un messaggio" maxlength="4000" autocomplete="off"><button class="ico" id="cvR" aria-label="Messaggio vocale"></button><button class="ico" id="cvS" aria-label="Invia"></button><input type="file" id="cvPF" accept="image/*" hidden></div>
+ <div class="cf cvfP"><button class="ico" id="cvP" aria-label="Invia foto"></button><div class="composerGlass"><input id="cvI" placeholder="Scrivi un messaggio" maxlength="4000" autocomplete="off"><button class="ico" id="cvR" aria-label="Messaggio vocale"></button><button class="ico" id="cvS" aria-label="Invia"></button></div><input type="file" id="cvPF" accept="image/*" hidden></div>
 </div>
 <div id="cvAct" hidden></div>
 <div id="intro" hidden><canvas id="inC"></canvas><div class="glow" id="inG"></div><div id="inW"><div class="inN" id="inL">N</div><div id="inT"></div></div><i class="ring" id="inR"></i><i class="flash" id="inF"></i><div class="dim" id="inD"></div><div class="lbx t"></div><div class="lbx b"></div><span class="hint">Tocca per saltare</span></div>
@@ -458,7 +473,7 @@ input,textarea,select,[contenteditable="true"]{font-size:max(16px,1em)!important
  <div class="fl">Diagnostica<button class="btn tgl" id="bDiag" aria-pressed="true">Diagnostica errori: attiva</button><small>Diagnostica limitata: invia solo tipo di errore, riga e versione. Non invia testi o contenuti. Alcuni errori di avvio o rete non sono rilevabili; non garantisce di trovare la causa. Puoi spegnerla.</small></div>
  <button class="btn" id="bObR">Rivedi l'introduzione</button>
  <button class="btn pri" id="sOk">Fatto</button>
- <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.8</small>
+ <small style="display:block;text-align:center;opacity:.45;margin-top:6px">NOVA build 2026.10.25.9</small>
 </div></dialog>
 
 <dialog id="dProf"><div class="sheet">
