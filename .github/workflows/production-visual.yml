@@ -38,7 +38,7 @@ jobs:
           VIDEO_PID=$!
           xcrun simctl launch "$UDID" site.federicotaranu.nova.chattest
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
-          for i in $(seq 1 70); do [ -f "$CONTAINER/Documents/visual-done" ] && break; sleep 1; done
+          for i in $(seq 1 85); do [ -f "$CONTAINER/Documents/visual-done" ] && break; sleep 1; done
           xcrun simctl io "$UDID" screenshot evidence/native-nav.png
           echo "$UDID" > /tmp/nova-udid
           echo "$VIDEO_PID" > /tmp/nova-video-pid
