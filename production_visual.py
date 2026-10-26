@@ -302,3 +302,17 @@ s=p.read_text().replace('checks["accountTransitionRestoresOwnCache"] = transitio
   checks["logoutPreservesAccountCache"]=transition.archive!.owner=="local" && transition.archive!.localStorage["nova.swift.account.first@example.invalid"] != nil
 ''',1)
 p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('visualProductionSave(web,"production-swift-owned-backup.png");visualSwiftImportOrigin(web,dir)','visualProductionSave(web,"production-swift-owned-backup.png");visualSwiftAccountScreens(web,store,dir)',1)
+s+=r'''
+struct VisualSongFixture:View {@State var draft:[String:NOVAJSON]=[:];var body:some View{NOVASwiftSongPicker(draft:$draft)}}
+@MainActor func visualSwiftAccountScreens(_ web:WKWebView,_ store:NOVASwiftStore,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ root.presentedViewController?.dismiss(animated:false){
+  let login=UIHostingController(rootView:NavigationStack{NOVASwiftAccountLogin(store:store)});login.modalPresentationStyle = .fullScreen
+  root.present(login,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-login.png");login.dismiss(animated:false){let songs=UIHostingController(rootView:VisualSongFixture());songs.modalPresentationStyle = .fullScreen;root.present(songs,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-song-search.png");visualSwiftImportOrigin(web,dir)}}}}}
+ }
+}
+'''
+p.write_text(s)
