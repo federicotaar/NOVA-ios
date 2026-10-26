@@ -568,7 +568,7 @@ import os
 if os.environ.get('NOVA_INTERACTION')=='1':
     p=Path('/tmp/NOVAProductionVisual.swift')
     s=p.read_text().replace('visualNativeProfileReady(web,0)','visualSwiftInteractionReady(web,0)',1)
-    s+='\n'+Path('NOVAInteractionFixture.swift').read_text()
+    s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
     p.write_text(s)
 
 p=Path('/tmp/NOVAProductionVisual.swift')
@@ -594,9 +594,10 @@ s+=r"""
  var checks:[String:Bool]=[:]
  do{
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
- let cached="{\"data\":{\"name\":\"Returning\",\"tasks\":[{\"id\":\"old-task\",\"future\":true}],\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"returning\"},\"future\":\"keep\"},\"rev\":3,\"last\":\"old\"}"
+ let cached="{\"data\":{\"chat\":[{\"acts\":[{\"a\":\"task\",\"st\":\"wait\",\"swiftID\":\"old-proposal\"}]}],\"name\":\"Returning\",\"tasks\":[{\"id\":\"old-task\",\"future\":true}],\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"returning\"},\"future\":\"keep\"},\"rev\":3,\"last\":\"old\"}"
  try store.importOnce(["nova.v1":"{\"tasks\":[]}","nova.account.v3.return@example.invalid":cached])
  try store.changeAccount(email:"return@example.invalid",token:"new-token")
+ checks["cachedProposalsNeverReplayAcrossSessions"]=store.archive?.active.object?["chat"]?.array.first?.object?["acts"]?.array.first?.object?["st"]?.string=="off"
  checks["legacyEnvelopeRestored"]=store.archive?.active.object?["name"]?.string=="Returning" && store.archive?.active.object?["tasks"]?.array.first?.object?["id"]?.string=="old-task"
  checks["unknownFieldsAndOriginalCachePreserved"]=store.archive?.active.object?["future"]?.string=="keep" && store.archive?.localStorage["nova.account.v3.return@example.invalid"]==cached
  checks["cacheNeverEnablesSharingOrServices"]=store.archive?.active.object?["locShare"]?.flag==false && store.archive?.active.object?["bgLoc"]?.flag==false && store.archive?.active.object?["cv"]?.object?["on"]?.flag==false
