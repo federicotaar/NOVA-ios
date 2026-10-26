@@ -58,12 +58,15 @@ struct NOVASwiftMapFriend:Identifiable {
     @Published private(set) var status=""
     @Published private(set) var changing=false
     private var generation=0
+    typealias Request=(NOVASession,String,String,NOVAJSON?) async throws -> NOVAJSON
+    private let request:Request
+    init(request:Request?=nil){self.request=request ?? {session,path,method,body in try await NOVAAccountService(session:session).request(path,method:method,body:body)}}
     func cancel() { generation += 1;changing=false;friends=[] }
     func refresh(_ store:NOVASwiftStore) async {
         guard let active=store.archive?.active,let owner=NOVASession(active) else{friends=[];status="Collega il tuo account NOVA per vedere gli amici sulla mappa.";return}
         let expected=generation
         do {
-            let result=try await NOVAAccountService(session:owner).request("map")
+            let result=try await request(owner,"map","GET",nil)
             guard generation==expected,store.archive.flatMap({NOVASession($0.active)})==owner else{return}
             friends=(result.object?["friends"]?.array ?? []).compactMap{NOVASwiftMapFriend.parse($0)}
             status=friends.isEmpty ? "Nessun amico ha una posizione recente condivisa.":"Posizioni recenti, non tracciamento continuo."
@@ -117,12 +120,12 @@ enum NOVASwiftLocationConsent {
 }
 @MainActor struct NOVASwiftMap:View {
     @ObservedObject var store:NOVASwiftStore
-    @StateObject private var model=NOVASwiftMapModel()
+    @StateObject private var model:NOVASwiftMapModel
+    init(store:NOVASwiftStore,model:NOVASwiftMapModel?=nil){self.store=store;_model=StateObject(wrappedValue:model ?? NOVASwiftMapModel())}
     @StateObject private var position=NOVASwiftPosition()
     @ObservedObject private var background=NOVASwiftBackgroundLocation.shared
     @State private var camera:MapCameraPosition = .automatic
     @State private var expanded=false
-    @State private var satellite=false
     @State private var confirmShare=false
     @State private var confirmBackground=false
     var root:[String:NOVAJSON]{store.archive?.active.object ?? [:]}
@@ -134,10 +137,10 @@ enum NOVASwiftLocationConsent {
                 Map(position:$camera){
                     if let coordinate=position.coordinate{Annotation("Tu",coordinate:coordinate){Image(systemName:"person.circle.fill").font(.largeTitle).foregroundStyle(.blue).background(.background,in:Circle())}}
                     ForEach(model.friends){friend in Annotation("@"+friend.id,coordinate:friend.coordinate){VStack(spacing:3){Image(systemName:"person.circle.fill").font(.title);Text("@"+friend.id).font(.caption.bold());Text(friend.timestamp,style:.relative).font(.caption2)}.padding(6).background(.regularMaterial,in:RoundedRectangle(cornerRadius:12))}}
-                }.mapStyle(satellite ? .hybrid:.standard).mapControls{MapCompass();MapScaleView()}.ignoresSafeArea()
+                }.mapStyle(.standard).mapControls{MapCompass();MapScaleView()}.ignoresSafeArea()
                 VStack{
                     HStack{Spacer();VStack(spacing:18){
-                        Button{satellite.toggle()}label:{Image(systemName:"map.fill")}.accessibilityLabel("Cambia stile mappa")
+                        Button{withAnimation(.snappy){expanded.toggle()}}label:{Image(systemName:"slider.horizontal.3")}.accessibilityLabel("Opzioni mappa")
                         Button{position.read()}label:{Image(systemName:"location.fill")}.accessibilityLabel("Leggi la mia posizione")
                         Button{Task{await model.refresh(store)}}label:{Image(systemName:"arrow.clockwise")}.accessibilityLabel("Aggiorna amici")
                     }.font(.title3).padding(15).background(.regularMaterial,in:Capsule()).padding(.trailing,18)}.padding(.top,14)
