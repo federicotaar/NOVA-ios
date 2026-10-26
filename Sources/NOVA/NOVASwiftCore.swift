@@ -357,6 +357,7 @@ extension NOVAJSON {
 @MainActor struct NOVASwiftTaskEditor:View {
     @ObservedObject var store:NOVASwiftStore
     @Environment(\.dismiss) var dismiss
+    @FocusState private var editing:Bool
     @State private var title=""
     @State private var note=""
     @State private var due=Calendar.current.date(bySettingHour:18,minute:0,second:0,of:Date().addingTimeInterval(86400)) ?? Date()
@@ -366,15 +367,16 @@ extension NOVAJSON {
     @State private var error=""
     var body:some View {
         NavigationStack{Form{
-            Section("Compito"){TextField("Cosa devi fare?",text:$title)}
-            Section("Descrizione (facoltativa)"){TextEditor(text:$note).frame(minHeight:90)}
+            Section("Compito"){TextField("Cosa devi fare?",text:$title).focused($editing)}
+            Section("Descrizione (facoltativa)"){TextEditor(text:$note).focused($editing).frame(minHeight:90)}
             Section("Scadenza"){DatePicker("Scadenza",selection:$due)}
             Section("Opzioni"){
                 Picker("Priorità",selection:$priority){Text("Alta").tag("alta");Text("Media").tag("media");Text("Bassa").tag("bassa")}
                 Picker("Promemoria",selection:$reminder){Text("Nessuno").tag(0);Text("10 minuti prima").tag(10);Text("1 ora prima").tag(60);Text("1 giorno prima").tag(1440)}.accessibilityIdentifier("taskReminderPicker")
             }
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
-        }.environment(\.locale,Locale(identifier:"it_IT")).navigationTitle("Nuovo compito").toolbar{
+        }.scrollDismissesKeyboard(.interactively).environment(\.locale,Locale(identifier:"it_IT")).navigationTitle("Nuovo compito").toolbar{
+            ToolbarItemGroup(placement:.keyboard){Spacer();Button("Fine tastiera"){editing=false}}
             ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}}
             ToolbarItem(placement:.confirmationAction){Button("Aggiungi"){do{try NOVASwiftTaskActions.add(store,owner:owner,title:title,note:note,due:due,priority:priority,reminder:reminder);dismiss()}catch{self.error="Controlla titolo, descrizione e duplicati. Nessun dato precedente è stato modificato."}}}
         }}.onAppear{owner=store.archive?.owner ?? ""}
