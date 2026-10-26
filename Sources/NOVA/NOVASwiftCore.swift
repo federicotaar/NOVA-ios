@@ -408,6 +408,7 @@ extension NOVAJSON {
 }
 @MainActor struct NOVASwiftAssistant:View {
     @ObservedObject var store:NOVASwiftStore
+    init(store:NOVASwiftStore,initialDraft:String=""){self.store=store;_draft=State(initialValue:initialDraft)}
     @State private var draft=""
     @State private var sending=false
     @State private var status=""
