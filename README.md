@@ -227,3 +227,5 @@ Il percorso Swift in verifica include ora creazione e completamento dei compiti 
 Il percorso compiti Swift aggiorna il file widget e pianifica i promemoria solo con autorizzazione già concessa. Nessuna richiesta automatica di permessi durante l'importazione. L'esito di programmazione non promette la consegna iOS; verifica del dispositivo ancora necessaria.
 
 Le scadenze nella schermata Swift usano date e ore leggibili in italiano, non la stringa tecnica salvata. Anche il conteggio delle lezioni distingue singolare e plurale.
+
+Anche la conversazione testuale dell'assistente ha un percorso Swift autonomo in verifica: usa la chiave Groq esistente, conserva cronologia e allegati importati e scarta risposte dopo cambio account/chiusura. Non attiva le azioni né i permessi per supposizione. Foto, vocali e conferme delle azioni richiedono ancora parità prima del passaggio definitivo.
