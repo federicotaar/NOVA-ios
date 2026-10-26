@@ -2367,3 +2367,73 @@ extension NOVAJSON {
         do{try store.update(owner:owner){root in root["prof"] = .object(profile);root["profConfirmed"] = .string(username);root["profPending"] = .number(0)};dismiss()}catch{status="Profilo non salvato sul dispositivo. Bozza conservata."}
     }
 }
+@MainActor final class NOVASwiftSocial:ObservableObject {
+    @Published private(set) var chats:[NOVAJSON]=[]
+    @Published private(set) var messages:[NOVAJSON]=[]
+    @Published private(set) var status=""
+    @Published private(set) var sending=false
+    private var generation=0
+    private var activeChat:String?
+    private var session:NOVASession?
+    func close(){generation+=1;activeChat=nil;messages=[];status="";sending=false}
+    func loadChats(_ store:NOVASwiftStore) async {
+        guard let active=store.archive?.active,let owner=NOVASession(active) else{status="Accedi al tuo account NOVA.";return}
+        session=owner;generation+=1;let epoch=generation
+        do{let result=try await NOVAAccountService(session:owner).chats();guard epoch==generation,NOVASession(store.archive!.active)==owner else{return};chats=result.object?["chats"]?.array ?? [];status=""}catch{if epoch==generation{status="Elenco non aggiornato. Riprova."}}
+    }
+    func open(_ id:String,_ store:NOVASwiftStore) async {
+        close();activeChat=id
+        guard let active=store.archive?.active,let owner=NOVASession(active) else{return};session=owner
+        await refresh(store)
+    }
+    func refresh(_ store:NOVASwiftStore) async {
+        guard let id=activeChat,let owner=session else{return};let epoch=generation
+        do{
+            let result=try await NOVAAccountService(session:owner).request("chats/"+id+"/messages",query:[URLQueryItem(name:"limit",value:"50")])
+            guard epoch==generation,activeChat==id,NOVASession(store.archive!.active)==owner else{return}
+            messages=result.object?["messages"]?.array ?? [];status=""
+        }catch{if epoch==generation{status="Messaggi non aggiornati. Riprova."}}
+    }
+    func send(_ text:String,_ store:NOVASwiftStore) async -> Bool {
+        let text=text.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard !sending,!text.isEmpty,let id=activeChat,let owner=session,NOVASession(store.archive!.active)==owner else{return false}
+        let epoch=generation;sending=true;defer{if epoch==generation{sending=false}}
+        do{
+            _ = try await NOVAAccountService(session:owner).request("chats/"+id+"/messages",method:"POST",body:.object(["body":.string(text)]))
+            guard epoch==generation,activeChat==id,NOVASession(store.archive!.active)==owner else{return false}
+            await refresh(store);return true
+        }catch{if epoch==generation{status="Messaggio non inviato. Il testo resta nella bozza."};return false}
+    }
+}
+@MainActor struct NOVASwiftChatList:View {
+    @ObservedObject var store:NOVASwiftStore
+    @StateObject private var social=NOVASwiftSocial()
+    var body:some View {
+        NavigationStack{List{
+            NavigationLink("Assistente AI"){NOVASwiftAssistant(store:store)}
+            ForEach(Array(social.chats.enumerated()),id:\.offset){_,chat in
+                let o=chat.object ?? [:],id=o["id"].flatMap{value -> String? in value.string ?? String(value.integer)} ?? ""
+                NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)}}}
+            }
+            if !social.status.isEmpty{Text(social.status).foregroundStyle(.secondary)}
+            Text("Creazione chat, gruppi, allegati, reazioni e ricevute restano da verificare. Nessuna ricevuta viene inviata da questa anteprima.").font(.footnote).foregroundStyle(.secondary)
+        }.navigationTitle("Chat").refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}}
+    }
+}
+@MainActor struct NOVASwiftConversation:View {
+    @ObservedObject var store:NOVASwiftStore
+    @ObservedObject var social:NOVASwiftSocial
+    let id:String
+    let title:String
+    @State private var draft=""
+    var body:some View {
+        VStack{
+            ScrollView{LazyVStack(alignment:.leading,spacing:12){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
+                let o=message.object ?? [:]
+                VStack(alignment:.leading){Text(o["kind"]?.string=="text" || o["kind"]==nil ? (o["body"]?.string ?? ""):(o["kind"]?.string=="image" ? "Foto allegata":"Messaggio vocale")).textSelection(.enabled)}.padding(12).frame(maxWidth:.infinity,alignment:.leading).background(Color.secondary.opacity(0.1),in:RoundedRectangle(cornerRadius:18))
+            }}.padding()}.refreshable{await social.refresh(store)}
+            if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary)}
+            HStack{TextField("Messaggio",text:$draft,axis:.vertical).textFieldStyle(.roundedBorder);Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}.padding()
+        }.navigationTitle(title).task{await social.open(id,store)}.onDisappear{social.close()}
+    }
+}
