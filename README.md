@@ -349,3 +349,6 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Checkpoint277: 69 controlli sintetici piu 2 importazione/origine tutti veri. Controllati canzone profilo, dettaglio compito chiaro/scuro e contesto AI come bozza non inviata. Compilazione276 superata.
 - Interazione3 ha eseguito trascinamenti avanti/indietro, cambio pagina e inserimento bozza, ma il gate pressione/rilascio ha rifiutato l’assenza degli eventi dal controllo di sistema. Aggiunto osservatore simultaneo senza sostituire il gesto di sistema; richiesto nuovo test4. Non dichiarati accettati pressione/rilascio o tastiera, percorso sempre inattivo.
+
+- Interazione4 ha verificato contenuto fermo durante pressione, ma ha rilevato che il rilascio non cambiava pagina. Corretto il commit dalla posizione reale di rilascio, test5 richiesto. Tastiera e navigazione finale non ancora accettate.
+- Importazione iniziale conserva la copia originale immutabile e tutti i dati personali, ma azzera nel nuovo stato soltanto i flag di visibilita/sessione posizione. Non riattiva la condivisione da vecchi flag locali. Controllo dedicato aggiunto; compilazione e checkpoint ancora necessari.
