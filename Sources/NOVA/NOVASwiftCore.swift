@@ -521,7 +521,8 @@ extension NOVAJSON {
     private var session:NOVASession?
     typealias Transport=(NOVASession,String,String,NOVAJSON?,[URLQueryItem]) async throws -> NOVAJSON
     private let transport:Transport
-    init(transport:Transport?=nil){self.transport=transport ?? {owner,path,method,body,query in try await NOVAAccountService(session:owner).request(path,method:method,body:body,query:query)}}
+    init(transport:Transport?=nil){let source:Transport=transport ?? {owner,path,method,body,query in try await NOVAAccountService(session:owner).request(path,method:method,body:body,query:query)};self.transport={owner,path,method,body,query in let result=try await source(owner,path,method,body,query);if result.object?["ok"]?.flag==false{throw NOVAServiceError.invalidResponse};return result}}
+    func reset(){close();chats=[];friends=[];session=nil}
     func close(){generation+=1;activeChat=nil;messages=[];reactions=[:];senders=[:];typing=[];status="";sending=false}
     private func current(_ store:NOVASwiftStore,_ owner:NOVASession,_ epoch:Int,_ id:String?=nil)->Bool{generation==epoch && store.archive.flatMap({NOVASession($0.active)})==owner && (id==nil || activeChat==id)}
     func loadChats(_ store:NOVASwiftStore) async {
@@ -543,9 +544,9 @@ extension NOVAJSON {
     func refresh(_ store:NOVASwiftStore) async {
         guard let id=activeChat,let owner=session else{return};let epoch=generation
         do{
-            let result=try await transport(owner,"chats/"+id+"/messages","GET",nil,[URLQueryItem(name:"limit",value:"50")])
+            let result=try await transport(owner,"chats/"+id+"/messages","GET",nil,messages.last?.object?["id"].map{[URLQueryItem(name:"since",value:$0.string ?? String($0.integer))]} ?? [URLQueryItem(name:"limit",value:"50")])
             guard current(store,owner,epoch,id) else{return}
-            messages=result.object?["messages"]?.array ?? [];reactions=result.object?["reactions"]?.object ?? [:];senders=result.object?["senders"]?.object ?? [:];status=""
+            for message in result.object?["messages"]?.array ?? []{if let index=messages.firstIndex(where:{$0.object?["id"]==message.object?["id"]}){messages[index]=message}else{messages.append(message)}};if let updated=result.object?["reactions"]?.object{reactions=updated};if let updated=result.object?["senders"]?.object{senders.merge(updated){_,new in new}};status=""
             // Opening a visible conversation has the same receipt semantics as the existing app.
             if let last=messages.last?.object?["id"]{_ = try? await transport(owner,"chats/"+id+"/read","POST",.object(["last_msg_id":last]),[])}
             guard current(store,owner,epoch,id) else{return}
@@ -570,7 +571,7 @@ extension NOVAJSON {
         }catch{if current(store,owner,epoch,id){status="Allegato non inviato. Riprova."};return false}
     }
     func action(_ message:NOVAJSON,operation:String,value:String="",_ store:NOVASwiftStore) async {
-        guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner,let o=message.object,let messageID=o["id"],o["deleted"]?.flag != true else{return}
+        guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner,let o=message.object,let messageID=o["id"],o["deleted"]?.flag != true,messages.contains(where:{$0.object?["id"]==messageID}) else{return}
         guard ["react","edit","delete"].contains(operation),operation=="react" || o["sender"]?.string==owner.email else{return}
         if operation=="edit" && o["kind"]?.string != "text"{return}
         let epoch=generation,key=messageID.string ?? String(messageID.integer)
@@ -591,7 +592,7 @@ extension NOVAJSON {
                 NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)};if let exam=o["exam_at"],exam.integer>0{Text(Date(timeIntervalSince1970:Double(exam.integer)/1000),style:.date).font(.caption).foregroundStyle(.secondary)}}}
             }
             if !social.status.isEmpty{Text(social.status).foregroundStyle(.secondary)}
-        }.navigationTitle("Chat").toolbar{Button{create=true}label:{Image(systemName:"plus")}.accessibilityLabel("Nuova chat")}.sheet(isPresented:$create){NOVASwiftChatCreation(store:store,social:social)}.refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}}
+        }.navigationTitle("Chat").toolbar{Button{create=true}label:{Image(systemName:"plus")}.accessibilityLabel("Nuova chat")}.sheet(isPresented:$create){NOVASwiftChatCreation(store:store,social:social)}.refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}.onChange(of:store.archive?.owner){_,_ in social.reset();Task{await social.loadChats(store)}}}
     }
 }
 @MainActor struct NOVASwiftConversation:View {
@@ -636,7 +637,7 @@ extension NOVAJSON {
                     if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}}
                 }
             }}.padding()}.refreshable{await social.refresh(store)}
-            if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+" sta scrivendo…").font(.caption).foregroundStyle(.secondary)}
+            if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
             if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
             if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store){photoDraft=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
             if let data=voice.draft{HStack{Text("Vocale in bozza");Button("Invia"){Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store){voice.cancel()}}}.disabled(social.sending);Button("Elimina",role:.destructive){voice.cancel()}}.padding()}
