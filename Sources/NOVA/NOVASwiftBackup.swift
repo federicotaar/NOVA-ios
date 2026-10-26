@@ -101,7 +101,7 @@ enum NOVASwiftBackupData {
             Section("Account NOVA"){
                 Text(store.archive?.active.object?["acct"]?.object?["email"]?.string ?? "Nessun account collegato")
                 Text(model.status).font(.footnote).foregroundStyle(.secondary)
-                Button("Confronta backup"){Task{await model.inspect(store)}}.disabled(model.busy)
+                Button("Confronta backup"){Task{await model.inspect(store)}}.disabled(model.busy || store.archive.flatMap({NOVASession($0.active)})==nil)
             }
             if let data=model.remote?.object?["data"],data.object != nil{
                 Section("Copia online"){
