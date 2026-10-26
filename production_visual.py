@@ -59,11 +59,11 @@ p.write_text(x)
 p=Path('/tmp/NOVAProductionVisual.swift')
 x=p.read_text()+r"""
 func visualOnboardingRun(_ web:WKWebView){
- DispatchQueue.main.asyncAfter(deadline:.now()+7){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');delete S.acct;S.prof={username:'',avatar:''};S.done=0;S.ob=0;obStart()",completionHandler:nil)}
- let pages=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
- for (i,page) in pages.enumerated(){let delay=Double(10+i*4);DispatchQueue.main.asyncAfter(deadline:.now()+delay){web.evaluateJavaScript("obI="+String(page)+";obDraw()",completionHandler:nil)};DispatchQueue.main.asyncAfter(deadline:.now()+delay+2){visualProductionSave(web,"production-onboarding-"+String(page)+".png")}}
- DispatchQueue.main.asyncAfter(deadline:.now()+76){web.evaluateJavaScript("$('#oDone').click();JSON.stringify({errors:testErrors,done:S.done,ob:S.ob,hidden:$('#ob').hidden,account:!!S.acct,faceId:!!S.faceId})"){v,e in let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? String(describing:v ?? e).write(to:dir.appendingPathComponent("onboarding-state.txt"),atomically:true,encoding:.utf8)}}
- DispatchQueue.main.asyncAfter(deadline:.now()+80){visualProductionSave(web,"production-after-onboarding.png");let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];web.evaluateJavaScript("JSON.stringify({errors:testErrors,bodyError:document.querySelector('#errB')?.textContent})"){v,e in try? String(describing:v).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("visual-done"))}}
+ DispatchQueue.main.asyncAfter(deadline:.now()+7){web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');delete S.acct;S.prof={username:'',avatar:''};S.done=0;S.ob=0;obStart()"){_,_ in visualOnboardingPage(web,0)}}
+}
+func visualOnboardingPage(_ web:WKWebView,_ page:Int){
+ if page>15{web.evaluateJavaScript("$('#oDone').click();JSON.stringify({errors:testErrors,done:S.done,ob:S.ob,hidden:$('#ob').hidden,account:!!S.acct,faceId:!!S.faceId})"){v,e in let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? String(describing:v ?? e).write(to:dir.appendingPathComponent("onboarding-state.txt"),atomically:true,encoding:.utf8);DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-after-onboarding.png");web.evaluateJavaScript("JSON.stringify({errors:testErrors})"){v,e in try? String(describing:v).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("visual-done"))}}};return}
+ web.evaluateJavaScript("obI="+String(page)+";obDraw()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-onboarding-"+String(page)+".png");visualOnboardingPage(web,page+1)}}
 }
 """
 p.write_text(x)
