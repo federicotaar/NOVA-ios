@@ -231,3 +231,5 @@ Le scadenze nella schermata Swift usano date e ore leggibili in italiano, non la
 Anche la conversazione testuale dell'assistente ha un percorso Swift autonomo in verifica: usa la chiave Groq esistente, conserva cronologia e allegati importati e scarta risposte dopo cambio account/chiusura. Non attiva le azioni né i permessi per supposizione. Foto, vocali e conferme delle azioni richiedono ancora parità prima del passaggio definitivo.
 
 Il profilo Swift usa una bozza, il selettore foto di sistema e controlli account/epoca per il caricamento. Il salvataggio online usa il profilo dell'account corrente e non cambia amicizie o visibilità. La scelta canzone resta da portare prima dell'attivazione; dati e canzone esistenti restano conservati.
+
+Le verifiche del percorso Swift confermano creazione, completamento, rimozione, blocco duplicati e isolamento account dei compiti. Il lettore di importazione ha letto correttamente la stessa origine locale nel simulatore senza eliminare la memoria originale. La prova sul dispositivo resta necessaria prima dell'attivazione.
