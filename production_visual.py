@@ -397,7 +397,7 @@ s=p.read_text()+r'''
 @MainActor func visualSwiftPeopleScreens(_ web:WKWebView,_ store:NOVASwiftStore,_ dir:URL){
  guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
  let people=NOVASwiftPeople{_,_,_,_,_ in .object(["ok":.bool(true),"profile":.object(["study":.string("Scuola dimostrativa"),"skills":.string("Matematica e informatica"),"hobbies":.string("Musica e sport"),"badges":.array([.string("Primi passi")])]),"followers":.number(12),"following":.number(8),"you_follow":.bool(false),"is_friend":.bool(true)])}
- root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NavigationStack{NOVASwiftPublicProfile(store:store,people:people,username:"esempio")});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-public-profile.png");page.dismiss(animated:false){try? store.update(owner:store.archive!.owner){$0["prof"] = .object(["username":.string("esempio")])};let qr=UIHostingController(rootView:NOVASwiftQR(store:store,people:people));qr.modalPresentationStyle = .fullScreen;root.present(qr,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-qr.png");visualSwiftImportOrigin(web,dir)}}}}}}
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NavigationStack{NOVASwiftPublicProfile(store:store,people:people,username:"esempio")});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-public-profile.png");page.dismiss(animated:false){try? store.update(owner:store.archive!.owner){$0["prof"] = .object(["username":.string("esempio")])};let qr=UIHostingController(rootView:NOVASwiftQR(store:store,people:people));qr.modalPresentationStyle = .fullScreen;root.present(qr,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-qr.png");visualSwiftAssistantScreen(web,dir)}}}}}}
 }
 '''
 p.write_text(s)
@@ -422,6 +422,18 @@ s+=r'''
   var old=actions[0].object!;old.removeValue(forKey:"swiftID");old["st"] = .string("wait");try store.update(owner:"local"){$0["chat"] = .array([.object(["r":.string("assistant"),"acts":.array([.object(old)])])])};await NOVASwiftAssistantActions.run(store,owner:"local",message:0,action:0);checks["legacyActionsNeverReplayed"] = store.archive?.active.object?["tasks"]?.array.count==1
  }catch{checks["exception"]=true}
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-assistant-checks.txt"))
+}
+'''
+p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text()+r'''
+@MainActor func visualSwiftAssistantScreen(_ web:WKWebView,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try? store.importOnce(["nova.v1":"{\"chat\":[],\"tasks\":[],\"aiAct\":\"ask\"}"])
+ let proposal=NOVASwiftAssistantActions.parse("Ti propongo un ripasso breve.\n###AZIONI###[{\"a\":\"task\",\"title\":\"Ripasso dimostrativo\",\"due\":\"2026-11-03T18:00\",\"rem\":0}]",permission:"ask")
+ try? store.update(owner:"local"){$0["chat"] = .array([.object(["r":.string("user"),"c":.string("Come preparo la verifica?")]),.object(["r":.string("assistant"),"c":.string(proposal.0),"acts":.array(proposal.1)])])}
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NOVASwiftAssistant(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-assistant-actions.png");visualSwiftImportOrigin(web,dir)}}}
 }
 '''
 p.write_text(s)
