@@ -401,7 +401,7 @@ extension NOVAJSON {
             guard store.archive?.owner==owner,store.archive?.active==snapshot else{return false}
             let content=UNMutableNotificationContent();content.title="NOVA · Promemoria";content.body=title;content.sound = .default
             let components=Calendar.current.dateComponents([.year,.month,.day,.hour,.minute,.second],from:date)
-            do{try await center.add(UNNotificationRequest(identifier:"rem."+id,content:content,trigger:UNCalendarNotificationTrigger(dateMatching:components,repeats:false)))}catch{success=false}
+            do{try await center.add(UNNotificationRequest(identifier:"rem."+id,content:content,trigger:UNCalendarNotificationTrigger(dateMatching:components,repeats:false)));guard store.archive?.owner==owner,store.archive?.active==snapshot else{center.removePendingNotificationRequests(withIdentifiers:["rem."+id]);return false}}catch{success=false}
         }
         return success
     }
@@ -765,6 +765,15 @@ extension NOVASwiftStore {
         else if let saved=current.localStorage["nova.swift.account."+target],let bytes=saved.data(using:.utf8),let state=try? JSONDecoder().decode(NOVAJSON.self,from:bytes).object {next=state}
         else if let saved=current.localStorage["nova.account.v3."+target],let bytes=saved.data(using:.utf8),let envelope=try? JSONDecoder().decode(NOVAJSON.self,from:bytes),let data=envelope.object?["data"],data.object != nil {next=data.object!;next["cv"] = .object(["on":.number(0)]);next["profConfirmed"] = .string("");next["profPending"] = .number(1)}
         else {next=["name":.string(""),"theme":.string("auto"),"sb":.string("off"),"tasks":.array([]),"chat":.array([]),"gr":.array([]),"tt":.object(["lessons":.array([])]),"prof":.object([:]),"w":.object([:]),"done":.number(0),"ob":.number(0),"aiAct":.string("ask")]}
+        // Old proposals remain readable but cannot run under a replacement session.
+        next["chat"] = .array((next["chat"]?.array ?? []).map{message in
+            guard var entry=message.object else{return message}
+            entry["acts"] = .array((entry["acts"]?.array ?? []).map{action in
+                guard var value=action.object else{return action}
+                if ["wait","go","pending"].contains(value["st"]?.string ?? ""){value["st"] = .string("off");value["note"] = .string("Proposta conservata, non rieseguita dopo il cambio sessione.")}
+                return .object(value)
+            });return .object(entry)
+        })
         next["acct"] = .object(["email":.string(target),"token":.string(token)])
         next["locShare"] = .number(0);next["bgLoc"] = .number(0);next["locSession"] = .string("");next["locSessionToken"] = .string("")
         current.active = .object(next)
