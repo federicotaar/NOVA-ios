@@ -189,3 +189,7 @@ Accesso alle impostazioni dalla pagina Voti nativa mantenendo i controlli accoun
 ### 2026.10.25.47
 
 Nuovo compito nativo con titolo, descrizione multilinea, data e ora, priorità e promemoria tramite controlli UIKit. Conferma/cancellazione e validazione restano negli handler esistenti.
+
+### 2026.10.25.48
+
+Valori dei menu priorità/promemoria visibili nel modulo nativo; descrizione con etichetta di sezione esplicita.
