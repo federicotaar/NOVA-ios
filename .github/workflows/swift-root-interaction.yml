@@ -35,7 +35,7 @@ jobs:
           xcrun simctl launch "$UDID" site.federicotaranu.nova.chattest
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
           for i in $(seq 1 45); do [ -f "$CONTAINER/Documents/interaction-ready" ] && break; sleep 1; done
-          test -f "$CONTAINER/Documents/interaction-ready" || { echo "Swift fixture did not appear"; exit 1; }
+          test -f "$CONTAINER/Documents/interaction-ready" || { xcrun simctl io "$UDID" screenshot evidence/incomplete.png; echo "Swift fixture did not appear"; exit 1; }
           xcrun simctl io "$UDID" screenshot evidence/native-segment-rest.png
       - uses: actions/upload-artifact@v4
         with:
@@ -80,12 +80,18 @@ jobs:
               duration: 2000
           - assertVisible: "Profilo"
           - takeScreenshot: evidence/swift-root-profile
+          - tapOn: "Impostazioni"
           - scrollUntilVisible:
               element: "Rivedi presentazione"
               direction: DOWN
           - tapOn: "Rivedi presentazione"
           - assertVisible: "Inserisci la tua email"
           - tapOn: "Configura dopo"
+          - assertVisible: "Rivedi presentazione"
+          - swipe:
+              start: "50%,18%"
+              end: "50%,96%"
+              duration: 500
           - assertVisible: "Profilo"
           - swipe:
               start: "85%,91%"
