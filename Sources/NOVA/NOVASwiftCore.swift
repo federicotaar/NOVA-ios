@@ -748,6 +748,7 @@ extension NOVAJSON {
 }
 @MainActor struct NOVASwiftShell:View {
     @ObservedObject var store:NOVASwiftStore
+    init(store:NOVASwiftStore,initialTab:Int=0){self.store=store;_selectedTab=State(initialValue:max(0,min(4,initialTab)))}
     @StateObject private var sync=NOVASwiftSync()
     @State private var selectedTab=0
     @Environment(\.scenePhase) private var scenePhase
