@@ -145,3 +145,7 @@ Anche i collegamenti presenti nelle spiegazioni dei servizi hanno un’azione ne
 ### 2026.10.25.36
 
 Editor del profilo in pagina nativa: selettore foto iOS, username, scuola, punti forti, hobby, ricerca canzone e Salva/Annulla. Gestori originali per disponibilità username e salvataggio. La migrazione continua su dashboard, chat, mappa e altre schermate: non sono ancora tutte native.
+
+### 2026.10.25.37
+
+Titolo e azione di chiusura del profilo nativo distinti da Impostazioni. Restano Salva esplicito, Annulla e vincolo del primo profilo.
