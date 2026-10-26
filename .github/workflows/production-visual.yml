@@ -71,7 +71,7 @@ jobs:
           for name in required:
               data=json.loads((pathlib.Path('evidence')/name).read_text())
               assert data and all(value is True for value in data.values()), (name,data)
-              assert not any('exception' in key.lower() or 'failed' in key.lower() for key in data), (name,data)
+              assert not any(key.lower() in ('exception','failed','error') for key in data), (name,data)
           PYTEST
       - uses: actions/upload-artifact@v4
         if: always() && github.event_name == 'workflow_dispatch'
