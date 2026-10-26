@@ -437,3 +437,26 @@ s=p.read_text()+r'''
 }
 '''
 p.write_text(s)
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('await visualSwiftAssistantChecks(dir);try? Data()', 'await visualSwiftAssistantChecks(dir);visualSwiftSchoolChecks(dir);try? Data()',1)
+s+=r'''
+@MainActor func visualSwiftSchoolChecks(_ dir:URL){
+ var checks:[String:Bool]=[:]
+ do{
+  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try store.importOnce(["nova.v1":"{\"tasks\":[{\"id\":\"manual\",\"title\":\"Manuale\",\"done\":0},{\"id\":\"cvhw1\",\"title\":\"Old\",\"src\":\"cv\",\"done\":1,\"unknown\":\"keep\"}],\"gr\":[]}"])
+  let response:NOVAJSON = .object(["ok":.bool(true),"name":.string("Studente dimostrativo"),"events":.array([.object(["id":.string("hw1"),"date":.string("2026-11-03"),"title":.string("Aggiornato"),"kind":.string("hw")]),.object(["id":.string("ag2"),"date":.string("2026-11-04"),"title":.string("Verifica"),"kind":.string("test")])]),"grades":.array([.object(["subj":.string("Matematica"),"v":.number(7)])])])
+  try NOVASwiftSchoolImport.apply(response,store,owner:"local")
+  let tasks=store.archive!.active.object!["tasks"]!.array
+  checks["manualTaskPreserved"] = tasks.contains{$0.object?["id"]?.string=="manual"}
+  checks["completionAndUnknownPreserved"] = tasks.first{$0.object?["id"]?.string=="cvhw1"}?.object?["done"]?.flag==true && tasks.first{$0.object?["id"]?.string=="cvhw1"}?.object?["unknown"]?.string=="keep"
+  checks["schoolEventsAndGradesImported"] = tasks.count==3 && store.archive?.active.object?["gr"]?.array.count==1
+  let snapshot=store.archive!.active
+  do{try NOVASwiftSchoolImport.apply(.object(["ok":.bool(false)]),store,owner:"local")}catch{}
+  checks["failedImportPreservesData"] = store.archive!.active==snapshot
+  do{try NOVASwiftSchoolImport.apply(response,store,owner:"wrong")}catch{}
+  checks["wrongOwnerImportBlocked"] = store.archive!.active==snapshot
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-school-checks.txt"))
+}
+'''
+p.write_text(s)
