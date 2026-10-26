@@ -95,20 +95,33 @@ import UIKit
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftQRInteractionReady(web,attempt+1)}};return}
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
  var checks:[String:Bool]=[:]
+ var diagnostics:[[String:Any]]=[]
+ func scan(_ cg:CGImage,_ label:String,_ expected:String)->Bool {
+  var defaultSuccess=false
+  for revision in [0,1] {
+   let request=VNDetectBarcodesRequest();request.symbologies=[.qr]
+   if revision==1{request.revision=VNDetectBarcodesRequestRevision1}
+   var row:[String:Any]=["label":label,"requestedRevision":revision,"actualRevision":request.revision,"width":cg.width,"height":cg.height]
+   do{try VNImageRequestHandler(cgImage:cg,orientation:.up).perform([request]);let payloads=request.results?.compactMap{$0.payloadStringValue} ?? [];row["payloads"]=payloads;row["count"]=request.results?.count ?? 0;row["observations"]=request.results?.map{String(describing:$0)} ?? [];row["pass"]=payloads.contains(expected);if revision==0{defaultSuccess=payloads.contains(expected)}}catch{row["error"]=String(describing:error);row["nsError"]=(error as NSError).userInfo.description}
+   diagnostics.append(row)
+  }
+  return defaultSuccess
+ }
  for username in ["demo","nova.demo","abcdefghijklmnopqrst"]{
   guard let image=NOVASwiftQR.render(username) else{checks[username]=false;continue}
   try? image.pngData()?.write(to:dir.appendingPathComponent("qr-"+username+".png"))
   for size in [240,480]{
-   let resized=UIGraphicsImageRenderer(size:CGSize(width:size,height:size)).image{_ in image.draw(in:CGRect(x:0,y:0,width:size,height:size))}
-   let request=VNDetectBarcodesRequest();request.symbologies=[.qr]
-   do{try VNImageRequestHandler(cgImage:resized.cgImage!).perform([request]);checks[username+"-"+String(size)]=request.results?.first?.payloadStringValue=="nova:add:"+username}catch{checks[username+"-"+String(size)]=false}
+   let format=UIGraphicsImageRendererFormat();format.scale=1
+   let resized=UIGraphicsImageRenderer(size:CGSize(width:size,height:size),format:format).image{_ in image.draw(in:CGRect(x:0,y:0,width:size,height:size))}
+   try? resized.pngData()?.write(to:dir.appendingPathComponent("qr-"+username+"-"+String(size)+".png"))
+   checks[username+"-"+String(size)]=scan(resized.cgImage!,"styled-"+username+"-"+String(size),"nova:add:"+username)
   }
  }
-
  let control=CIFilter.qrCodeGenerator();control.message=Data("nova:add:demo".utf8);control.correctionLevel="M"
  if let output=control.outputImage,let cg=CIContext().createCGImage(output.transformed(by:CGAffineTransform(scaleX:10,y:10)),from:output.extent.applying(CGAffineTransform(scaleX:10,y:10))){
-  let request=VNDetectBarcodesRequest();request.symbologies=[.qr];do{try VNImageRequestHandler(cgImage:cg).perform([request]);let detail:[String:Any]=["count":request.results?.count ?? 0,"payloads":request.results?.compactMap{$0.payloadStringValue} ?? []];try? JSONSerialization.data(withJSONObject:detail).write(to:dir.appendingPathComponent("qr-vision-control.json"))}catch{try? String(describing:error).write(to:dir.appendingPathComponent("qr-vision-error.txt"),atomically:true,encoding:.utf8)}
+  _=scan(cg,"standard-control","nova:add:demo")
  }
+ try? JSONSerialization.data(withJSONObject:diagnostics,options:[.prettyPrinted,.sortedKeys]).write(to:dir.appendingPathComponent("qr-vision-matrix.json"))
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("qr-scan-checks.json"))
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("qr-layout-fixture"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"prof\":{\"username\":\"nova.demo\"},\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"tasks\":[]}"])}
  let page=UIHostingController(rootView:NOVASwiftQR(store:store,people:NOVASwiftPeople()));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
