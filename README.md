@@ -251,3 +251,5 @@ Le verifiche e la compilazione di produzione includono anche i nuovi moduli Swif
 Il ripristino esplicito dalla copia online disarma anche l'invio posizione ai grandi spostamenti già salvato sul telefono, per evitare che un vecchio monitor continui dopo la scelta della copia.
 
 La verifica visiva non considera riuscita una sequenza incompleta: deve arrivare al marcatore finale, oltre alla compilazione. Corretto il recupero della finestra principale durante le presentazioni Swift a schermo intero; le immagini di profilo/impostazioni/mappa devono essere presenti prima dell'accettazione.
+
+La Home Swift autonoma ora include schede, orologio, batteria, compiti, calendario con giorni selezionabili, orario, ricerca città e meteo. Anche i voti salvati hanno una schermata Swift. Collegamenti ClasseViva, Spotify e l'intera parità delle azioni restano da verificare. Nessun servizio viene collegato automaticamente e il percorso resta inattivo.
