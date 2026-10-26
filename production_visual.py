@@ -433,7 +433,7 @@ s=p.read_text()+r'''
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try? store.importOnce(["nova.v1":"{\"chat\":[],\"tasks\":[],\"aiAct\":\"ask\"}"])
  let proposal=NOVASwiftAssistantActions.parse("Ti propongo un ripasso breve.\n###AZIONI###[{\"a\":\"task\",\"title\":\"Ripasso dimostrativo\",\"due\":\"2026-11-03T18:00\",\"rem\":0}]",permission:"ask")
  try? store.update(owner:"local"){$0["chat"] = .array([.object(["r":.string("user"),"c":.string("Come preparo la verifica?")]),.object(["r":.string("assistant"),"c":.string(proposal.0),"acts":.array(proposal.1)])])}
- root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NOVASwiftAssistant(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-assistant-actions.png");visualSwiftImportOrigin(web,dir)}}}
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NOVASwiftAssistant(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-assistant-actions.png");visualSwiftServicesScreen(web,dir)}}}
 }
 '''
 p.write_text(s)
@@ -457,6 +457,17 @@ s+=r'''
   checks["wrongOwnerImportBlocked"] = store.archive!.active==snapshot
  }catch{checks["exception"]=true}
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-school-checks.txt"))
+}
+'''
+p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text()+r'''
+@MainActor func visualSwiftServicesScreen(_ web:WKWebView,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try? store.importOnce(["nova.v1":"{\"tasks\":[],\"gr\":[]}"])
+ let model=NOVASwiftServicesModel(school:{_ in ["ok":0]},music:{_ in ["ok":1,"cid":false,"conn":false]},ai:{_ in ["ok":1,"has":false]})
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NavigationStack{NOVASwiftServices(store:store,model:model)});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-services.png");visualSwiftImportOrigin(web,dir)}}}
 }
 '''
 p.write_text(s)
