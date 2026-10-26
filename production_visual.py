@@ -207,7 +207,7 @@ p.write_text(s)
 # Exercise the current state implementation, not a frozen duplicate of it.
 state=Path("/tmp/SwiftStateTests.swift")
 old=state.read_text()
-production=Path("Sources/NOVA/NOVAApp.swift").read_text()
+production=Path("Sources/NOVA/NOVASwiftCore.swift").read_text()
 foundation=production.split("// Swift-owned state foundation.",1)[1].split("// Swift-only screens",1)[0]
 state.write_text("import Foundation\nimport Combine\n// Swift-owned state foundation."+foundation+"\n@main struct StateTests"+old.split("@main struct StateTests",1)[1])
 
