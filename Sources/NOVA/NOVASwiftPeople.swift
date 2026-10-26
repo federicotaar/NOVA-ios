@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import Vision
+import AVFoundation
 import CoreImage.CIFilterBuiltins
 
 @MainActor final class NOVASwiftPeople:ObservableObject {
@@ -107,14 +108,39 @@ struct NOVASwiftAvatar:View {
     @State private var photo:PhotosPickerItem?
     @State private var pending=""
     @State private var confirm=false
+    @State private var camera=false
     @State private var status=""
     @State private var epoch=0
     var username:String{store.archive?.active.object?["prof"]?.object?["username"]?.string ?? ""}
     var code:UIImage? {guard !username.isEmpty else{return nil};let filter=CIFilter.qrCodeGenerator();filter.message=Data(("nova:add:"+username.lowercased()).utf8);filter.correctionLevel="M";guard let output=filter.outputImage,let cg=CIContext().createCGImage(output.transformed(by:CGAffineTransform(scaleX:10,y:10)),from:output.extent.applying(CGAffineTransform(scaleX:10,y:10))) else{return nil};return UIImage(cgImage:cg)}
-    static func parse(_ text:String)->String? {guard text.hasPrefix("nova:add:") else{return nil};let value=String(text.dropFirst(9)).lowercased();guard (3...20).contains(value.count),value.allSatisfy({$0.isASCII && ($0.isLetter || $0.isNumber || $0=="_")}) else{return nil};return value}
-    var body:some View {NavigationStack{List{Section("Il mio QR"){if let code=code{Image(uiImage:code).interpolation(.none).resizable().scaledToFit().frame(maxWidth:240).padding().background(.white);Text("@"+username)}else{Text("Scegli prima il tuo username da Modifica profilo.")}};Section("Aggiungi da un QR"){PhotosPicker(selection:$photo,matching:.images){Label("Leggi QR da una foto",systemImage:"qrcode.viewfinder")};Text("La lettura propone lo username. La richiesta parte solo dopo la tua conferma.").font(.footnote).foregroundStyle(.secondary)};if !status.isEmpty{Text(status)};if !people.status.isEmpty{Text(people.status)}}.navigationTitle("QR amici").toolbar{Button("Chiudi"){dismiss()}}}
+    static func parse(_ text:String)->String? {guard text.hasPrefix("nova:add:") else{return nil};let value=String(text.dropFirst(9)).lowercased();guard (3...20).contains(value.count),value.allSatisfy({$0.isASCII && ($0.isLetter || $0.isNumber || $0=="_" || $0==".")}) else{return nil};return value}
+    var body:some View {NavigationStack{List{Section("Il mio QR"){if let code=code{Image(uiImage:code).interpolation(.none).resizable().scaledToFit().frame(maxWidth:240).padding().background(.white);Text("@"+username)}else{Text("Scegli prima il tuo username da Modifica profilo.")}};Section("Aggiungi da un QR"){Button{camera=true}label:{Label("Scansiona con la fotocamera",systemImage:"camera")};PhotosPicker(selection:$photo,matching:.images){Label("Leggi QR da una foto",systemImage:"qrcode.viewfinder")};Text("La lettura propone lo username. La richiesta parte solo dopo la tua conferma.").font(.footnote).foregroundStyle(.secondary)};if !status.isEmpty{Text(status)};if !people.status.isEmpty{Text(people.status)}}.navigationTitle("QR amici").toolbar{Button("Chiudi"){dismiss()}}}
+        .sheet(isPresented:$camera){NOVASwiftQRScanner{value in camera=false;if let name=Self.parse(value){pending=name;confirm=true}else{status="QR NOVA non riconosciuto."}}}
         .confirmationDialog("Inviare una richiesta di amicizia a @"+pending+"?",isPresented:$confirm,titleVisibility:.visible){Button("Invia richiesta"){let user=pending;Task{_ = await people.action("friends/request",username:user,store)}};Button("Annulla",role:.cancel){}}
         .onChange(of:photo){_,item in epoch+=1;let expected=epoch,owner=store.archive.flatMap({NOVASession($0.active)});Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),let cg=image.cgImage else{return};let request=VNDetectBarcodesRequest();request.symbologies=[.qr];do{try VNImageRequestHandler(cgImage:cg).perform([request]);guard expected==epoch,store.archive.flatMap({NOVASession($0.active)})==owner else{return};guard let text=request.results?.first?.payloadStringValue,let name=Self.parse(text) else{status="QR NOVA non riconosciuto.";return};pending=name;confirm=true}catch{if expected==epoch{status="QR non letto. Scegli una foto più nitida."}}}}
         .onDisappear{epoch+=1}.onChange(of:store.archive?.owner){_,_ in epoch+=1;dismiss()}
     }
+}
+
+@MainActor struct NOVASwiftQRScanner:UIViewControllerRepresentable {
+    let found:(String)->Void
+    func makeUIViewController(context:Context)->NOVASwiftQRScannerController{let page=NOVASwiftQRScannerController();page.found=found;return page}
+    func updateUIViewController(_ page:NOVASwiftQRScannerController,context:Context){}
+    static func dismantleUIViewController(_ page:NOVASwiftQRScannerController,coordinator:()){page.stop()}
+}
+@MainActor final class NOVASwiftQRScannerController:UIViewController,AVCaptureMetadataOutputObjectsDelegate {
+    var found:((String)->Void)?
+    private let session=AVCaptureSession()
+    private var preview:AVCaptureVideoPreviewLayer?
+    private let label=UILabel()
+    private var closed=false
+    private var delivered=false
+    override func viewDidLoad(){super.viewDidLoad();view.backgroundColor = .black;label.text="Consenti la fotocamera per leggere il QR NOVA.";label.textColor = .white;label.numberOfLines=0;label.textAlignment = .center;view.addSubview(label)
+        Task{let allowed=await AVCaptureDevice.requestAccess(for:.video);guard !closed else{return};guard allowed else{label.text="Fotocamera non autorizzata. Puoi leggere un QR da una foto.";return};configure()}
+    }
+    private func configure(){guard let device=AVCaptureDevice.default(for:.video),let input=try? AVCaptureDeviceInput(device:device),session.canAddInput(input) else{label.text="Fotocamera non disponibile.";return};session.addInput(input);let output=AVCaptureMetadataOutput();guard session.canAddOutput(output) else{label.text="Lettura QR non disponibile.";return};session.addOutput(output);output.setMetadataObjectsDelegate(self,queue:.main);output.metadataObjectTypes=[.qr];let layer=AVCaptureVideoPreviewLayer(session:session);layer.videoGravity = .resizeAspectFill;view.layer.insertSublayer(layer,at:0);preview=layer;label.text="Inquadra il QR NOVA. Nessuna richiesta viene inviata senza conferma.";view.setNeedsLayout();session.startRunning()}
+    override func viewDidLayoutSubviews(){super.viewDidLayoutSubviews();preview?.frame=view.bounds;label.frame=CGRect(x:24,y:view.safeAreaInsets.top+24,width:view.bounds.width-48,height:96)}
+    func metadataOutput(_ output:AVCaptureMetadataOutput,didOutput metadataObjects:[AVMetadataObject],from connection:AVCaptureConnection){guard !closed,!delivered,let value=(metadataObjects.first as? AVMetadataMachineReadableCodeObject)?.stringValue else{return};delivered=true;session.stopRunning();found?(value)}
+    func stop(){closed=true;session.stopRunning();found=nil}
+    override func viewWillDisappear(_ animated:Bool){super.viewWillDisappear(animated);stop()}
 }
