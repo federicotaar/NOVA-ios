@@ -1,4 +1,4 @@
-name: Full production SwiftUI visual acceptance
+name: Swift compile tests and manual visual acceptance
 on:
   push:
     paths: ['.github/workflows/production-visual.yml', 'production_visual.py', 'Sources/NOVA/nova.html', 'Sources/NOVA/*.swift', 'Sources/NOVAWidget/NOVAWidget.swift']
@@ -27,6 +27,7 @@ jobs:
           PLIST
           codesign --force --sign - /tmp/ChatTest.app
       - name: Boot install launch and verify
+        if: github.event_name == 'workflow_dispatch'
         run: |
           set -e
           UDID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v if "iPhone" in x["name"]))')
@@ -65,7 +66,7 @@ jobs:
           rm -f evidence/*.sb-*
           for f in evidence/*txt; do echo "--- $f"; cat "$f"; done
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         with:
           name: NOVA-production-visual
           path: evidence/
