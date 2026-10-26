@@ -185,3 +185,21 @@ s+=r'''
 }
 '''
 p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('var checks:[String:Bool]=[:]\n do {','var checks:[String:Bool]=[:]\n do {',1)
+# Add pure backup/map guard assertions to the synthetic Swift scene, not a live account.
+needle='let original=store.archive!.active'
+addition=r'''let original=store.archive!.active
+  let privateState:NOVAJSON = .object(["name":.string("Fixture"),"groq":.string("synthetic-secret"),"cv":.object(["password":.string("synthetic")]),"acct":.object(["token":.string("synthetic")]),"future":.bool(true),"prof":.object(["username":.string("fixture"),"ntfy":.string("synthetic-private")]),"chat":.array([.object(["acts":.array([.object(["st":.string("pending")])])])])])
+  let snapshot=NOVASwiftBackupData.snapshot(privateState)
+  checks["backupExcludesDeviceSecrets"] = snapshot.object?["groq"]==nil && snapshot.object?["cv"]==nil && snapshot.object?["acct"]==nil && snapshot.object?["prof"]?.object?["ntfy"]==nil
+  var imported=privateState.object!;NOVASwiftBackupData.apply(snapshot,to:&imported)
+  checks["backupPreservesUnknownAndDeviceSecrets"] = imported["future"] == .bool(true) && imported["groq"] == .string("synthetic-secret")
+  checks["backupDoesNotReplayActions"] = imported["chat"]?.array.first?.object?["acts"]?.array.first?.object?["st"] == .string("no")
+  checks["backupDoesNotEnableLocation"] = imported["locShare"]?.flag == false && imported["bgLoc"]?.flag == false
+  let now=Date();let stale:NOVAJSON = .object(["username":.string("fixture"),"lat":.number(44),"lon":.number(11),"ts":.number(now.addingTimeInterval(-1801).timeIntervalSince1970*1000)])
+  checks["mapRejectsStalePeerPosition"] = NOVASwiftMapFriend.parse(stale,now:now)==nil
+'''
+s=s.replace(needle,addition,1)
+p.write_text(s)
