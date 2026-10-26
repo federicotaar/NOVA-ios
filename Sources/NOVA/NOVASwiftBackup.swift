@@ -25,7 +25,7 @@ enum NOVASwiftBackupData {
             return .object(m)
         })
         // Importing a cloud snapshot never enables location or services.
-        root["locShare"] = .number(0);root["bgLoc"] = .number(0);root["locSession"] = .string("");root["locSessionToken"] = .string("")
+        root["locShare"] = .number(0);root["bgLoc"] = .number(0);root["locSession"] = .string("");root["locSessionToken"] = .string("");root["locConsentV2"] = .string("");root["bgConsentV2"] = .string("")
     }
     static func recovery(_ active:NOVAJSON) throws {
         let directory=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("NOVASwift/recovery",isDirectory:true)
