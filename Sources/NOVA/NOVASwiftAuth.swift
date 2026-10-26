@@ -23,6 +23,7 @@ struct NOVASwiftAuthService {
     @State private var generation=0
     @State private var startingSession:NOVASession?
     @State private var startingOwner=""
+    @State private var startingSnapshot:NOVAJSON?
     var body:some View {
         Form {
             Section("Account NOVA"){
@@ -36,7 +37,7 @@ struct NOVASwiftAuthService {
             }
             Section {Text("Prima di cambiare account la copia completa di questo telefono viene conservata. La copia online non viene scelta automaticamente. Nessuna amicizia, posizione o autorizzazione viene attivata durante l'accesso.").font(.footnote).foregroundStyle(.secondary)}
         }.navigationTitle("Accedi a NOVA").disabled(busy)
-        .onAppear{startingSession=store.archive.flatMap{NOVASession($0.active)};startingOwner=store.archive?.owner ?? ""}
+        .onAppear{startingSession=store.archive.flatMap{NOVASession($0.active)};startingOwner=store.archive?.owner ?? "";startingSnapshot=store.archive.map{NOVASwiftBackupData.snapshot($0.active)}}
         .onDisappear{generation += 1;password="";code=""}
     }
     func submit(){
@@ -64,6 +65,7 @@ struct NOVASwiftAuthService {
                     let response=try await service.request(path,.object(body))
                     guard expected==generation,store.archive?.owner==startingOwner,store.archive.flatMap({NOVASession($0.active)})==startingSession else{return}
                     guard let token=response.object?["token"]?.string,!token.isEmpty else{throw NOVAServiceError.invalidResponse}
+                    guard store.archive.map({NOVASwiftBackupData.snapshot($0.active)})==startingSnapshot else{throw CocoaError(.userCancelled)}
                     try store.changeAccount(email:address,token:token)
                     let defaults=UserDefaults.standard;defaults.set(false,forKey:"nova.bgLoc.on");defaults.removeObject(forKey:"nova.bgLoc.session");defaults.removeObject(forKey:"nova.bgLoc.token");defaults.set(false,forKey:"nova.bgLoc.sharing")
                     CLLocationManager().stopMonitoringSignificantLocationChanges()
