@@ -80,8 +80,9 @@ p.write_text(x)
 p=Path('/tmp/NOVAProductionVisual.swift')
 x=p.read_text()+r"""
 func visualNativeSettingsReady(_ web:WKWebView,_ attempt:Int){
- web.evaluateJavaScript("!!window.__novaMainReady"){v,e in if v as? Bool != true{if attempt<90{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualNativeSettingsReady(web,attempt+1)}};return};web.evaluateJavaScript("$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(4);$('#bSet').click()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+3){visualProductionSave(web,"production-native-settings-top.png");visualNativeSettingsCheck(web)}}}
+ web.evaluateJavaScript("!!window.__novaMainReady"){v,e in if v as? Bool != true{if attempt<90{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualNativeSettingsReady(web,attempt+1)}};return};web.evaluateJavaScript("$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(4);$('#bSet').click()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+3){visualProductionSave(web,"production-native-settings-top.png");if #available(iOS 26.0, *){visualNativeSettingsCheck(web)}}}}
 }
+@available(iOS 26.0, *)
 func visualNativeSettingsCheck(_ web:WKWebView){
  guard let nav=web.window?.rootViewController?.presentedViewController as? UINavigationController,let page=nav.topViewController as? NativeSettingsPage else{return}
  if let section=page.groups.firstIndex(where:{$0["title"] as? String=="Aspetto e schermata Home"}){page.tableView.scrollToRow(at:IndexPath(row:0,section:section),at:.top,animated:false)}
