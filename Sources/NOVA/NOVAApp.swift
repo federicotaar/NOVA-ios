@@ -2254,3 +2254,52 @@ extension NOVAJSON {
         return success
     }
 }
+@MainActor struct NOVASwiftAssistant:View {
+    @ObservedObject var store:NOVASwiftStore
+    @State private var draft=""
+    @State private var sending=false
+    @State private var status=""
+    @State private var generation=0
+    @State private var owner=""
+    var messages:[NOVAJSON]{store.archive?.active.object?["chat"]?.array ?? []}
+    var body:some View {
+        NavigationStack {
+            VStack(spacing:0){
+                ScrollViewReader{proxy in ScrollView{LazyVStack(alignment:.leading,spacing:14){
+                    if messages.isEmpty{Text("Chiedimi aiuto con lo studio. Serve la tua chiave Groq già salvata nelle impostazioni.").foregroundStyle(.secondary)}
+                    ForEach(Array(messages.enumerated()),id:\.offset){index,message in
+                        let o=message.object ?? [:]
+                        VStack(alignment:.leading,spacing:8){
+                            Text(o["r"]?.string=="user" ? "Tu":"NOVA").font(.caption.bold()).foregroundStyle(.secondary)
+                            if let image=o["img"]?.string,let data=Data(base64Encoded:image.components(separatedBy:",").last ?? ""),let ui=UIImage(data:data){Image(uiImage:ui).resizable().scaledToFit().frame(maxHeight:200)}
+                            Text(o["c"]?.string ?? "").textSelection(.enabled)
+                            if !((o["acts"]?.array ?? []).isEmpty){Text("Azioni conservate. Esecuzione ancora da verificare nella versione Swift.").font(.caption).foregroundStyle(.secondary)}
+                        }.padding(14).frame(maxWidth:.infinity,alignment:.leading).background(o["r"]?.string=="user" ? Color.blue.opacity(0.1):Color.secondary.opacity(0.08),in:RoundedRectangle(cornerRadius:20)).id(index)
+                    }
+                }.padding()}.onChange(of:messages.count){_,_ in if !messages.isEmpty{proxy.scrollTo(messages.count-1,anchor:.bottom)}}}
+                if !status.isEmpty{Text(status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
+                HStack(alignment:.bottom){
+                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.roundedBorder)
+                    Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                }.padding()
+            }.navigationTitle("Assistente")
+        }.onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1}
+    }
+    func send(){
+        let text=draft.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard !text.isEmpty,!sending,owner==store.archive?.owner else{return}
+        guard Secret.get("groq") != nil else{status="Prima salva la tua chiave Groq nelle impostazioni.";return}
+        let snapshot=store.archive!.active.object ?? [:]
+        do{try store.update(owner:owner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("user"),"c":.string(text)]));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Messaggio non salvato. Riprova.";return}
+        draft="";sending=true;generation+=1;let expected=generation,expectedOwner=owner
+        let permission=snapshot["aiAct"]?.string ?? "ask"
+        let system="Sei NOVA, assistente di studio. Rispondi in italiano in modo concreto. Non dichiarare di aver modificato dati, programmato notifiche o eseguito azioni: questa anteprima non esegue azioni. Permesso azioni salvato: "+permission+". Nome: "+(snapshot["name"]?.string ?? "")
+        let history=messages.suffix(12).map{message -> [String:String] in let o=message.object ?? [:];return["role":o["r"]?.string=="user" ? "user":"assistant","content":o["c"]?.string ?? ""]}
+        Task{
+            let response=await Groq.handle(["op":"chat","messages":[["role":"system","content":system]]+history])
+            guard expected==generation,expectedOwner==store.archive?.owner else{return};sending=false
+            let answer=(response["ok"] as? Int)==1 ? (response["text"] as? String ?? ""):"Richiesta non completata. Controlla connessione e chiave Groq."
+            do{try store.update(owner:expectedOwner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("assistant"),"c":.string(answer)]));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Risposta ricevuta ma non salvata: "+answer}
+        }
+    }
+}
