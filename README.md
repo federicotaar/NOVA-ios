@@ -133,3 +133,7 @@ Il dialogo agent.md segue la finestra visibile durante la modifica, con titolo e
 ### 2026.10.25.33
 
 Prima schermata nativa: Impostazioni usa una lista UIKit con campi, interruttori e azioni nello stesso scorrimento. Non usa più controlli posizionati sopra righe HTML. Lo stato e le conferme restano nei gestori esistenti; le destinazioni separate profilo, orario e introduzione restano disponibili. Il resto dell’app continua la migrazione: non è ancora interamente nativo. Verifica su dispositivo ancora necessaria.
+
+### 2026.10.25.34
+
+Impostazioni native: gruppi dedicati a profilo, nome, account e preferenze; le spiegazioni restano a piè di gruppo invece di diventare righe separate. Intestazione nativa opaca con titolo visibile. Verifiche di scorrimento e azioni in corso.
