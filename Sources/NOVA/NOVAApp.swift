@@ -1942,3 +1942,119 @@ struct NOVASwiftArchive: Codable {
         archive = current
     }
 }
+// Swift-only screens under parity review. No DOM, JavaScript models or action callbacks.
+extension NOVAJSON {
+    var array: [NOVAJSON] { if case .array(let a) = self { return a }; return [] }
+    var integer: Int { if case .number(let n) = self { return Int(n) }; return 0 }
+    var flag: Bool { if case .bool(let b) = self { return b }; return integer != 0 }
+}
+struct NOVALessonDraft: Identifiable {
+    let id = UUID()
+    var day: Int = 2
+    var start: Int = 540
+    var end: Int = 600
+    var subject = ""
+    var room = ""
+    var extra: [String:NOVAJSON] = [:]
+    init(_ value: NOVAJSON) {
+        extra = value.object ?? [:]; day = extra["d"]?.integer ?? 2
+        start = extra["s"]?.integer ?? 540; end = extra["e"]?.integer ?? 600
+        subject = extra["n"]?.string ?? ""; room = extra["r"]?.string ?? ""
+    }
+    init(day:Int) { self.day = day }
+    var json: NOVAJSON {
+        var o = extra
+        o["d"] = .number(Double(day)); o["s"] = .number(Double(start)); o["e"] = .number(Double(end))
+        o["n"] = .string(subject.trimmingCharacters(in:.whitespacesAndNewlines).prefix(14).uppercased())
+        o["r"] = .string(String(room.trimmingCharacters(in:.whitespacesAndNewlines).prefix(10)))
+        return .object(o)
+    }
+}
+@MainActor struct NOVASwiftTimetable: View {
+    @ObservedObject var store: NOVASwiftStore
+    @Environment(\.dismiss) var dismiss
+    @State private var lessons: [NOVALessonDraft] = []
+    @State private var day = 2
+    @State private var error = ""
+    @State private var loaded = false
+    @State private var owner = ""
+    let days = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab"]
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Giorno") {
+                    Picker("Giorno",selection:$day) { ForEach(2...7,id:\.self){Text(days[$0-2]).tag($0)} }
+                        .pickerStyle(.segmented)
+                }
+                ForEach($lessons) { $lesson in
+                    if lesson.day == day {
+                        Section("Lezione") {
+                            DatePicker("Inizio",selection:time($lesson.start),displayedComponents:.hourAndMinute)
+                            DatePicker("Fine",selection:time($lesson.end),displayedComponents:.hourAndMinute)
+                            TextField("Materia",text:$lesson.subject).textInputAutocapitalization(.characters)
+                            TextField("Aula",text:$lesson.room)
+                            Button("Elimina",role:.destructive) { lessons.removeAll{$0.id==lesson.id} }
+                        }
+                    }
+                }
+                if !lessons.contains(where:{$0.day==day}) { Text("Nessuna lezione per questo giorno.").foregroundStyle(.secondary) }
+                Section {
+                    Button("Aggiungi lezione") { lessons.append(NOVALessonDraft(day:day)) }
+                    Button("Svuota giorno",role:.destructive) { lessons.removeAll{$0.day==day} }
+                }
+                if !error.isEmpty { Text(error).foregroundStyle(.red) }
+                Text("Le modifiche restano in bozza fino a Salva. I widget ricevono l'orario solo se la condivisione è disponibile.").font(.footnote).foregroundStyle(.secondary)
+            }
+            .navigationTitle("Il tuo orario")
+            .toolbar {
+                ToolbarItem(placement:.cancellationAction) { Button("Annulla"){dismiss()} }
+                ToolbarItem(placement:.confirmationAction) { Button("Salva"){save()} }
+            }
+        }
+        .onAppear {
+            guard !loaded else{return}; loaded=true; owner=store.archive?.owner ?? ""
+            lessons=(store.archive?.active.object?["tt"]?.object?["lessons"]?.array ?? []).map(NOVALessonDraft.init)
+        }
+    }
+    func time(_ value: Binding<Int>) -> Binding<Date> {
+        Binding(get:{Calendar.current.startOfDay(for:Date()).addingTimeInterval(Double(value.wrappedValue*60))},set:{date in let c=Calendar.current.dateComponents([.hour,.minute],from:date);value.wrappedValue=(c.hour ?? 0)*60+(c.minute ?? 0)})
+    }
+    func save() {
+        guard lessons.allSatisfy({!$0.subject.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && $0.start >= 0 && $0.end <= 1440 && $0.end > $0.start}) else {error="Controlla materia e orari: la fine deve essere dopo l'inizio.";return}
+        do {
+            let values=lessons.sorted{$0.day==$1.day ? $0.start<$1.start:$0.day<$1.day}.map(\.json)
+            try store.update(owner:owner){root in var timetable=root["tt"]?.object ?? [:];timetable["lessons"] = .array(values);root["tt"] = .object(timetable)}
+            // Same on-device widget file format, no web bridge.
+            let object=try JSONSerialization.jsonObject(with:JSONEncoder().encode(NOVAJSON.object(["v":.number(1),"lessons":.array(values)])))
+            if let bytes=try? JSONSerialization.data(withJSONObject:object),let json=String(data:bytes,encoding:.utf8){_ = TT.save(json)}
+            dismiss()
+        } catch {self.error="Salvataggio non riuscito. La bozza resta aperta e i dati precedenti sono conservati."}
+    }
+}
+@MainActor struct NOVASwiftOverview: View {
+    @ObservedObject var store: NOVASwiftStore
+    @State private var timetable = false
+    var root: [String:NOVAJSON] { store.archive?.active.object ?? [:] }
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("Ciao "+(root["name"]?.string ?? "")).font(.largeTitle.bold())
+                    Text("Anteprima Swift: dati locali importati. Servizi e altre schermate ancora in verifica.").font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("Compiti") {
+                    let tasks=root["tasks"]?.array ?? []
+                    if tasks.isEmpty {Text("Nessun compito")}
+                    ForEach(Array(tasks.enumerated()),id:\.offset){_,task in
+                        let o=task.object ?? [:]
+                        VStack(alignment:.leading){Text(o["title"]?.string ?? "Compito");Text(o["due"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}
+                    }
+                }
+                Section("Orario") {
+                    Button("Modifica orario"){timetable=true}
+                    Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) lezioni salvate")
+                }
+            }.navigationTitle("NOVA")
+        }.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}
+    }
+}
