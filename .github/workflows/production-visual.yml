@@ -65,6 +65,14 @@ jobs:
           sleep 3
           rm -f evidence/*.sb-*
           for f in evidence/*txt; do echo "--- $f"; cat "$f"; done
+          python3 - <<'PYTEST'
+          import json, pathlib
+          required=['swift-task-checks.txt','swift-sync-checks.txt','swift-social-checks.txt','swift-people-checks.txt','swift-assistant-checks.txt','swift-school-checks.txt','swift-import-origin.txt']
+          for name in required:
+              data=json.loads((pathlib.Path('evidence')/name).read_text())
+              assert data and all(value is True for value in data.values()), (name,data)
+              assert not any('exception' in key.lower() or 'failed' in key.lower() for key in data), (name,data)
+          PYTEST
       - uses: actions/upload-artifact@v4
         if: always() && github.event_name == 'workflow_dispatch'
         with:
