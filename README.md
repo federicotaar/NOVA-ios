@@ -228,3 +228,9 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 - Riscontro iPhone nella build TEST: barra globale sopra il composer. Conversazioni e assistente ora richiedono di nascondere le tab globali; ritornano all'uscita.
 - Messaggi compatti allineati a sinistra/destra, blu per i propri, neutri per gli altri. Foto limitate in larghezza; azioni, bozze e reazioni conservate.
 - Gate dedicato sulla conversazione reale Swift con soli contenuti sintetici: apertura, tastiera, testo in bozza e ritorno all'elenco. Nessuna nuova IPA dichiarata pronta finché verifica e pacchetto non sono controllati.
+
+## Mappa e copertine: batch successivo in verifica
+- Mappa a tutto schermo, controlli flottanti a destra e pannello compatto espandibile. Nessuna lettura posizione automatica o autorizzazione richiesta all'apertura.
+- Le vecchie flag di condivisione non bastano più per nuovi invii: conferma esplicita per condivisione e scelta separata per background. Uno stato precedente non confermato non viene presentato come server spento. Fantasma ferma gli invii locali e richiede conferma server.
+- Copertine canzoni in profilo, modifica profilo, profilo pubblico e ricerca con componenti Swift nativi.
+- Verifiche simulatore e pacchetto TEST ancora in corso. I riscontri iPhone non costituiscono accettazione finale di tutti i servizi.
