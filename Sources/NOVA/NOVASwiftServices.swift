@@ -31,7 +31,7 @@ import SwiftUI
     init(school:Handler?=nil,music:Handler?=nil,ai:Handler?=nil){self.school=school ?? {await ClasseViva.handle($0)};self.music=music ?? {await Spotify.handle($0)};self.ai=ai ?? {await Groq.handle($0)}}
     static func json(_ value:[String:Any])->NOVAJSON?{guard let data=try? JSONSerialization.data(withJSONObject:value) else{return nil};return try? JSONDecoder().decode(NOVAJSON.self,from:data)}
     func cancel(){epoch+=1;busy=false;choices=[];spotify=nil}
-    func load() async {let expected=epoch;let result=await music(["op":"status"]);guard expected==epoch else{return};spotifyConnected=result["conn"] as? Bool ?? (result["conn"] as? Int==1);spotifyClient=result["cid"] as? Bool ?? (result["cid"] as? Int==1);hasGroq=Secret.get("groq") != nil}
+    func load() async {let expected=epoch;let result=await music(["op":"status"]);guard expected==epoch else{return};spotifyConnected=result["conn"] as? Bool ?? (result["conn"] as? Int==1);spotifyClient=result["cid"] as? Bool ?? (result["cid"] as? Int==1);hasGroq=(await ai(["op":"has"]))["has"] as? Bool ?? false}
     func schoolRequest(_ op:String,uid:String="",password:String="",ident:String="",_ store:NOVASwiftStore) async {
         guard !busy,let archive=store.archive else{return};busy=true;let expected=epoch,owner=archive.owner,session=NOVASession(archive.active)
         var body:[String:Any]=["op":op];if op=="login"{guard !uid.isEmpty,!password.isEmpty,password==password.trimmingCharacters(in:.whitespacesAndNewlines) else{busy=false;status="Controlla codice utente e spazi nella password.";return};body["uid"]=uid;body["pass"]=password;if !ident.isEmpty{body["ident"]=ident}}
@@ -46,7 +46,8 @@ import SwiftUI
 }
 @MainActor struct NOVASwiftServices:View {
     @ObservedObject var store:NOVASwiftStore
-    @StateObject private var model=NOVASwiftServicesModel()
+    @StateObject private var model:NOVASwiftServicesModel
+    init(store:NOVASwiftStore,model:NOVASwiftServicesModel?=nil){self.store=store;_model=StateObject(wrappedValue:model ?? NOVASwiftServicesModel())}
     @State private var uid=""
     @State private var password=""
     @State private var key=""
