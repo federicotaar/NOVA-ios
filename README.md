@@ -301,3 +301,8 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Corretto un errore di chiusura nel nuovo modulo servizi rilevato dalla compilazione; esito della correzione ancora da controllare. Aggiunti min/max meteo e lettura posizione esplicita per il meteo, separata dalla condivisione amici.
 - Il checkpoint manuale ora deve fallire se manca un file di verifiche Swift, un controllo è falso o viene registrata un'eccezione. Compilazione non equivale ad accettazione funzionale.
+
+### Ciclo di vita Swift (non attivo)
+- Aggiunto modello condivisione a grandi spostamenti legato all'archivio Swift e alla sessione esatta. Permesso Sempre solo dopo scelta esplicita; Fantasma ferma i nuovi invii prima dell'attesa di rete. Verifica reale in background ancora necessaria.
+- Aggiunte basi Swift per blocco Face ID/codice, schermata di blocco durante inattività e permesso notifiche esplicito. Presentazione iniziale Swift breve come base, non ancora parità con la sequenza animata precedente.
+- Controllati profilo pubblico, QR e conferme assistente nel checkpoint 179: 7 controlli persone e 9 assistente superati. Ancora inattivo; servizi, meteo e ciclo di vita successivi richiedono compilazione e checkpoint propri.
