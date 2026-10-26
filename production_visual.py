@@ -471,3 +471,7 @@ s=p.read_text()+r'''
 }
 '''
 p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('NOVASwiftMusicCard()', 'NOVASwiftMusicCard(model:NOVASwiftServicesModel(school:{_ in ["ok":0]},music:{_ in ["ok":1,"cid":false,"conn":false]},ai:{_ in ["ok":1,"has":false]}))')
+p.write_text(s)
