@@ -227,3 +227,22 @@ s+=r'''
 }
 '''
 p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('visualProductionSave(web,"production-swift-owned-dashboard.png");visualSwiftImportOrigin(web,dir)', 'visualProductionSave(web,"production-swift-owned-dashboard.png");visualSwiftDashboardLower(web,store,dir,host)')
+s+=r'''
+@MainActor func visualSwiftDashboardLower(_ web:WKWebView,_ store:NOVASwiftStore,_ dir:URL,_ host:UIHostingController<NOVASwiftDashboard>){
+ func scroll(_ view:UIView)->UIScrollView?{if let scroll=view as? UIScrollView{return scroll};for child in view.subviews{if let found=scroll(child){return found}};return nil}
+ if let view=scroll(host.view){view.setContentOffset(CGPoint(x:0,y:max(0,view.contentSize.height-view.bounds.height)),animated:false)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+1){
+  visualProductionSave(web,"production-swift-owned-dashboard-lower.png")
+  host.dismiss(animated:false){
+   guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+   try? store.update(owner:"local"){$0["gr"] = .array([.object(["subj":.string("Matematica"),"v":.number(7)]),.object(["subj":.string("Matematica"),"v":.number(5)])])}
+   let grade=UIHostingController(rootView:NOVASwiftGrades(store:store));grade.modalPresentationStyle = .fullScreen
+   root.present(grade,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-grades.png");grade.dismiss(animated:false){let backup=UIHostingController(rootView:NavigationStack{NOVASwiftBackup(store:store)});backup.modalPresentationStyle = .fullScreen;root.present(backup,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-backup.png");visualSwiftImportOrigin(web,dir)}}}}}
+  }
+ }
+}
+'''
+p.write_text(s)
