@@ -333,3 +333,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Foto orario ripristinata in Swift: proposta in bozza, controllo account/sessione e chiusura durante lettura, nessuna scrittura prima di Salva. Giorni convertiti nello stesso formato dei widget; orari mancanti stimati e segnalati esplicitamente. Tre controlli parsing richiesti al prossimo checkpoint. Flusso Groq reale non eseguito.
 
 - Ripristino cache vecchio account: il cambio Swift legge anche l'involucro nova.account.v3 originale importato, senza scartare il contenuto dell'altro account. Posizione/servizi non riattivati e conferma profilo richiesta. L'originale rimane nella copia immutabile di recupero.
+
+- Validazione: i push superati vengono cancellati automaticamente dal push piu recente, mentre l'accettazione manuale rimane indipendente. Evita code di compilazioni obsolete senza eliminare le prove finali. Tre controlli cache account aggiunti. Nessuna riduzione della parita richiesta.
