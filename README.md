@@ -315,3 +315,4 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Aggiunte impostazioni Swift ntfy: codice letto online, test solo al tocco e con ricontrollo del codice server, anteprima salvata con conferma online. Nessuna promessa di consegna; nuovo codice non viene creato automaticamente. Configurazione iniziale ntfy ancora da completare.
 - Completata creazione ntfy solo con tocco esplicito e lettura di conferma online; anteprima messaggi nascosta per impostazione predefinita. Un test è accettato solo quando il server restituisce anche accepted. Aggiunta ripetizione della presentazione dalle impostazioni; verifiche ancora in corso.
+- Corretto il mantenimento della bozza profilo al ritorno dalla scelta canzone. Aggiunti controlli ntfy sintetici e gate obbligatorio nel checkpoint manuale. La lente Swift ora compila (205); controllo visivo successivo ancora necessario.
