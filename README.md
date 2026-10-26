@@ -157,3 +157,7 @@ Ricerca canzone nel profilo nativo: risultati aggiornati senza togliere il focus
 ### 2026.10.25.39
 
 Campi nativi con limiti di lunghezza originali, niente correzione automatica username. Cambi account/sessione terminano la modifica del campo prima di aggiornare la pagina. Risultati di ricerca aggiornati anche a parità di numero di righe.
+
+### 2026.10.25.40
+
+Aggiornamenti del modulo nativo preservano il campo attivo anche nelle righe Punti forti e Hobby.
