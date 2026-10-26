@@ -660,7 +660,7 @@ extension NOVAJSON {
     func mediaURL(_ key:String)->URL? {let url=key.hasPrefix("/") ? URL(string:"https://api.federicotaranu.site"+key):URL(string:key);return url?.scheme=="https" ? url:nil}
     var body:some View {
         VStack(spacing:0){
-            ScrollView{LazyVStack(alignment:.leading,spacing:12){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
+            ScrollView{LazyVStack(alignment:.leading,spacing:6){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
                 let o=message.object ?? [:],own=o["sender"]?.string==store.archive?.active.object?["acct"]?.object?["email"]?.string
                 HStack(alignment:.bottom,spacing:0){
                 if own{Spacer(minLength:48)}
@@ -671,13 +671,13 @@ extension NOVAJSON {
                             if o["kind"]?.string=="image"{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}.frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
                             if o["kind"]?.string=="voice"{HStack{Button{playback.play(url)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
                         }
-                        if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled).frame(maxWidth:260,alignment:.leading).fixedSize(horizontal:false,vertical:true)}
+                        if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled).fixedSize(horizontal:false,vertical:true)}
                         if o["edited"]?.flag==true{Text("modificato").font(.caption2).foregroundStyle(.secondary)}
                         let key=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                         let reactions=social.reactions[key]?.array ?? []
                         if !reactions.isEmpty{Text(reactions.compactMap{$0.object?["emoji"]?.string}.joined(separator:" ")).font(.caption)}
                     }
-                }.padding(.horizontal,12).padding(.vertical,8).frame(maxWidth:300,alignment:.leading).fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).background(own ? Color.blue:Color(uiColor:.secondarySystemBackground),in:RoundedRectangle(cornerRadius:20))
+                }.padding(.horizontal,12).padding(.vertical,8).fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).background(own ? Color.blue:Color(uiColor:.secondarySystemBackground),in:RoundedRectangle(cornerRadius:20))
                 if !own{Spacer(minLength:48)}
                 }.frame(maxWidth:.infinity,alignment:own ? .trailing:.leading)
                 .contextMenu{
