@@ -363,6 +363,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Manual282 accettato:70 controlli sintetici +2 import/origine tutti veri, compreso import iniziale senza riattivare condivisione. Le nuove verifiche shell/root e archivio non leggibile sono successive e ancora pendenti. Corretto anche campo errore nel nuovo avvio inattivo.
 
-- Integrata verifica reale ProtectedRoot (home, compito, impostazioni, ritorno setup, riavvio). Primo tentativo interrotto al menu promemoria, prima del salvataggio; corretto targeting con tastiera chiusa, non considerato un successo.
-- Manual291 fermo dopo assistente per riferimento finestra fixture staccato: corretto lookup della finestra app. Compile290 pulito. Le verifiche integrate sono ancora in esecuzione, nessun nuovo IPA.
-- Aggiunta verifica di avvio completo con import esplicito dalla stessa origine locale e riavvio, usando solo dati dimostrativi; produzione ancora inattiva.
+- Le verifiche integrate non sono ancora accettate: due errori fixture corretti (finestra staccata dopo assistente, menu promemoria con tastiera aperta). Compile295 pulito; nuovi tentativi shell/root/import avviati.
+- Predisposto solo flag di compilazione NOVA_SWIFT_TEST per un futuro IPA di prova con vero avvio Swift; la build normale resta sul percorso precedente. Lettura migrazione con timeout e riprova senza cancellare dati. Pubblicatore ancora disabilitato; nessun nuovo IPA.
