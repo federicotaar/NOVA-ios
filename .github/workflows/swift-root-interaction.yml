@@ -60,6 +60,8 @@ jobs:
           - tapOn: "Nuovo compito"
           - tapOn: "Cosa devi fare?"
           - inputText: "Compito integrazione"
+          - tapOn: "Promemoria"
+          - tapOn: "Nessuno"
           - tapOn: "Aggiungi"
           - assertVisible: "Compito integrazione"
           - takeScreenshot: evidence/swift-root-task-saved
@@ -75,6 +77,9 @@ jobs:
               duration: 2000
           - assertVisible: "Profilo"
           - takeScreenshot: evidence/swift-root-profile
+          - scrollUntilVisible:
+              element: "Rivedi presentazione"
+              direction: DOWN
           - tapOn: "Rivedi presentazione"
           - assertVisible: "Inserisci la tua email"
           - tapOn: "Configura dopo"
