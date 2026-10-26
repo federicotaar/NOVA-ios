@@ -499,7 +499,7 @@ extension NOVAJSON {
         }
     }
     func save() async {
-        guard active,!saving,owner==store.archive?.owner else{return}
+        guard active,!saving,owner==store.archive?.owner,(store.archive?.active.object?["acct"]?.object?["token"]?.string ?? "")==token else{status="Account cambiato. Chiudi e riapri il profilo.";return}
         let username=(draft["username"]?.string ?? "").trimmingCharacters(in:.whitespacesAndNewlines).lowercased()
         guard username.range(of:"^[a-z0-9_.]{3,20}$",options:.regularExpression) != nil else{status="Username: 3-20 caratteri, lettere minuscole, numeri, punto e trattino basso.";return}
         var profile=draft;profile["username"] = .string(username)
