@@ -197,6 +197,9 @@ addition=r'''let original=store.archive!.active
   var imported=privateState.object!;NOVASwiftBackupData.apply(snapshot,to:&imported)
   checks["backupPreservesUnknownAndDeviceSecrets"] = imported["future"] == .bool(true) && imported["groq"] == .string("synthetic-secret")
   checks["backupDoesNotReplayActions"] = imported["chat"]?.array.first?.object?["acts"]?.array.first?.object?["st"] == .string("no")
+  var waiting:[String:NOVAJSON] = ["chat":.array([.object(["acts":.array([.object(["st":.string("wait"),"swiftID":.string("old")])])])])]
+  let waitingCopy:NOVAJSON = .object(waiting);NOVASwiftBackupData.apply(waitingCopy,to:&waiting)
+  checks["backupDisablesWaitingProposals"] = waiting["chat"]?.array.first?.object?["acts"]?.array.first?.object?["st"] == .string("no")
   checks["backupDoesNotEnableLocation"] = imported["locShare"]?.flag == false && imported["bgLoc"]?.flag == false
   let now=Date();let stale:NOVAJSON = .object(["username":.string("fixture"),"lat":.number(44),"lon":.number(11),"ts":.number(now.addingTimeInterval(-1801).timeIntervalSince1970*1000)])
   checks["mapRejectsStalePeerPosition"] = NOVASwiftMapFriend.parse(stale,now:now)==nil
