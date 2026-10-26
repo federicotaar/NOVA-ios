@@ -68,3 +68,10 @@ import UIKit
  }
  let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:2,chatSocial:social,deviceServices:false));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor func visualSwiftMapInteractionReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftMapInteractionReady(web,attempt+1)}};return}
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("map-layout-fixture"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"tasks\":[],\"w\":{\"wx\":0,\"sp\":0}}"])}
+ let model=NOVASwiftMapModel{_,_,_,_ in .object(["friends":.array([])])}
+ let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:3,mapModel:model,deviceServices:false));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
