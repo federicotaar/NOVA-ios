@@ -586,3 +586,22 @@ s+=r"""
 }
 """
 p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('visualSwiftTimetablePhotoChecks(dir);try? Data()', 'visualSwiftTimetablePhotoChecks(dir);visualSwiftLegacyAccountCacheChecks(dir);try? Data()',1)
+s+=r"""
+@MainActor func visualSwiftLegacyAccountCacheChecks(_ dir:URL){
+ var checks:[String:Bool]=[:]
+ do{
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+ let cached="{\"data\":{\"name\":\"Returning\",\"tasks\":[{\"id\":\"old-task\",\"future\":true}],\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"returning\"},\"future\":\"keep\"},\"rev\":3,\"last\":\"old\"}"
+ try store.importOnce(["nova.v1":"{\"tasks\":[]}","nova.account.v3.return@example.invalid":cached])
+ try store.changeAccount(email:"return@example.invalid",token:"new-token")
+ checks["legacyEnvelopeRestored"]=store.archive?.active.object?["name"]?.string=="Returning" && store.archive?.active.object?["tasks"]?.array.first?.object?["id"]?.string=="old-task"
+ checks["unknownFieldsAndOriginalCachePreserved"]=store.archive?.active.object?["future"]?.string=="keep" && store.archive?.localStorage["nova.account.v3.return@example.invalid"]==cached
+ checks["cacheNeverEnablesSharingOrServices"]=store.archive?.active.object?["locShare"]?.flag==false && store.archive?.active.object?["bgLoc"]?.flag==false && store.archive?.active.object?["cv"]?.object?["on"]?.flag==false
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-account-cache-checks.txt"))
+}
+"""
+p.write_text(s)
