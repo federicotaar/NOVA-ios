@@ -223,3 +223,5 @@ Il trasporto account Swift usa gli stessi endpoint e il token dell'account impor
 L'offerta di importazione Swift è esplicita: copia una volta la memoria precedente senza cancellarla, con copia di recupero e verifica. Il lettore usa solo la memoria locale dell'origine precedente, senza eseguire le funzioni HTML né fare richieste di rete. Questa strada resta inattiva finché l'importazione sul dispositivo e la parità delle funzioni non sono verificate.
 
 Il percorso Swift in verifica include ora creazione e completamento dei compiti con bozza, controllo duplicati e scrittura atomica del modello Swift. Le notifiche e il backup devono ancora essere collegati prima dell'attivazione: non è una versione finale né una sostituzione silenziosa delle funzioni esistenti.
+
+Il percorso compiti Swift aggiorna il file widget e pianifica i promemoria solo con autorizzazione già concessa. Nessuna richiesta automatica di permessi durante l'importazione. L'esito di programmazione non promette la consegna iOS; verifica del dispositivo ancora necessaria.
