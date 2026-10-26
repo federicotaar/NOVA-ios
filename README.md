@@ -255,3 +255,5 @@ La verifica visiva non considera riuscita una sequenza incompleta: deve arrivare
 La Home Swift autonoma ora include schede, orologio, batteria, compiti, calendario con giorni selezionabili, orario, ricerca città e meteo. Anche i voti salvati hanno una schermata Swift. Collegamenti ClasseViva, Spotify e l'intera parità delle azioni restano da verificare. Nessun servizio viene collegato automaticamente e il percorso resta inattivo.
 
 Verificati nel simulatore i campi del profilo, le impostazioni Swift e la mappa autonoma. Le guardie sintetiche del backup escludono segreti e permessi, conservano campi sconosciuti e impediscono la riesecuzione delle azioni; l'importazione conserva lo stato precedente. La fotocamera iniziale della mappa è neutra finché non si richiede una posizione. Le verifiche reali sul dispositivo e la parità restano necessarie.
+
+Verificata la Home Swift in simulatore: schede e controlli leggibili. Le intestazioni del calendario ora usano esplicitamente l'italiano. Aggiunte catture della parte inferiore della Home, dei voti e del backup per verificarne la disposizione prima dell'attivazione.
