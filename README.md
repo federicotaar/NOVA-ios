@@ -185,3 +185,7 @@ Pagina Voti nativa: media generale, voti recenti e medie per materia con gli ste
 ### 2026.10.25.46
 
 Accesso alle impostazioni dalla pagina Voti nativa mantenendo i controlli account/sessione/modali.
+
+### 2026.10.25.47
+
+Nuovo compito nativo con titolo, descrizione multilinea, data e ora, priorità e promemoria tramite controlli UIKit. Conferma/cancellazione e validazione restano negli handler esistenti.
