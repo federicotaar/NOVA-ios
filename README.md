@@ -208,5 +208,4 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 
  workflow manuale test IPA, non avviato: flag Swift dedicato, prerelease immutabile, blocco tramite marker assente finché i gate integrati non sono accettati. Aggiunto typecheck del percorso con flag; non costituisce accettazione o pubblicazione.
 
-- Manual296 accettato:71 controlli sintetici,3 shell/ricaricamento/recupero e2 origine, tutti76 veri. Ispezionate le cinque schede del vero shell Swift e profilo scuro. Il salvataggio tramite tocchi/riavvio e import tramite avvio restano gate separati.
-- Avvio-import1 non ha raggiunto fixture; aggiunta attesa dell'origine pronta e screenshot in caso timeout. Corretto percorso ripresentazione setup attraverso Impostazioni. Nessun nuovo IPA.
+- Launch2 ha eseguito import esplicito e mostrato Home con dati sintetici corretti, condivisione spenta. Interazione poi ferma al hideKeyboard generico del driver, tastiera ancora visibile in pixel. Aggiunto vero pulsante tastiera Fine tastiera e chiusura interattiva tramite scroll nel form compito; nuovo test usa il pulsante. Salvataggio/riavvio ancora pendenti.
