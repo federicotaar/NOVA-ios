@@ -285,3 +285,8 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Aggiunti modello indipendente e viste per ricerca utenti, richieste ricevute/inviate, rimozione con conferma, follower/seguiti e profili pubblici con limiti restituiti dal server.
 - Il QR personale usa lo stesso formato NOVA; lettura da foto con conferma prima della richiesta. Aggiunta anche scansione diretta dalla fotocamera, con permesso al tocco e conferma dello username. Verifiche funzionali/visive ancora da completare.
 - Nessuna richiesta viene inviata in automatico durante migrazione o accesso. Risposte obsolete e cambi account vengono ignorati; questa parte non è ancora pronta per la pubblicazione.
+
+### Assistente Swift (non attivo, accettazione in corso)
+- Aggiunte foto in bozza, contesto di compiti/voti e preferenze di stile, proposte JSON validate (massimo 3), conferma/annullamento e stati persistenti. Le azioni storiche non ricevono nuovi identificatori e non vengono rieseguite.
+- Le nuove azioni Swift distinguono compiti, apertura schermata e promemoria accettati da iOS; non promettono la consegna di una notifica. Conservati Chiedi prima / Sempre / Mai; l'interfaccia finale e la conferma del passaggio a Sempre restano da verificare.
+- Collegato il percorso Swift a cinque schede, senza attivarlo: stile finale, gesti e regressioni complete ancora necessari. Queste modifiche non pubblicano un pacchetto e non contattano account reali durante i test sintetici.
