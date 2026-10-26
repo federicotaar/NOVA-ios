@@ -314,3 +314,4 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Rilevato e corretto isolamento del coordinatore navigazione durante compilazione. La nuova superficie resta inattiva e necessita di controllo visivo e gesti; nessuna modifica al pacchetto 51.
 
 - Aggiunte impostazioni Swift ntfy: codice letto online, test solo al tocco e con ricontrollo del codice server, anteprima salvata con conferma online. Nessuna promessa di consegna; nuovo codice non viene creato automaticamente. Configurazione iniziale ntfy ancora da completare.
+- Completata creazione ntfy solo con tocco esplicito e lettura di conferma online; anteprima messaggi nascosta per impostazione predefinita. Un test è accettato solo quando il server restituisce anche accepted. Aggiunta ripetizione della presentazione dalle impostazioni; verifiche ancora in corso.
