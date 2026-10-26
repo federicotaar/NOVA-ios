@@ -39,7 +39,7 @@ import SwiftUI
         guard let response=Self.json(raw) else{status="Risposta ClasseViva non valida.";return}
         if response.object?["needChoice"]?.flag==true{choices=response.object?["choices"]?.array ?? [];status="Scegli il profilo studente.";return}
         guard response.object?["ok"]?.flag==true else{choices=[];status="ClasseViva non aggiornato. Controlla credenziali e connessione. Nessun dato precedente è stato cancellato.";return}
-        do{try NOVASwiftSchoolImport.apply(response,store,owner:owner);choices=[];status="ClasseViva aggiornato.";_ = await NOVASwiftTaskSync.apply(store)}catch{status="Dati ClasseViva ricevuti ma non salvati."}
+        do{if op=="logout"{try store.update(owner:owner){root in root["cv"] = .object(["on":.number(0)])};choices=[];status="ClasseViva scollegato. Compiti e voti importati conservati.";return};try NOVASwiftSchoolImport.apply(response,store,owner:owner);choices=[];status="ClasseViva aggiornato.";_ = await NOVASwiftTaskSync.apply(store)}catch{status="Dati ClasseViva ricevuti ma non salvati."}
     }
     func musicRequest(_ op:String,client:String="") async {guard !busy else{return};busy=true;let expected=epoch;var body:[String:Any]=["op":op];if op=="setcid"{body["cid"]=client};let result=await music(body);guard expected==epoch else{return};busy=false;if result["ok"] as? Int==1{status="Spotify aggiornato.";if op=="state"{spotify=Self.json(result)};await load()}else{let error=result["err"] as? String ?? "";status=error=="premium" ? "Per controllare Spotify serve Premium.":error=="nodevice" ? "Apri Spotify e avvia una canzone sul telefono.":error=="auth" ? "Ricollega Spotify dalle impostazioni.":"Spotify non aggiornato: "+error}}
     func groq(_ op:String,key:String="") async {guard !busy else{return};busy=true;let expected=epoch;let result=await ai(["op":op,"key":key]);guard expected==epoch else{return};busy=false;hasGroq=Secret.get("groq") != nil;status=result["ok"] as? Int==1 ? "Chiave Groq aggiornata nel Portachiavi.":"Chiave non salvata. Controlla formato Groq e connessione."}
@@ -52,11 +52,12 @@ import SwiftUI
     @State private var password=""
     @State private var key=""
     @State private var client=""
+    @State private var confirmSchool=false
     @State private var confirmGroq=false
     @State private var confirmMusic=false
     var body:some View{Form{
         Section("ClasseViva"){
-            if store.archive?.active.object?["cv"]?.object?["on"]?.flag==true{Text("Collegato: "+(store.archive?.active.object?["cv"]?.object?["name"]?.string ?? ""));Button("Aggiorna registro"){Task{await model.schoolRequest("refresh",store)}}}
+            if store.archive?.active.object?["cv"]?.object?["on"]?.flag==true{Text("Collegato: "+(store.archive?.active.object?["cv"]?.object?["name"]?.string ?? ""));Button("Aggiorna registro"){Task{await model.schoolRequest("refresh",store)}};Button("Scollega ClasseViva",role:.destructive){confirmSchool=true}}
             TextField("Codice utente o email",text:$uid).textInputAutocapitalization(.never).autocorrectionDisabled();SecureField("Password",text:$password)
             Button("Collega ClasseViva"){Task{await model.schoolRequest("login",uid:uid,password:password,store);if model.choices.isEmpty{password=""}}}.disabled(model.busy||uid.isEmpty||password.isEmpty)
             ForEach(Array(model.choices.enumerated()),id:\.offset){_,choice in Button((choice.object?["name"]?.string ?? "Studente")+" · "+(choice.object?["school"]?.string ?? "")){Task{await model.schoolRequest("login",uid:uid,password:password,ident:choice.object?["ident"]?.string ?? "",store);if model.choices.isEmpty{password=""}}}}
@@ -79,6 +80,7 @@ import SwiftUI
         }
         if !model.status.isEmpty{Text(model.status).font(.footnote)}
     }.navigationTitle("Servizi").task{await model.load()}.onDisappear{password="";key="";model.cancel()}.onChange(of:store.archive?.owner){_,_ in password="";key="";model.cancel()}
+    .confirmationDialog("Scollegare ClasseViva da questo iPhone? Compiti e voti gia importati restano salvati.",isPresented:$confirmSchool,titleVisibility:.visible){Button("Scollega",role:.destructive){password="";Task{await model.schoolRequest("logout",store)}};Button("Annulla",role:.cancel){}}
     .confirmationDialog("Rimuovere la chiave Groq da questo iPhone?",isPresented:$confirmGroq,titleVisibility:.visible){Button("Rimuovi",role:.destructive){Task{await model.groq("clear")}};Button("Annulla",role:.cancel){}}
     .confirmationDialog("Salvare il Client ID e scollegare la sessione Spotify attuale?",isPresented:$confirmMusic,titleVisibility:.visible){Button("Salva"){Task{await model.musicRequest("setcid",client:client)}};Button("Annulla",role:.cancel){}}
     }
