@@ -362,3 +362,7 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Recupero protetto: un archivio Swift già esistente ma non leggibile non viene trattato come nuova installazione e non può essere sovrascritto da una seconda importazione; aggiunto controllo dei byte originali. Compilazione e verifica aggiornate ancora richieste.
 
 - Manual282 accettato:70 controlli sintetici +2 import/origine tutti veri, compreso import iniziale senza riattivare condivisione. Le nuove verifiche shell/root e archivio non leggibile sono successive e ancora pendenti. Corretto anche campo errore nel nuovo avvio inattivo.
+
+- Integrata verifica reale ProtectedRoot (home, compito, impostazioni, ritorno setup, riavvio). Primo tentativo interrotto al menu promemoria, prima del salvataggio; corretto targeting con tastiera chiusa, non considerato un successo.
+- Manual291 fermo dopo assistente per riferimento finestra fixture staccato: corretto lookup della finestra app. Compile290 pulito. Le verifiche integrate sono ancora in esecuzione, nessun nuovo IPA.
+- Aggiunta verifica di avvio completo con import esplicito dalla stessa origine locale e riavvio, usando solo dati dimostrativi; produzione ancora inattiva.
