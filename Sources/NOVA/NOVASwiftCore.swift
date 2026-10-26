@@ -455,7 +455,7 @@ extension NOVAJSON {
                     TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.plain)
                     Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                 }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
-            }.navigationTitle("Assistente")
+            }.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
         }.onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1;photoEpoch+=1;sending=false}
         .onChange(of:store.archive?.owner){_,_ in generation+=1;photoEpoch+=1;owner=store.archive?.owner ?? "";draft="";photoDraft=nil;sending=false}
         .onChange(of:photo){_,item in photoEpoch+=1;let epoch=photoEpoch,expectedOwner=owner;Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),epoch==photoEpoch,owner==expectedOwner,owner==store.archive?.owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};photoDraft="data:image/jpeg;base64,"+jpeg.base64EncodedString()}}
@@ -661,20 +661,24 @@ extension NOVAJSON {
         VStack(spacing:0){
             ScrollView{LazyVStack(alignment:.leading,spacing:12){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
                 let o=message.object ?? [:],own=o["sender"]?.string==store.archive?.active.object?["acct"]?.object?["email"]?.string
-                VStack(alignment:.leading,spacing:8){
-                    if o["deleted"]?.flag==true{Text("Messaggio eliminato").italic().foregroundStyle(.secondary)}else{
-                        if !own{Text(social.senders[o["sender"]?.string ?? ""]?.string ?? "Amico").font(.caption.bold())}
+                HStack(alignment:.bottom,spacing:0){
+                if own{Spacer(minLength:48)}
+                VStack(alignment:.leading,spacing:5){
+                    if o["deleted"]?.flag==true{Text("Messaggio eliminato").italic().foregroundStyle(own ? .white.opacity(0.8):.secondary)}else{
+                        if !own{Text(social.senders[o["sender"]?.string ?? ""]?.string ?? "Amico").font(.caption).foregroundStyle(.secondary)}
                         if let key=o["media_key"]?.string,let url=mediaURL(key){
-                            if o["kind"]?.string=="image"{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}.frame(maxHeight:240)}
+                            if o["kind"]?.string=="image"{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}.frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
                             if o["kind"]?.string=="voice"{HStack{Button{playback.play(url)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
                         }
-                        if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled)}
+                        if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled).frame(maxWidth:260,alignment:.leading).fixedSize(horizontal:false,vertical:true)}
                         if o["edited"]?.flag==true{Text("modificato").font(.caption2).foregroundStyle(.secondary)}
                         let key=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                         let reactions=social.reactions[key]?.array ?? []
                         if !reactions.isEmpty{Text(reactions.compactMap{$0.object?["emoji"]?.string}.joined(separator:" ")).font(.caption)}
                     }
-                }.padding(12).frame(maxWidth:.infinity,alignment:own ? .trailing:.leading).background(own ? Color.blue.opacity(0.1):Color.secondary.opacity(0.08),in:RoundedRectangle(cornerRadius:18))
+                }.padding(.horizontal,12).padding(.vertical,8).frame(maxWidth:300,alignment:.leading).fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).background(own ? Color.blue:Color(uiColor:.secondarySystemBackground),in:RoundedRectangle(cornerRadius:20))
+                if !own{Spacer(minLength:48)}
+                }.frame(maxWidth:.infinity,alignment:own ? .trailing:.leading)
                 .contextMenu{
                     if o["deleted"]?.flag != true{ForEach(["👍","❤️","😂","😮","🎉"],id:\.self){emoji in Button(emoji){Task{await social.action(message,operation:"react",value:emoji,store)}}}
                     if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}}
@@ -688,10 +692,10 @@ extension NOVAJSON {
             HStack(alignment:.bottom){
                 PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
                 Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"mic")}.accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
-                TextField("Messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.plain).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
+                TextField("Messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftConversationComposer").lineLimit(1...6).textFieldStyle(.plain).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
                 Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
             }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
-        }.navigationTitle(title)
+        }.navigationTitle(title).navigationBarTitleDisplayMode(.inline).preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .task{await social.open(id,store)}
@@ -752,16 +756,19 @@ extension NOVAJSON {
         .sheet(isPresented:$replayWelcome){NOVASwiftWelcome(store:store)}
     }
 }
+struct NOVASwiftHideTabsKey:PreferenceKey{static var defaultValue:Bool{false};static func reduce(value:inout Bool,nextValue:()->Bool){value = value || nextValue()}}
 @MainActor struct NOVASwiftShell:View {
     @ObservedObject var store:NOVASwiftStore
     init(store:NOVASwiftStore,initialTab:Int=0){self.store=store;_selectedTab=State(initialValue:max(0,min(4,initialTab)))}
     @StateObject private var sync=NOVASwiftSync()
     @State private var selectedTab=0
+    @State private var hideTabs=false
     @Environment(\.scenePhase) private var scenePhase
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
     var body:some View {
         Group{switch selectedTab{case 1:NOVASwiftGrades(store:store);case 2:NOVASwiftChatList(store:store);case 3:NOVASwiftMap(store:store);case 4:NOVASwiftProfile(store:store);default:NOVASwiftDashboard(store:store)}}
-        .safeAreaInset(edge:.bottom){NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}
+        .onPreferenceChange(NOVASwiftHideTabsKey.self){hideTabs=$0}
+        .safeAreaInset(edge:.bottom){if !hideTabs{NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}}
         .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}
     }
 }
