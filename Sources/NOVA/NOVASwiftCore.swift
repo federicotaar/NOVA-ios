@@ -701,6 +701,7 @@ extension NOVAJSON {
                 NavigationLink("Modifica orario"){NOVASwiftTimetable(store:store)}
             }
             Section("Assistente AI"){
+                NavigationLink("Collega ClasseViva, Groq e Spotify"){NOVASwiftServices(store:store)}
                 Picker("Azioni",selection:Binding(get:{store.archive?.active.object?["aiAct"]?.string ?? "ask"},set:{value in if value=="always",store.archive?.active.object?["aiAct"]?.string != "always"{confirmAlways=true}else{do{try store.update(owner:store.archive?.owner ?? ""){$0["aiAct"] = .string(value)}}catch{self.error="Scelta non salvata."}}})){Text("Chiedi prima").tag("ask");Text("Sempre").tag("always");Text("Mai").tag("deny")}
                 TextEditor(text:text("agentMd")).frame(minHeight:100)
                 Text("Chiedi prima mostra la conferma per ogni azione. Sempre può aggiungere compiti e promemoria o aprire schermate senza chiedere; Mai disattiva le nuove azioni.").font(.footnote).foregroundStyle(.secondary)
@@ -722,7 +723,7 @@ extension NOVAJSON {
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
     var body:some View {
         TabView(selection:$selectedTab) {
-            NOVASwiftOverview(store:store).tabItem{Label("Home",systemImage:"house")}.tag(0)
+            NOVASwiftDashboard(store:store).tabItem{Label("Home",systemImage:"house")}.tag(0)
             NOVASwiftGrades(store:store).tabItem{Label("Voti",systemImage:"chart.bar")}.tag(1)
             NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}.tag(2)
             NOVASwiftMap(store:store).tabItem{Label("Mappa",systemImage:"map")}.tag(3)
