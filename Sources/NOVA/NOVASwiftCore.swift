@@ -285,9 +285,11 @@ struct NOVAAccountService {
     private var web: WKWebView?
     private var completion: ((Result<[String:String],Error>)->Void)?
     private var allowEmpty=false
+    private var timeout:DispatchWorkItem?
     func read(allowEmpty:Bool=false,_ completion:@escaping(Result<[String:String],Error>)->Void) {
         guard web==nil else{completion(.failure(CocoaError(.userCancelled)));return}
         self.completion=completion;self.allowEmpty=allowEmpty
+        let timeout=DispatchWorkItem{[weak self] in self?.finish(.failure(CocoaError(.fileReadUnknown)))};self.timeout=timeout;DispatchQueue.main.asyncAfter(deadline:.now()+20,execute:timeout)
         let config=WKWebViewConfiguration();config.websiteDataStore = .default()
         let view=WKWebView(frame:.zero,configuration:config);view.navigationDelegate=self;web=view
         #if SWIFT_PACKAGE
@@ -308,7 +310,7 @@ struct NOVAAccountService {
     }
     func webView(_ webView:WKWebView,didFail navigation:WKNavigation!,withError error:Error){finish(.failure(error))}
     func webView(_ webView:WKWebView,didFailProvisionalNavigation navigation:WKNavigation!,withError error:Error){finish(.failure(error))}
-    private func finish(_ result:Result<[String:String],Error>){let callback=completion;completion=nil;web?.stopLoading();web?.navigationDelegate=nil;web=nil;callback?(result)}
+    private func finish(_ result:Result<[String:String],Error>){timeout?.cancel();timeout=nil;let callback=completion;completion=nil;web?.stopLoading();web?.navigationDelegate=nil;web=nil;callback?(result)}
 }
 @MainActor struct NOVASwiftMigrationOffer: View {
     @ObservedObject var store:NOVASwiftStore
