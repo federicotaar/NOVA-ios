@@ -283,9 +283,10 @@ struct NOVAAccountService {
 @MainActor final class NOVALegacyReader: NSObject, WKNavigationDelegate {
     private var web: WKWebView?
     private var completion: ((Result<[String:String],Error>)->Void)?
-    func read(_ completion:@escaping(Result<[String:String],Error>)->Void) {
+    private var allowEmpty=false
+    func read(allowEmpty:Bool=false,_ completion:@escaping(Result<[String:String],Error>)->Void) {
         guard web==nil else{completion(.failure(CocoaError(.userCancelled)));return}
-        self.completion=completion
+        self.completion=completion;self.allowEmpty=allowEmpty
         let config=WKWebViewConfiguration();config.websiteDataStore = .default()
         let view=WKWebView(frame:.zero,configuration:config);view.navigationDelegate=self;web=view
         #if SWIFT_PACKAGE
@@ -300,7 +301,7 @@ struct NOVAAccountService {
     func webView(_ webView:WKWebView,didFinish navigation:WKNavigation!) {
         webView.evaluateJavaScript("Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('nova.')).map(k=>[k,localStorage.getItem(k)]))"){[weak self] result,error in
             guard let self=self else{return};if let error=error{self.finish(.failure(error));return}
-            guard let values=result as? [String:String],values["nova.v1"] != nil else{self.finish(.failure(CocoaError(.fileReadCorruptFile)));return}
+            guard let values=result as? [String:String],values["nova.v1"] != nil || (self.allowEmpty && values.isEmpty) else{self.finish(.failure(CocoaError(.fileReadCorruptFile)));return}
             self.finish(.success(values))
         }
     }
@@ -804,4 +805,27 @@ extension NOVASwiftStore {
         let url=directory.appendingPathComponent("state-v1.json");try JSONEncoder().encode(current).write(to:url,options:[.atomic,.completeFileProtection])
         let verified=try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:url));guard verified.active==current.active,verified.localStorage==current.localStorage else{throw CocoaError(.fileWriteUnknown)};archive=verified
     }
+}
+
+// Held inactive until integrated simulator acceptance. Never renders the legacy app as a screen.
+@MainActor struct NOVASwiftLaunchRoot:View {
+    @StateObject private var store=NOVASwiftStore()
+    @State private var reader=NOVALegacyReader()
+    @State private var legacy:[String:String]?
+    @State private var busy=false
+    @State private var error=""
+    var body:some View{Group{
+        if store.archive != nil{NOVASwiftProtectedRoot(store:store)}else{
+            VStack(alignment:.leading,spacing:20){Text("NOVA in Swift").font(.largeTitle.bold())
+                if busy{ProgressView("Controllo dati sul dispositivo…")}
+                else if let legacy=legacy{Text(legacy.isEmpty ? "Non abbiamo trovato dati precedenti in questo spazio dell'app. Puoi iniziare senza attivare permessi o servizi.":"I dati precedenti sono pronti. Copiali nell'archivio Swift: account e dati restano conservati, la memoria precedente non viene cancellata. La posizione resta spenta finché non la scegli tu.")
+                    Button(legacy.isEmpty ? "Inizia":"Importa e continua"){migrate(legacy)}.buttonStyle(.borderedProminent)
+                }
+                if !error.isEmpty{Text(error).foregroundStyle(.red);Text("Non cancellare o reinstallare l'app per riprovare: conserveremo i dati precedenti.").font(.footnote)}
+                if !busy{Button("Ricontrolla dati locali"){load()}}
+            }.padding(24).task{if legacy==nil && error.isEmpty{load()}}
+        }
+    }.environment(\.locale,Locale(identifier:"it_IT"))}
+    private func load(){guard !busy else{return};busy=true;error="";reader.read(allowEmpty:true){result in busy=false;switch result{case .success(let values):legacy=values;case .failure:legacy=nil;error="Dati precedenti non verificati. Nessun dato è stato cancellato. Riprova."}}}
+    private func migrate(_ values:[String:String]){do{let data=values.isEmpty ? ["nova.v1":"{\"theme\":\"auto\",\"tasks\":[],\"gr\":[],\"chat\":[],\"tt\":{\"lessons\":[]},\"prof\":{},\"aiAct\":\"ask\"}"]:values;try store.importOnce(data)}catch{error="Importazione non completata. Archivio e memoria precedenti sono conservati."}}
 }
