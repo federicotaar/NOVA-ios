@@ -115,6 +115,10 @@ struct NOVALessonDraft: Identifiable {
     @State private var error = ""
     @State private var loaded = false
     @State private var owner = ""
+    @State private var photo:PhotosPickerItem?
+    @State private var importing=false
+    @State private var importEpoch=0
+    @State private var active=false
     let days = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab"]
     var body: some View {
         NavigationStack {
@@ -136,6 +140,7 @@ struct NOVALessonDraft: Identifiable {
                 }
                 if !lessons.contains(where:{$0.day==day}) { Text("Nessuna lezione per questo giorno.").foregroundStyle(.secondary) }
                 Section {
+                    PhotosPicker(importing ? "Lettura foto…":"Importa foto orario",selection:$photo,matching:.images).disabled(importing)
                     Button("Aggiungi lezione") { lessons.append(NOVALessonDraft(day:day)) }
                     Button("Svuota giorno",role:.destructive) { lessons.removeAll{$0.day==day} }
                 }
@@ -150,8 +155,16 @@ struct NOVALessonDraft: Identifiable {
             }
         }
         .onAppear {
-            guard !loaded else{return}; loaded=true; owner=store.archive?.owner ?? ""
+            active=true;guard !loaded else{return}; loaded=true; owner=store.archive?.owner ?? ""
             lessons=(store.archive?.active.object?["tt"]?.object?["lessons"]?.array ?? []).map(NOVALessonDraft.init)
+        }.onDisappear{active=false;importEpoch+=1;importing=false}.onChange(of:photo){_,item in importPhoto(item)}
+    }
+    func importPhoto(_ item:PhotosPickerItem?){importEpoch+=1;let epoch=importEpoch,session=store.archive.flatMap({NOVASession($0.active)});importing=true;error=""
+        Task{defer{if epoch==importEpoch{importing=false}};guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data) else{if epoch==importEpoch{error="Foto non leggibile."};return};guard active,epoch==importEpoch,store.archive?.owner==owner,store.archive.flatMap({NOVASession($0.active)})==session else{return}
+            let scale=min(1,1600/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.85){_ in image.draw(in:CGRect(origin:.zero,size:size))}
+            let prompt="Estrai tutte le lezioni visibili in questo orario scolastico. Rispondi solo JSON: {\"lessons\":[{\"d\":1,\"h\":1,\"s\":\"08:10\",\"e\":\"09:00\",\"n\":\"MAT\"}]}. d=1 lunedi fino 6 sabato. h=numero ora. s/e=null se non visibili. Non inventare materie."
+            let response=await Groq.handle(["op":"vision","img":"data:image/jpeg;base64,"+jpeg.base64EncodedString(),"prompt":prompt]);guard active,epoch==importEpoch,store.archive?.owner==owner,store.archive.flatMap({NOVASession($0.active)})==session else{return}
+            do{guard response["ok"] as? Int==1,let text=response["text"] as? String else{throw NOVAServiceError.invalidResponse};let parsed=try NOVASwiftTimetablePhoto.parse(text);lessons=parsed.lessons;day=2;error=parsed.estimated ? "Foto letta. Orari mancanti stimati: controlla ogni giorno e salva solo dopo averli corretti.":"Foto letta. Controlla giorni, orari e materie, poi Salva."}catch{self.error="Orario non importato. Controlla la chiave Groq o prova una foto piu nitida. La bozza precedente resta conservata."}
         }
     }
     func time(_ value: Binding<Int>) -> Binding<Date> {
