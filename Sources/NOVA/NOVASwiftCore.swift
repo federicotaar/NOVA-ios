@@ -669,6 +669,7 @@ extension NOVAJSON {
     var body:some View {
         NavigationStack{Form{
             Section("Il tuo account"){
+                NavigationLink("Amici, richieste e profili"){NOVASwiftPeopleView(store:store)}
                 Button("Modifica profilo"){profile=true}
                 NavigationLink("Gestisci account"){NOVASwiftAccountManagement(store:store)}
                 NavigationLink("Backup account"){NOVASwiftBackup(store:store)}
