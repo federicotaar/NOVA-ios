@@ -13,7 +13,7 @@ import Combine
     private var consentSession:NOVASession?
     private var requesting=false
     private override init(){super.init();manager.delegate=self;manager.desiredAccuracy=kCLLocationAccuracyHundredMeters}
-    func bind(_ store:NOVASwiftStore){self.store=store;observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
+    func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};self.store=store;observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
     func unbind(){stop(clear:false);observation=nil;store=nil}
     func enabled(_ on:Bool,_ store:NOVASwiftStore){
         bind(store)
