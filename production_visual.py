@@ -635,8 +635,21 @@ s=p.read_text()+r"""
  DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-profile-dark.png");page.dismiss(animated:false){
  guard let root=web.window?.rootViewController else{return}
  let task:NOVAJSON = .object(["title":.string("Ripasso funzioni, dominio e grafici"),"subj":.string("Matematica"),"kind":.string("test"),"due":.string("2026-11-03T09:00"),"note":.string("Porta il quaderno e controlla gli esercizi."),"src":.string("cv")])
- let help=UIHostingController(rootView:NOVASwiftTaskHelp(store:store,task:task));help.modalPresentationStyle = .fullScreen;root.present(help,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-detail.png");help.overrideUserInterfaceStyle = .dark;DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-detail-dark.png");help.dismiss(animated:false){let ai=UIHostingController(rootView:NOVASwiftAssistant(store:store,initialDraft:"Aiutami a prepararmi per la verifica di Matematica."));ai.modalPresentationStyle = .fullScreen;root.present(ai,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-ai-draft.png");visualSwiftImportOrigin(web,dir)}}}}}}
+ let help=UIHostingController(rootView:NOVASwiftTaskHelp(store:store,task:task));help.modalPresentationStyle = .fullScreen;root.present(help,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-detail.png");help.overrideUserInterfaceStyle = .dark;DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-detail-dark.png");help.dismiss(animated:false){let ai=UIHostingController(rootView:NOVASwiftAssistant(store:store,initialDraft:"Aiutami a prepararmi per la verifica di Matematica."));ai.modalPresentationStyle = .fullScreen;root.present(ai,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-ai-draft.png");visualSwiftIntegratedShell(web,dir,0)}}}}}}
  }}}
+}
+"""
+p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text()+r"""
+@MainActor func visualSwiftIntegratedShell(_ web:WKWebView,_ dir:URL,_ index:Int){
+ guard let root=web.window?.rootViewController else{return}
+ let folder=FileManager.default.temporaryDirectory.appendingPathComponent("integrated-swift-"+UUID().uuidString)
+ let store=NOVASwiftStore(directory:folder)
+ let value="{\"name\":\"Studente demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tasks\":[{\"id\":\"task\",\"title\":\"Ripasso funzioni\",\"due\":\"2026-11-03T17:00\",\"subj\":\"Matematica\",\"rem\":0}],\"gr\":[{\"subj\":\"Matematica\",\"v\":7,\"date\":\"2026-10-20\"}],\"w\":{\"wx\":0,\"sp\":0},\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"studente.demo\"}}"
+ do{try store.importOnce(["nova.v1":value]);let reload=NOVASwiftStore(directory:folder);let original=try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:folder.appendingPathComponent("legacy-import-v1.json")));let checks:[String:Bool]=["shellReloadPreservesPersonalData":reload.archive?.active==store.archive?.active,"immutableOriginalRecoveryRetained":original.localStorage["nova.v1"]==value,"noMigrationServiceOrSharingActivation":store.archive?.active.object?["locShare"]?.flag==false && store.archive?.active.object?["bgLoc"]?.flag==false && store.archive?.active.object?["cv"]==nil];try JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-integrated-checks.txt"))}catch{return}
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:index));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-integrated-tab-"+String(index)+".png");if index<4{visualSwiftIntegratedShell(web,dir,index+1)}else{page.overrideUserInterfaceStyle = .dark;try? store.update(owner:"local"){$0["theme"] = .string("dark")};DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-integrated-profile-dark.png");visualSwiftImportOrigin(web,dir)}}}}}
 }
 """
 p.write_text(s)
