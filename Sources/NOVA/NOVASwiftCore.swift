@@ -828,5 +828,5 @@ extension NOVASwiftStore {
         }
     }.environment(\.locale,Locale(identifier:"it_IT"))}
     private func load(){guard !busy else{return};busy=true;error="";reader.read(allowEmpty:true){result in busy=false;switch result{case .success(let values):legacy=values;case .failure:legacy=nil;error="Dati precedenti non verificati. Nessun dato è stato cancellato. Riprova."}}}
-    private func migrate(_ values:[String:String]){do{let data=values.isEmpty ? ["nova.v1":"{\"theme\":\"auto\",\"tasks\":[],\"gr\":[],\"chat\":[],\"tt\":{\"lessons\":[]},\"prof\":{},\"aiAct\":\"ask\"}"]:values;try store.importOnce(data)}catch{error="Importazione non completata. Archivio e memoria precedenti sono conservati."}}
+    private func migrate(_ values:[String:String]){do{let data=values.isEmpty ? ["nova.v1":"{\"theme\":\"auto\",\"tasks\":[],\"gr\":[],\"chat\":[],\"tt\":{\"lessons\":[]},\"prof\":{},\"aiAct\":\"ask\"}"]:values;try store.importOnce(data)}catch{self.error="Importazione non completata. Archivio e memoria precedenti sono conservati."}}
 }
