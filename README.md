@@ -249,3 +249,5 @@ La lettura mappa mostra l'ora reale della posizione, non una promessa di aggiorn
 Le verifiche e la compilazione di produzione includono anche i nuovi moduli Swift separati. La pubblicazione IPA resta disattivata durante la migrazione: nessuna versione precedente viene sostituita.
 
 Il ripristino esplicito dalla copia online disarma anche l'invio posizione ai grandi spostamenti già salvato sul telefono, per evitare che un vecchio monitor continui dopo la scelta della copia.
+
+La verifica visiva non considera riuscita una sequenza incompleta: deve arrivare al marcatore finale, oltre alla compilazione. Corretto il recupero della finestra principale durante le presentazioni Swift a schermo intero; le immagini di profilo/impostazioni/mappa devono essere presenti prima dell'accettazione.
