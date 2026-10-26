@@ -426,7 +426,7 @@ extension NOVAJSON {
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
                     TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.roundedBorder)
                     Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
-                }.padding()
+                }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
             }.navigationTitle("Assistente")
         }.onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1;photoEpoch+=1;sending=false}
         .onChange(of:store.archive?.owner){_,_ in generation+=1;photoEpoch+=1;owner=store.archive?.owner ?? "";draft="";photoDraft=nil;sending=false}
@@ -661,7 +661,7 @@ extension NOVAJSON {
                 Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"mic")}.accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
                 TextField("Messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.roundedBorder).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
                 Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
-            }.padding()
+            }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
         }.navigationTitle(title)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
@@ -723,13 +723,9 @@ extension NOVAJSON {
     @State private var selectedTab=0
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
     var body:some View {
-        TabView(selection:$selectedTab) {
-            NOVASwiftDashboard(store:store).tabItem{Label("Home",systemImage:"house")}.tag(0)
-            NOVASwiftGrades(store:store).tabItem{Label("Voti",systemImage:"chart.bar")}.tag(1)
-            NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}.tag(2)
-            NOVASwiftMap(store:store).tabItem{Label("Mappa",systemImage:"map")}.tag(3)
-            NOVASwiftSettings(store:store).tabItem{Label("Profilo",systemImage:"person.crop.circle")}.tag(4)
-        }.onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store)}.onDisappear{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}
+        Group{switch selectedTab{case 1:NOVASwiftGrades(store:store);case 2:NOVASwiftChatList(store:store);case 3:NOVASwiftMap(store:store);case 4:NOVASwiftSettings(store:store);default:NOVASwiftDashboard(store:store)}}
+        .safeAreaInset(edge:.bottom){NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}
+        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store)}.onDisappear{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}
     }
 }
 
