@@ -467,7 +467,7 @@ s=p.read_text()+r'''
  guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try? store.importOnce(["nova.v1":"{\"tasks\":[],\"gr\":[]}"])
  let model=NOVASwiftServicesModel(school:{_ in ["ok":0]},music:{_ in ["ok":1,"cid":false,"conn":false]},ai:{_ in ["ok":1,"has":false]})
- root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NavigationStack{NOVASwiftServices(store:store,model:model)});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-services.png");visualSwiftLifecycleScreens(web,store,dir)}}}
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NavigationStack{NOVASwiftServices(store:store,model:model)});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-services.png");visualSwiftServicesLower(web,store,dir,page)}}}
 }
 '''
 p.write_text(s)
@@ -603,6 +603,16 @@ s+=r"""
  checks["cacheNeverEnablesSharingOrServices"]=store.archive?.active.object?["locShare"]?.flag==false && store.archive?.active.object?["bgLoc"]?.flag==false && store.archive?.active.object?["cv"]?.object?["on"]?.flag==false
  }catch{checks["exception"]=true}
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-account-cache-checks.txt"))
+}
+"""
+p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text()+r"""
+@MainActor func visualSwiftServicesLower(_ web:WKWebView,_ store:NOVASwiftStore,_ dir:URL,_ page:UIViewController){
+ func scroll(_ view:UIView)->UIScrollView?{if let s=view as? UIScrollView{return s};for child in view.subviews{if let s=scroll(child){return s}};return nil}
+ if let view=scroll(page.view){view.setContentOffset(CGPoint(x:0,y:max(0,view.contentSize.height-view.bounds.height)),animated:false)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-services-lower.png");visualSwiftLifecycleScreens(web,store,dir)}
 }
 """
 p.write_text(s)
