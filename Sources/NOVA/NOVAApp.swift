@@ -1752,14 +1752,14 @@ final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
 // Real system switches sit over the opaque settings rows; the existing handlers own all state and permissions.
 @available(iOS 26.0, *)
 final class NativeSettingsControls:NSObject {
- weak var web:WKWebView?;var screen:NativeSettingsPage?;var presenting=false
+ weak var web:WKWebView?;var screen:NativeSettingsPage?;var presenting=false;var dismissing=false;var desired:[String:Any]=[:]
  init(web:WKWebView){self.web=web;super.init()}
- func sync(_ b:[String:Any]){guard let web=web else{return}
+ func sync(_ b:[String:Any]){desired=b;guard let web=web,!dismissing else{return}
  let shown=b["show"] as? Bool ?? false
- if !shown{if let page=screen{screen=nil;page.dismiss(animated:false)};return}
+ if !shown{if let page=screen{screen=nil;dismissing=true;page.dismiss(animated:false){self.dismissing=false;self.sync(self.desired)}};return}
  if let page=screen{page.apply(b);return}
  guard !presenting,var root=web.window?.rootViewController else{return};while let next=root.presentedViewController{root=next}
- let page=NativeSettingsPage();page.web=web;page.apply(b);let nav=UINavigationController(rootViewController:page);nav.modalPresentationStyle = .fullScreen;nav.overrideUserInterfaceStyle=page.overrideUserInterfaceStyle;nav.navigationBar.prefersLargeTitles=true;let appearance=UINavigationBarAppearance();appearance.configureWithOpaqueBackground();appearance.backgroundColor = .systemGroupedBackground;appearance.titleTextAttributes=[.foregroundColor:UIColor.label];appearance.largeTitleTextAttributes=[.foregroundColor:UIColor.label];nav.navigationBar.standardAppearance=appearance;nav.navigationBar.scrollEdgeAppearance=appearance;screen=page;presenting=true;root.present(nav,animated:false){self.presenting=false}
+ let page=NativeSettingsPage();page.web=web;page.apply(b);let nav=UINavigationController(rootViewController:page);nav.modalPresentationStyle = .fullScreen;nav.overrideUserInterfaceStyle=page.overrideUserInterfaceStyle;nav.navigationBar.prefersLargeTitles=true;let appearance=UINavigationBarAppearance();appearance.configureWithOpaqueBackground();appearance.backgroundColor = .systemGroupedBackground;appearance.titleTextAttributes=[.foregroundColor:UIColor.label];appearance.largeTitleTextAttributes=[.foregroundColor:UIColor.label];nav.navigationBar.standardAppearance=appearance;nav.navigationBar.scrollEdgeAppearance=appearance;screen=page;presenting=true;root.present(nav,animated:false){self.presenting=false;self.sync(self.desired)}
  }
 }
 @available(iOS 26.0, *)
