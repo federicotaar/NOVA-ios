@@ -78,7 +78,7 @@ struct NOVASwiftMapFriend:Identifiable {
         if !enabled {
             NOVASwiftBackgroundLocation.shared.stop(clear:true)
             // Stop local visibility immediately. No further location upload is allowed.
-            do{try store.update(owner:archive.owner){$0["locShare"] = .number(0);$0["locSession"] = .string("");$0["bgLoc"] = .number(0)}}catch{status="Impossibile salvare Fantasma. Nessuna nuova posizione inviata.";changing=false;return}
+            do{try store.update(owner:archive.owner){$0["locShare"] = .number(0);$0["locSession"] = .string("");$0["locConsentV2"] = .string("");$0["bgConsentV2"] = .string("");$0["bgLoc"] = .number(0)}}catch{status="Impossibile salvare Fantasma. Nessuna nuova posizione inviata.";changing=false;return}
             // Stop legacy significant-change monitoring before any network wait.
             let defaults=UserDefaults.standard
             defaults.set(false,forKey:"nova.bgLoc.on");defaults.removeObject(forKey:"nova.bgLoc.session");defaults.removeObject(forKey:"nova.bgLoc.token");defaults.set(false,forKey:"nova.bgLoc.sharing")
