@@ -516,3 +516,39 @@ s=p.read_text()+r'''
 }
 '''
 p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('visualSwiftSchoolChecks(dir);await visualSwiftNotificationChecks(dir);try? Data()', 'visualSwiftSchoolChecks(dir);await visualSwiftNotificationChecks(dir);await visualSwiftPrivacyServiceChecks(dir);try? Data()',1)
+s=s.replace('visualProductionSave(web,"production-swift-owned-navigation.png");visualSwiftImportOrigin(web,dir)', 'visualProductionSave(web,"production-swift-owned-navigation.png");visualSwiftWelcomePages(web,dir,0)',1)
+s+=r"""
+@MainActor func visualSwiftPrivacyServiceChecks(_ dir:URL) async {
+ var checks:[String:Bool]=[:]
+ do{
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"fixture@example.invalid\",\"token\":\"synthetic\"},\"locShare\":1,\"bgLoc\":1,\"locSession\":\"old\",\"tasks\":[{\"id\":\"keep\"}],\"gr\":[{\"v\":7}],\"cv\":{\"on\":1}}"])
+ let session=NOVASession(store.archive!.active)!,before=NOVASwiftBackupData.snapshot(store.archive!.active)
+ var localOffBeforeRequest=false,failedBlocked=false
+ do{try await NOVASwiftAccountPrivacy.prepare(store,session:session,stop:{_ in localOffBeforeRequest=store.archive?.active.object?["locShare"]?.flag==false && store.archive?.active.object?["bgLoc"]?.flag==false;return .object(["ok":.bool(false)])})}catch{failedBlocked=true}
+ checks["localSharingStopsBeforeAwait"]=localOffBeforeRequest
+ checks["serverRefusalBlocksTransition"]=failedBlocked && NOVASession(store.archive!.active)==session
+ checks["privacyStopPreservesBackup"]=NOVASwiftBackupData.snapshot(store.archive!.active)==before
+ try await NOVASwiftAccountPrivacy.prepare(store,session:session,stop:{_ in .object(["ok":.bool(true)])})
+ checks["positiveServerStopAllowsSameSession"]=NOVASession(store.archive!.active)==session
+ var changedBlocked=false
+ do{try await NOVASwiftAccountPrivacy.prepare(store,session:session,stop:{_ in try store.changeAccount(email:"other@example.invalid",token:"other");return .object(["ok":.bool(true)])})}catch{changedBlocked=true}
+ checks["accountChangeDuringStopRejected"]=changedBlocked
+ try store.changeAccount(email:"fixture@example.invalid",token:"new")
+ var ops:[String]=[]
+ let services=NOVASwiftServicesModel(school:{body in ops.append(body["op"] as? String ?? "");return ["ok":1]},music:{_ in ["ok":1]},ai:{_ in ["ok":1]})
+ await services.schoolRequest("logout",store)
+ checks["disconnectUsesLogoutOnly"]=ops==["logout"]
+ checks["disconnectKeepsImportedData"]=store.archive?.active.object?["tasks"]?.array.count==1 && store.archive?.active.object?["gr"]?.array.count==1 && store.archive?.active.object?["cv"]?.object?["on"]?.flag==false
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-privacy-service-checks.txt"))
+}
+@MainActor func visualSwiftWelcomePages(_ web:WKWebView,_ dir:URL,_ step:Int){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try? store.importOnce(["nova.v1":"{\"tasks\":[],\"gr\":[]}"])
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NOVASwiftWelcome(store:store,initialStep:step));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+0.6){visualProductionSave(web,"production-swift-owned-welcome-"+String(step)+".png");if step<15{visualSwiftWelcomePages(web,dir,step+1)}else{page.dismiss(animated:false){let intro=UIHostingController(rootView:NOVASwiftCinematicIntro(completion:{}));intro.modalPresentationStyle = .fullScreen;root.present(intro,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2.5){visualProductionSave(web,"production-swift-owned-intro.png");intro.dismiss(animated:false){visualSwiftImportOrigin(web,dir)}}}}}}}}
+}
+"""
+p.write_text(s)
