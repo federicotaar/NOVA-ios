@@ -678,6 +678,7 @@ extension NOVAJSON {
     @State private var profile=false
     @State private var login=false
     @State private var confirmAlways=false
+    @State private var replayWelcome=false
     func text(_ key:String,_ fallback:String="")->Binding<String>{Binding(get:{store.archive?.active.object?[key]?.string ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .string(value)}}catch{self.error="Modifica non salvata"}})}
     func flag(_ key:String,_ fallback:Bool=false)->Binding<Bool>{Binding(get:{store.archive?.active.object?[key]?.flag ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .number(value ? 1:0)}}catch{self.error="Modifica non salvata"}})}
     func widget(_ key:String)->Binding<Bool>{Binding(get:{store.archive?.active.object?["w"]?.object?[key]?.flag ?? true},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){root in var widgets=root["w"]?.object ?? [:];widgets[key] = .number(value ? 1:0);root["w"] = .object(widgets)}}catch{self.error="Modifica non salvata"}})}
@@ -694,7 +695,7 @@ extension NOVAJSON {
             }
             Section("Aspetto"){
                 Picker("Tema",selection:text("theme","auto")){Text("Auto").tag("auto");Text("Chiaro").tag("light");Text("Scuro").tag("dark")}
-                Toggle("Intro disattivata",isOn:flag("introOff"))
+                Toggle("Intro disattivata",isOn:flag("introOff"));Button("Rivedi presentazione"){replayWelcome=true}
             }
             Section("Schermata Home"){
                 Toggle("Meteo",isOn:widget("wx"));Toggle("Batteria",isOn:widget("bat"));Toggle("Calendario",isOn:widget("cal"));Toggle("Compiti",isOn:widget("task"));Toggle("Verifiche",isOn:widget("nx"));Toggle("Spotify",isOn:widget("sp"))
@@ -716,6 +717,7 @@ extension NOVAJSON {
         .confirmationDialog("Attivare Sempre? L’assistente potrà aggiungere compiti e promemoria e aprire schermate senza chiedere ogni volta.",isPresented:$confirmAlways,titleVisibility:.visible){Button("Attiva Sempre"){do{try store.update(owner:store.archive?.owner ?? ""){$0["aiAct"] = .string("always")}}catch{self.error="Scelta non salvata."}};Button("Annulla",role:.cancel){}}
         .sheet(isPresented:$profile){NOVASwiftProfileEditor(store:store)}
         .sheet(isPresented:$login){NavigationStack{NOVASwiftAccountLogin(store:store)}}
+        .sheet(isPresented:$replayWelcome){NOVASwiftWelcome(store:store)}
     }
 }
 @MainActor struct NOVASwiftShell:View {
