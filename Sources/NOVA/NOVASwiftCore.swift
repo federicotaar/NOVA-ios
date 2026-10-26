@@ -510,54 +510,88 @@ extension NOVAJSON {
 @MainActor final class NOVASwiftSocial:ObservableObject {
     @Published private(set) var chats:[NOVAJSON]=[]
     @Published private(set) var messages:[NOVAJSON]=[]
+    @Published private(set) var friends:[NOVAJSON]=[]
+    @Published private(set) var reactions:[String:NOVAJSON]=[:]
+    @Published private(set) var senders:[String:NOVAJSON]=[:]
+    @Published private(set) var typing:[String]=[]
     @Published private(set) var status=""
     @Published private(set) var sending=false
     private var generation=0
     private var activeChat:String?
     private var session:NOVASession?
-    func close(){generation+=1;activeChat=nil;messages=[];status="";sending=false}
+    typealias Transport=(NOVASession,String,String,NOVAJSON?,[URLQueryItem]) async throws -> NOVAJSON
+    private let transport:Transport
+    init(transport:Transport?=nil){self.transport=transport ?? {owner,path,method,body,query in try await NOVAAccountService(session:owner).request(path,method:method,body:body,query:query)}}
+    func close(){generation+=1;activeChat=nil;messages=[];reactions=[:];senders=[:];typing=[];status="";sending=false}
+    private func current(_ store:NOVASwiftStore,_ owner:NOVASession,_ epoch:Int,_ id:String?=nil)->Bool{generation==epoch && store.archive.flatMap({NOVASession($0.active)})==owner && (id==nil || activeChat==id)}
     func loadChats(_ store:NOVASwiftStore) async {
-        guard let active=store.archive?.active,let owner=NOVASession(active) else{status="Accedi al tuo account NOVA.";return}
-        session=owner;generation+=1;let epoch=generation
-        do{let result=try await NOVAAccountService(session:owner).chats();guard epoch==generation,NOVASession(store.archive!.active)==owner else{return};chats=result.object?["chats"]?.array ?? [];status=""}catch{if epoch==generation{status="Elenco non aggiornato. Riprova."}}
+        guard let active=store.archive?.active,let owner=NOVASession(active) else{chats=[];status="Accedi al tuo account NOVA.";return}
+        session=owner;let epoch=generation
+        do{let result=try await transport(owner,"chats","GET",nil,[]);guard current(store,owner,epoch) else{return};chats=result.object?["chats"]?.array ?? [];status=""}catch{if current(store,owner,epoch){status="Elenco non aggiornato. Riprova."}}
     }
-    func open(_ id:String,_ store:NOVASwiftStore) async {
-        close();activeChat=id
-        guard let active=store.archive?.active,let owner=NOVASession(active) else{return};session=owner
-        await refresh(store)
+    func loadFriends(_ store:NOVASwiftStore) async {
+        guard let active=store.archive?.active,let owner=NOVASession(active) else{return};let epoch=generation
+        do{let result=try await transport(owner,"friends","GET",nil,[]);guard current(store,owner,epoch) else{return};friends=result.object?["friends"]?.array ?? []}catch{if current(store,owner,epoch){status="Amici non aggiornati."}}
     }
+    func create(_ members:[String],name:String,exam:Date?,_ store:NOVASwiftStore) async -> String? {
+        guard !members.isEmpty,let active=store.archive?.active,let owner=NOVASession(active) else{return nil};let epoch=generation
+        let group=members.count>1;var body:[String:NOVAJSON]=["type":.string(group ? "group":"dm"),"members":.array(members.map{.string($0)})]
+        if group{body["name"] = .string(name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty ? "Gruppo":name);if let exam=exam{body["exam_at"] = .number(exam.timeIntervalSince1970*1000)}}
+        do{let result=try await transport(owner,"chats","POST",.object(body),[]);guard current(store,owner,epoch),result.object?["ok"]?.flag==true,let id=result.object?["chat_id"] else{return nil};await loadChats(store);return id.string ?? String(id.integer)}catch{if current(store,owner,epoch){status="Chat non creata. Riprova."};return nil}
+    }
+    func open(_ id:String,_ store:NOVASwiftStore) async {close();activeChat=id;guard let active=store.archive?.active,let owner=NOVASession(active) else{return};session=owner;await refresh(store)}
     func refresh(_ store:NOVASwiftStore) async {
         guard let id=activeChat,let owner=session else{return};let epoch=generation
         do{
-            let result=try await NOVAAccountService(session:owner).request("chats/"+id+"/messages",query:[URLQueryItem(name:"limit",value:"50")])
-            guard epoch==generation,activeChat==id,NOVASession(store.archive!.active)==owner else{return}
-            messages=result.object?["messages"]?.array ?? [];status=""
-        }catch{if epoch==generation{status="Messaggi non aggiornati. Riprova."}}
+            let result=try await transport(owner,"chats/"+id+"/messages","GET",nil,[URLQueryItem(name:"limit",value:"50")])
+            guard current(store,owner,epoch,id) else{return}
+            messages=result.object?["messages"]?.array ?? [];reactions=result.object?["reactions"]?.object ?? [:];senders=result.object?["senders"]?.object ?? [:];status=""
+            // Opening a visible conversation has the same receipt semantics as the existing app.
+            if let last=messages.last?.object?["id"]{_ = try? await transport(owner,"chats/"+id+"/read","POST",.object(["last_msg_id":last]),[])}
+            guard current(store,owner,epoch,id) else{return}
+            let response=try await transport(owner,"chats/"+id+"/typing","GET",nil,[])
+            guard current(store,owner,epoch,id) else{return};typing=(response.object?["typing"]?.array ?? []).compactMap(\.string).prefix(8).map{$0}
+        }catch{if current(store,owner,epoch,id){typing=[];status="Messaggi non aggiornati. Riprova."}}
     }
-    func send(_ text:String,_ store:NOVASwiftStore) async -> Bool {
-        let text=text.trimmingCharacters(in:.whitespacesAndNewlines)
-        guard !sending,!text.isEmpty,let id=activeChat,let owner=session,NOVASession(store.archive!.active)==owner else{return false}
-        let epoch=generation;sending=true;defer{if epoch==generation{sending=false}}
+    func send(_ text:String,_ store:NOVASwiftStore) async -> Bool {let value=text.trimmingCharacters(in:.whitespacesAndNewlines);guard !value.isEmpty else{return false};return await sendBody(.object(["body":.string(value)]),store)}
+    func sendBody(_ body:NOVAJSON,_ store:NOVASwiftStore) async -> Bool {
+        guard !sending,let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return false}
+        let epoch=generation;sending=true;defer{if current(store,owner,epoch,id){sending=false}}
+        do{_ = try await transport(owner,"chats/"+id+"/messages","POST",body,[]);guard current(store,owner,epoch,id) else{return false};await refresh(store);return true}catch{if current(store,owner,epoch,id){status="Messaggio non inviato. La bozza resta conservata."};return false}
+    }
+    func media(_ data:Data,mime:String,kind:String,_ store:NOVASwiftStore) async -> Bool {
+        guard !sending,data.count>=500,data.count<=900000,["image/jpeg","audio/mp4"].contains(mime),let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return false}
+        let epoch=generation;sending=true;defer{if current(store,owner,epoch,id){sending=false}}
         do{
-            _ = try await NOVAAccountService(session:owner).request("chats/"+id+"/messages",method:"POST",body:.object(["body":.string(text)]))
-            guard epoch==generation,activeChat==id,NOVASession(store.archive!.active)==owner else{return false}
-            await refresh(store);return true
-        }catch{if epoch==generation{status="Messaggio non inviato. Il testo resta nella bozza."};return false}
+            let result=try await transport(owner,"media","POST",.object(["data":.string(data.base64EncodedString()),"mime":.string(mime)]),[])
+            guard current(store,owner,epoch,id),let key=result.object?["url"]?.string else{return false}
+            _ = try await transport(owner,"chats/"+id+"/messages","POST",.object(["kind":.string(kind),"media_key":.string(key)]),[])
+            guard current(store,owner,epoch,id) else{return false};await refresh(store);return true
+        }catch{if current(store,owner,epoch,id){status="Allegato non inviato. Riprova."};return false}
     }
+    func action(_ message:NOVAJSON,operation:String,value:String="",_ store:NOVASwiftStore) async {
+        guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner,let o=message.object,let messageID=o["id"],o["deleted"]?.flag != true else{return}
+        guard ["react","edit","delete"].contains(operation),operation=="react" || o["sender"]?.string==owner.email else{return}
+        if operation=="edit" && o["kind"]?.string != "text"{return}
+        let epoch=generation,key=messageID.string ?? String(messageID.integer)
+        let body:NOVAJSON = operation=="react" ? .object(["emoji":.string(value)]):operation=="edit" ? .object(["body":.string(value)]):.object([:])
+        do{_ = try await transport(owner,"messages/"+key+"/"+operation,"POST",body,[]);guard current(store,owner,epoch,id) else{return};await refresh(store)}catch{if current(store,owner,epoch,id){status="Modifica non confermata. Riprova."}}
+    }
+    func signalTyping(_ store:NOVASwiftStore) async {guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return};_ = try? await transport(owner,"chats/"+id+"/typing","POST",.object([:]),[])}
 }
 @MainActor struct NOVASwiftChatList:View {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var social=NOVASwiftSocial()
+    @State private var create=false
     var body:some View {
         NavigationStack{List{
             NavigationLink("Assistente AI"){NOVASwiftAssistant(store:store)}
             ForEach(Array(social.chats.enumerated()),id:\.offset){_,chat in
-                let o=chat.object ?? [:],id=o["id"].flatMap{value -> String? in value.string ?? String(value.integer)} ?? ""
-                NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)}}}
+                let o=chat.object ?? [:],id=o["id"].map{$0.string ?? String($0.integer)} ?? ""
+                NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)};if let exam=o["exam_at"],exam.integer>0{Text(Date(timeIntervalSince1970:Double(exam.integer)/1000),style:.date).font(.caption).foregroundStyle(.secondary)}}}
             }
             if !social.status.isEmpty{Text(social.status).foregroundStyle(.secondary)}
-            Text("Creazione chat, gruppi, allegati, reazioni e ricevute restano da verificare. Nessuna ricevuta viene inviata da questa anteprima.").font(.footnote).foregroundStyle(.secondary)
-        }.navigationTitle("Chat").refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}}
+        }.navigationTitle("Chat").toolbar{Button{create=true}label:{Image(systemName:"plus")}.accessibilityLabel("Nuova chat")}.sheet(isPresented:$create){NOVASwiftChatCreation(store:store,social:social)}.refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}}
     }
 }
 @MainActor struct NOVASwiftConversation:View {
@@ -565,16 +599,61 @@ extension NOVAJSON {
     @ObservedObject var social:NOVASwiftSocial
     let id:String
     let title:String
+    @Environment(\.scenePhase) var phase
     @State private var draft=""
+    @State private var photo:PhotosPickerItem?
+    @State private var photoDraft:Data?
+    @State private var mediaEpoch=0
+    @State private var typingAt=Date.distantPast
+    @State private var editMessage:NOVAJSON?
+    @State private var editText=""
+    @State private var editOpen=false
+    @State private var deleteMessage:NOVAJSON?
+    @State private var deleteOpen=false
+    @StateObject private var voice=NOVASwiftVoice()
+    @StateObject private var playback=NOVASwiftVoicePlayback()
+    func mediaURL(_ key:String)->URL? {let url=key.hasPrefix("/") ? URL(string:"https://api.federicotaranu.site"+key):URL(string:key);return url?.scheme=="https" ? url:nil}
     var body:some View {
-        VStack{
+        VStack(spacing:0){
             ScrollView{LazyVStack(alignment:.leading,spacing:12){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
-                let o=message.object ?? [:]
-                VStack(alignment:.leading){Text(o["kind"]?.string=="text" || o["kind"]==nil ? (o["body"]?.string ?? ""):(o["kind"]?.string=="image" ? "Foto allegata":"Messaggio vocale")).textSelection(.enabled)}.padding(12).frame(maxWidth:.infinity,alignment:.leading).background(Color.secondary.opacity(0.1),in:RoundedRectangle(cornerRadius:18))
+                let o=message.object ?? [:],own=o["sender"]?.string==store.archive?.active.object?["acct"]?.object?["email"]?.string
+                VStack(alignment:.leading,spacing:8){
+                    if o["deleted"]?.flag==true{Text("Messaggio eliminato").italic().foregroundStyle(.secondary)}else{
+                        if !own{Text(social.senders[o["sender"]?.string ?? ""]?.string ?? "Amico").font(.caption.bold())}
+                        if let key=o["media_key"]?.string,let url=mediaURL(key){
+                            if o["kind"]?.string=="image"{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}.frame(maxHeight:240)}
+                            if o["kind"]?.string=="voice"{HStack{Button{playback.play(url)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
+                        }
+                        if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled)}
+                        if o["edited"]?.flag==true{Text("modificato").font(.caption2).foregroundStyle(.secondary)}
+                        let key=o["id"].map{$0.string ?? String($0.integer)} ?? ""
+                        let reactions=social.reactions[key]?.array ?? []
+                        if !reactions.isEmpty{Text(reactions.compactMap{$0.object?["emoji"]?.string}.joined(separator:" ")).font(.caption)}
+                    }
+                }.padding(12).frame(maxWidth:.infinity,alignment:own ? .trailing:.leading).background(own ? Color.blue.opacity(0.1):Color.secondary.opacity(0.08),in:RoundedRectangle(cornerRadius:18))
+                .contextMenu{
+                    if o["deleted"]?.flag != true{ForEach(["👍","❤️","😂","😮","🎉"],id:\.self){emoji in Button(emoji){Task{await social.action(message,operation:"react",value:emoji,store)}}}
+                    if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}}
+                }
             }}.padding()}.refreshable{await social.refresh(store)}
-            if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary)}
-            HStack{TextField("Messaggio",text:$draft,axis:.vertical).textFieldStyle(.roundedBorder);Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}.padding()
-        }.navigationTitle(title).task{await social.open(id,store)}.onDisappear{social.close()}
+            if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+" sta scrivendo…").font(.caption).foregroundStyle(.secondary)}
+            if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
+            if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store){photoDraft=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
+            if let data=voice.draft{HStack{Text("Vocale in bozza");Button("Invia"){Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store){voice.cancel()}}}.disabled(social.sending);Button("Elimina",role:.destructive){voice.cancel()}}.padding()}
+            if !voice.status.isEmpty{Text(voice.status).font(.caption).foregroundStyle(.secondary)}
+            HStack(alignment:.bottom){
+                PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
+                Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"mic")}.accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
+                TextField("Messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.roundedBorder).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
+                Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+            }.padding()
+        }.navigationTitle(title)
+        .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
+        .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
+        .task{await social.open(id,store)}
+        .task(id:phase){while !Task.isCancelled{try? await Task.sleep(for:.seconds(4));guard !Task.isCancelled else{return};if phase == .active{await social.refresh(store)}}}
+        .onDisappear{mediaEpoch += 1;voice.cancel();playback.stop();social.close()}
+        .onChange(of:photo){_,item in mediaEpoch += 1;let epoch=mediaEpoch,owner=store.archive.flatMap{NOVASession($0.active)};Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data) else{return};guard epoch==mediaEpoch,store.archive.flatMap({NOVASession($0.active)})==owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);photoDraft=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))}}}
     }
 }
 @MainActor struct NOVASwiftSettings:View {
