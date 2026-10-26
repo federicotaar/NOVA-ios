@@ -209,3 +209,5 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
  workflow manuale test IPA, non avviato: flag Swift dedicato, prerelease immutabile, blocco tramite marker assente finché i gate integrati non sono accettati. Aggiunto typecheck del percorso con flag; non costituisce accettazione o pubblicazione.
 
 - Launch2 ha eseguito import esplicito e mostrato Home con dati sintetici corretti, condivisione spenta. Interazione poi ferma al hideKeyboard generico del driver, tastiera ancora visibile in pixel. Aggiunto vero pulsante tastiera Fine tastiera e chiusura interattiva tramite scroll nel form compito; nuovo test usa il pulsante. Salvataggio/riavvio ancora pendenti.
+
+- Launch3 ha rivelato concorrenza nel fixture: vecchia pagina sintetica riscriveva storage dopo il seed. Screenshot e archivio mostravano entrambi Synthetic invece del dato atteso. Ora interrompiamo navigazione/script fixture e passiamo a pagina inerte della stessa origine prima del seed. Non è prova di perdita dati reali, né un gate accettato.
