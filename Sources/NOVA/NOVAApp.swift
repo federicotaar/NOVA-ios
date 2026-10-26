@@ -2437,3 +2437,50 @@ extension NOVAJSON {
         }.navigationTitle(title).task{await social.open(id,store)}.onDisappear{social.close()}
     }
 }
+@MainActor struct NOVASwiftSettings:View {
+    @ObservedObject var store:NOVASwiftStore
+    @State private var error=""
+    @State private var profile=false
+    func text(_ key:String,_ fallback:String="")->Binding<String>{Binding(get:{store.archive?.active.object?[key]?.string ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .string(value)}}catch{error="Modifica non salvata"}})}
+    func flag(_ key:String,_ fallback:Bool=false)->Binding<Bool>{Binding(get:{store.archive?.active.object?[key]?.flag ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .number(value ? 1:0)}}catch{error="Modifica non salvata"}})}
+    func widget(_ key:String)->Binding<Bool>{Binding(get:{store.archive?.active.object?["w"]?.object?[key]?.flag ?? true},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){root in var widgets=root["w"]?.object ?? [:];widgets[key] = .number(value ? 1:0);root["w"] = .object(widgets)}}catch{error="Modifica non salvata"}})}
+    var body:some View {
+        NavigationStack{Form{
+            Section("Il tuo account"){
+                Button("Modifica profilo"){profile=true}
+                TextField("Il tuo nome",text:text("name"))
+                if let email=store.archive?.active.object?["acct"]?.object?["email"]?.string{Text(email).foregroundStyle(.secondary)}
+                Text("Accesso, uscita e confronto backup ancora in verifica. Nessuna sostituzione automatica dei dati.").font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Aspetto"){
+                Picker("Tema",selection:text("theme","auto")){Text("Auto").tag("auto");Text("Chiaro").tag("light");Text("Scuro").tag("dark")}
+                Toggle("Intro disattivata",isOn:flag("introOff"))
+            }
+            Section("Schermata Home"){
+                Toggle("Meteo",isOn:widget("wx"));Toggle("Batteria",isOn:widget("bat"));Toggle("Calendario",isOn:widget("cal"));Toggle("Compiti",isOn:widget("task"));Toggle("Verifiche",isOn:widget("nx"));Toggle("Spotify",isOn:widget("sp"))
+                NavigationLink("Modifica orario"){NOVASwiftTimetable(store:store)}
+            }
+            Section("Assistente AI"){
+                Picker("Azioni",selection:text("aiAct","ask")){Text("Chiedi prima").tag("ask");Text("Sempre").tag("always");Text("Mai").tag("deny")}
+                TextEditor(text:text("agentMd")).frame(minHeight:100)
+                Text("La scelta viene conservata, ma l'esecuzione delle azioni non è ancora attiva in questa anteprima Swift.").font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Privacy"){
+                Text("La migrazione non attiva la posizione, Fantasma, notifiche o accessi ai servizi. I permessi e i segreti esistenti restano invariati.")
+            }
+            if !error.isEmpty{Text(error).foregroundStyle(.red)}
+        }.navigationTitle("Impostazioni").environment(\.locale,Locale(identifier:"it_IT"))}
+        .sheet(isPresented:$profile){NOVASwiftProfileEditor(store:store)}
+    }
+}
+@MainActor struct NOVASwiftShell:View {
+    @ObservedObject var store:NOVASwiftStore
+    var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
+    var body:some View {
+        TabView {
+            NOVASwiftOverview(store:store).tabItem{Label("Home",systemImage:"house")}
+            NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}
+            NOVASwiftSettings(store:store).tabItem{Label("Profilo",systemImage:"person.crop.circle")}
+        }.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT"))
+    }
+}
