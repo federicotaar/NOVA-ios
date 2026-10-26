@@ -238,3 +238,9 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 ## QR amici con N: verifica in corso
 - Codice amici `nova:add:username` invariato, moduli arrotondati e N centrale; nessun collegamento a pagamenti. La scansione propone lo username e non invia richieste senza conferma.
 - Correzione errore alta, bordo libero conservato. Gate dedicato decodifica tre username sintetici a due dimensioni prima di accettare l'IPA.
+
+## 2026.10.26.2 TEST Swift: preparazione pacchetto
+- Chat: conversazione Swift con composer libero dalla barra globale e messaggi compatti stile iMessage. Gate apertura/tastiera/bozza/ritorno passato nel run40373264331.
+- Mappa a tutto schermo con pannello espandibile e controlli flottanti; cinque controlli di consenso separato passati nel run40371884896. Copertine native verificate nel run40369561161.
+- QR amici arrotondato con N centrale: corretta la matrice verticale che produceva un quarto finder. Nel run40384003462 Vision revision1 legge esattamente tutti i sei casi sintetici a240/480, come il controllo standard. Il default revision4 nel simulatore non legge neppure il controllo standard. Il gate usa revision1 solo nel fixture; il lettore foto di produzione e la fotocamera restano invariati. Lettura su iPhone ancora da confermare.
+- Pacchetto combinato di prova in preparazione, non ancora dichiarato pronto. Nessun reset account/dati, nessuna attivazione automatica posizione. Installare sopra la stessa app senza eliminarla. Accettazione reale di permessi, background e servizi/account resta aperta.
