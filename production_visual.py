@@ -670,3 +670,11 @@ if os.environ.get('NOVA_LAUNCH_INTERACTION')=='1':
     s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftLaunchInteractionReady(web,0)',1)
     s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
     p.write_text(s)
+
+if os.environ.get('NOVA_CHAT_INTERACTION')=='1':
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text()
+    assert 'visualSwiftOwnedReady(web,0)' in s
+    s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftChatInteractionReady(web,0)',1)
+    s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
+    p.write_text(s)
