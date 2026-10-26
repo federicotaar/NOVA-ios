@@ -677,6 +677,7 @@ extension NOVAJSON {
     @State private var error=""
     @State private var profile=false
     @State private var login=false
+    @State private var confirmAlways=false
     func text(_ key:String,_ fallback:String="")->Binding<String>{Binding(get:{store.archive?.active.object?[key]?.string ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .string(value)}}catch{self.error="Modifica non salvata"}})}
     func flag(_ key:String,_ fallback:Bool=false)->Binding<Bool>{Binding(get:{store.archive?.active.object?[key]?.flag ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .number(value ? 1:0)}}catch{self.error="Modifica non salvata"}})}
     func widget(_ key:String)->Binding<Bool>{Binding(get:{store.archive?.active.object?["w"]?.object?[key]?.flag ?? true},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){root in var widgets=root["w"]?.object ?? [:];widgets[key] = .number(value ? 1:0);root["w"] = .object(widgets)}}catch{self.error="Modifica non salvata"}})}
@@ -700,7 +701,7 @@ extension NOVAJSON {
                 NavigationLink("Modifica orario"){NOVASwiftTimetable(store:store)}
             }
             Section("Assistente AI"){
-                Picker("Azioni",selection:text("aiAct","ask")){Text("Chiedi prima").tag("ask");Text("Sempre").tag("always");Text("Mai").tag("deny")}
+                Picker("Azioni",selection:Binding(get:{store.archive?.active.object?["aiAct"]?.string ?? "ask"},set:{value in if value=="always",store.archive?.active.object?["aiAct"]?.string != "always"{confirmAlways=true}else{do{try store.update(owner:store.archive?.owner ?? ""){$0["aiAct"] = .string(value)}}catch{self.error="Scelta non salvata."}}})){Text("Chiedi prima").tag("ask");Text("Sempre").tag("always");Text("Mai").tag("deny")}
                 TextEditor(text:text("agentMd")).frame(minHeight:100)
                 Text("Chiedi prima mostra la conferma per ogni azione. Sempre può aggiungere compiti e promemoria o aprire schermate senza chiedere; Mai disattiva le nuove azioni.").font(.footnote).foregroundStyle(.secondary)
             }
@@ -709,6 +710,7 @@ extension NOVAJSON {
             }
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
         }.navigationTitle("Impostazioni").environment(\.locale,Locale(identifier:"it_IT"))}
+        .confirmationDialog("Attivare Sempre? L’assistente potrà aggiungere compiti e promemoria e aprire schermate senza chiedere ogni volta.",isPresented:$confirmAlways,titleVisibility:.visible){Button("Attiva Sempre"){do{try store.update(owner:store.archive?.owner ?? ""){$0["aiAct"] = .string("always")}}catch{self.error="Scelta non salvata."}};Button("Annulla",role:.cancel){}}
         .sheet(isPresented:$profile){NOVASwiftProfileEditor(store:store)}
         .sheet(isPresented:$login){NavigationStack{NOVASwiftAccountLogin(store:store)}}
     }
@@ -721,7 +723,7 @@ extension NOVAJSON {
     var body:some View {
         TabView(selection:$selectedTab) {
             NOVASwiftOverview(store:store).tabItem{Label("Home",systemImage:"house")}.tag(0)
-            NavigationStack{NOVASwiftGrades(store:store)}.tabItem{Label("Voti",systemImage:"chart.bar")}.tag(1)
+            NOVASwiftGrades(store:store).tabItem{Label("Voti",systemImage:"chart.bar")}.tag(1)
             NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}.tag(2)
             NOVASwiftMap(store:store).tabItem{Label("Mappa",systemImage:"map")}.tag(3)
             NOVASwiftSettings(store:store).tabItem{Label("Profilo",systemImage:"person.crop.circle")}.tag(4)
