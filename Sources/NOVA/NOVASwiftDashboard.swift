@@ -42,6 +42,7 @@ import UIKit
     @State private var settings=false
     @State private var status=""
     var root:[String:NOVAJSON]{store.archive?.active.object ?? [:]}
+    @State private var assistantTask:NOVAJSON?
     var dailyRange:String {let daily=weather.value?.object?["daily"]?.object ?? [:];let low=daily["temperature_2m_min"]?.array.first?.double ?? 0;let high=daily["temperature_2m_max"]?.array.first?.double ?? 0;return "Min "+String(Int(low.rounded()))+"° · Max "+String(Int(high.rounded()))+"°"}
     func visible(_ key:String)->Bool {root["w"]?.object?[key]?.flag ?? true}
     var body:some View {
@@ -88,6 +89,7 @@ import UIKit
                     if !status.isEmpty{Text(status).foregroundStyle(.red)}
                 }.padding(20)
             }.background(Color(uiColor:.systemGroupedBackground)).navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented:Binding(get:{assistantTask != nil},set:{if !$0{assistantTask=nil}})){if let task=assistantTask{NOVASwiftTaskHelp(store:store,task:task)}}
             .sheet(isPresented:$createTask){NOVASwiftTaskEditor(store:store)}.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}.sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
             .sheet(item:Binding(get:{selectedDay.map{NOVASwiftSelectedDay(date:$0)}},set:{selectedDay=$0?.date})){day in NavigationStack{List{ForEach(Array((root["tasks"]?.array ?? []).filter{task in guard let due=task.object?["due"]?.string else{return false};return due.hasPrefix(day.date.formatted(.iso8601.year().month().day().dateSeparator(.dash)))}.enumerated()),id:\.offset){_,task in taskRow(task)}}.navigationTitle(day.date.formatted(.dateTime.day().month(.wide).locale(Locale(identifier:"it_IT")))).toolbar{Button("Fatto"){selectedDay=nil}}}}
             .task(id:root["city"]?.object?["name"]?.string){UIDevice.current.isBatteryMonitoringEnabled=true;if let city=root["city"]{await weather.load(city:city)}}
@@ -101,7 +103,7 @@ import UIKit
     }
     func taskRow(_ task:NOVAJSON)->some View {
         let o=task.object ?? [:]
-        return HStack(alignment:.top){Button{do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "")}catch{status="Compito non modificato."}}label:{Image(systemName:o["done"]?.flag==true ? "checkmark.circle.fill":"circle")}.buttonStyle(.plain);VStack(alignment:.leading,spacing:4){Text(o["title"]?.string ?? "Compito");Text(NOVASwiftOverview.deadline(o["due"]?.string ?? "")).font(.caption).foregroundStyle(.secondary);if let note=o["note"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}};Spacer();Button(role:.destructive){do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "",remove:true)}catch{status="Compito non eliminato."}}label:{Image(systemName:"trash")}.accessibilityLabel("Elimina compito")}
+        return HStack(alignment:.top){Button{do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "")}catch{status="Compito non modificato."}}label:{Image(systemName:o["done"]?.flag==true ? "checkmark.circle.fill":"circle")}.buttonStyle(.plain);VStack(alignment:.leading,spacing:4){Button{assistantTask=task}label:{Text(o["title"]?.string ?? "Compito").foregroundStyle(.primary)}.buttonStyle(.plain);Text(NOVASwiftOverview.deadline(o["due"]?.string ?? "")).font(.caption).foregroundStyle(.secondary);if let note=o["note"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}};Spacer();Button(role:.destructive){do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "",remove:true)}catch{status="Compito non eliminato."}}label:{Image(systemName:"trash")}.accessibilityLabel("Elimina compito")}
     }
     var calendar:some View {
         let cal=Calendar(identifier:.gregorian),first=cal.component(.weekday,from:month),offset=(first+5)%7,count=cal.range(of:.day,in:.month,for:month)?.count ?? 0
