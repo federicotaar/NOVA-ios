@@ -707,6 +707,7 @@ extension NOVAJSON {
                 Text("Chiedi prima mostra la conferma per ogni azione. Sempre può aggiungere compiti e promemoria o aprire schermate senza chiedere; Mai disattiva le nuove azioni.").font(.footnote).foregroundStyle(.secondary)
             }
             Section("Privacy"){
+                NavigationLink("Blocco app e notifiche"){NOVASwiftDeviceSettings()}
                 Text("La migrazione non attiva la posizione, Fantasma, notifiche o accessi ai servizi. I permessi e i segreti esistenti restano invariati.")
             }
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
