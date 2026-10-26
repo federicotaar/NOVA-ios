@@ -22,6 +22,7 @@ import UserNotifications
     @ObservedObject var store:NOVASwiftStore
     @Environment(\.dismiss) var dismiss
     @State private var step=0
+    init(store:NOVASwiftStore,initialStep:Int=0){self.store=store;_step=State(initialValue:max(0,min(15,initialStep)))}
     @State private var name=""
     @State private var status=""
     @State private var owner=""
