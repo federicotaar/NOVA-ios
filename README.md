@@ -331,3 +331,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Accettazione interazione Swift: fixture isolata per vero trascinamento lente e tastiera, senza messaggi/account reali. Contenuto fermo durante pressione e cambio pagina solo al rilascio; cancellazione ripristina l'indice precedente. Workflow manuale separato, con errori reali bloccanti e prove salvate. Gesti/tastiera non accettati prima di esito e ispezione immagini/video.
 
 - Foto orario ripristinata in Swift: proposta in bozza, controllo account/sessione e chiusura durante lettura, nessuna scrittura prima di Salva. Giorni convertiti nello stesso formato dei widget; orari mancanti stimati e segnalati esplicitamente. Tre controlli parsing richiesti al prossimo checkpoint. Flusso Groq reale non eseguito.
+
+- Ripristino cache vecchio account: il cambio Swift legge anche l'involucro nova.account.v3 originale importato, senza scartare il contenuto dell'altro account. Posizione/servizi non riattivati e conferma profilo richiesta. L'originale rimane nella copia immutabile di recupero.
