@@ -66,6 +66,8 @@ struct NOVASwiftAuthService {
                     guard expected==generation,store.archive?.owner==startingOwner,store.archive.flatMap({NOVASession($0.active)})==startingSession else{return}
                     guard let token=response.object?["token"]?.string,!token.isEmpty else{throw NOVAServiceError.invalidResponse}
                     guard store.archive.map({NOVASwiftBackupData.snapshot($0.active)})==startingSnapshot else{throw CocoaError(.userCancelled)}
+                    if let previous=startingSession{try await NOVASwiftAccountPrivacy.prepare(store,session:previous)}
+                    guard expected==generation,store.archive?.owner==startingOwner,store.archive.flatMap({NOVASession($0.active)})==startingSession,store.archive.map({NOVASwiftBackupData.snapshot($0.active)})==startingSnapshot else{throw CocoaError(.userCancelled)}
                     try store.changeAccount(email:address,token:token)
                     let defaults=UserDefaults.standard;defaults.set(false,forKey:"nova.bgLoc.on");defaults.removeObject(forKey:"nova.bgLoc.session");defaults.removeObject(forKey:"nova.bgLoc.token");defaults.set(false,forKey:"nova.bgLoc.sharing")
                     CLLocationManager().stopMonitoringSignificantLocationChanges()
