@@ -113,3 +113,7 @@ Il filtro della barra di navigazione non si applica ai pulsanti di un pannello a
 ### Prima apertura
 
 Le superfici native includono i pulsanti della configurazione iniziale: Indietro, Avanti, Salta, scelte tema/widget e azioni dei servizi. I bersagli originali conservano eventi, conferme e permessi. Nessun servizio viene autorizzato o configurato automaticamente. L’intro conserva il gesto Tocca per saltare e la durata originale: non viene aggiunto un nuovo pulsante né un nuovo passaggio.
+
+### 2026.10.25.29
+
+Anche il selettore foto nella configurazione iniziale usa un pulsante glass: apre lo stesso selettore di sistema e mantiene la gestione originale della foto. Nessuna attivazione automatica di account o permessi. Verifica visiva e su dispositivo ancora distinta.
