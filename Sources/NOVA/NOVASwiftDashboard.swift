@@ -56,7 +56,7 @@ import UIKit
                             Text((root["city"]?.object?["name"]?.string ?? "")+" · "+NOVASwiftWeather.description(c["weather_code"]?.integer ?? 0)).foregroundStyle(.secondary)
                         }
                         if !weather.status.isEmpty{Text(weather.status).foregroundStyle(.secondary)}
-                        Text(dailyRange).font(.footnote)
+                        if weather.value != nil{Text(dailyRange).font(.footnote)}
                         Button("Usa la mia posizione"){locationOwner=store.archive?.owner ?? "";position.read()}
                         if !position.status.isEmpty{Text(position.status).font(.footnote).foregroundStyle(.secondary)}
                         HStack{TextField("Città",text:$cityQuery).textInputAutocapitalization(.words);Button("Cerca"){findCity()}.disabled(searching||cityQuery.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}
