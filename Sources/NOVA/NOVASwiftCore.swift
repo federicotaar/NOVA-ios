@@ -48,15 +48,16 @@ struct NOVASwiftArchive: Codable {
 }
 @MainActor final class NOVASwiftStore: ObservableObject {
     @Published private(set) var archive: NOVASwiftArchive?
+    private(set) var unreadableArchive=false
     private let directory: URL
     init(directory: URL? = nil) {
         self.directory = directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("NOVASwift",isDirectory:true)
         let url = self.directory.appendingPathComponent("state-v1.json")
-        if let data = try? Data(contentsOf:url) { archive = try? JSONDecoder().decode(NOVASwiftArchive.self,from:data) }
+        if FileManager.default.fileExists(atPath:url.path){if let data=try? Data(contentsOf:url),let saved=try? JSONDecoder().decode(NOVASwiftArchive.self,from:data){archive=saved}else{unreadableArchive=true}}
     }
     // Called only after the user reviews the one-time migration offer.
     func importOnce(_ values: [String:String]) throws {
-        guard archive == nil else { throw CocoaError(.fileWriteFileExists) }
+        guard archive == nil,!FileManager.default.fileExists(atPath:directory.appendingPathComponent("state-v1.json").path) else { throw CocoaError(.fileWriteFileExists) }
         var imported = try NOVASwiftArchive.imported(values)
         let original=imported
         // Copy personal data, never re-enable visibility or device services from a cached runtime flag.
@@ -815,7 +816,7 @@ extension NOVASwiftStore {
     @State private var busy=false
     @State private var error=""
     var body:some View{Group{
-        if store.archive != nil{NOVASwiftProtectedRoot(store:store)}else{
+        if store.archive != nil{NOVASwiftProtectedRoot(store:store)}else if store.unreadableArchive{VStack(spacing:20){Text("Archivio temporaneamente non leggibile").font(.title.bold());Text("Chiudi e riapri NOVA dopo aver sbloccato iPhone. Non cancellare o reinstallare l'app: i dati esistenti non verranno sovrascritti.")}.padding(24)}else{
             VStack(alignment:.leading,spacing:20){Text("NOVA in Swift").font(.largeTitle.bold())
                 if busy{ProgressView("Controllo dati sul dispositivo…")}
                 else if let legacy=legacy{Text(legacy.isEmpty ? "Non abbiamo trovato dati precedenti in questo spazio dell'app. Puoi iniziare senza attivare permessi o servizi.":"I dati precedenti sono pronti. Copiali nell'archivio Swift: account e dati restano conservati, la memoria precedente non viene cancellata. La posizione resta spenta finché non la scegli tu.")
