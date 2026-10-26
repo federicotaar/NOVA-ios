@@ -161,7 +161,7 @@ enum NOVASwiftLocationConsent {
                             Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Lo spegnimento offline richiede conferma del server. A app chiusa gli aggiornamenti avvengono ai grandi spostamenti: iOS può ritardarli o sospenderli.").font(.caption).foregroundStyle(.secondary)
                         }.frame(maxWidth:.infinity,alignment:.leading)}.frame(maxHeight:min(260,geometry.size.height*0.35))
                     }
-                }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,86).accessibilityIdentifier("swiftMapPanel")
+                }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,12).accessibilityIdentifier("swiftMapPanel")
             }
         }.task{await model.refresh(store)}
         .confirmationDialog("Condividere la tua posizione con gli amici NOVA?",isPresented:$confirmShare,titleVisibility:.visible){Button("Condividi"){Task{await model.sharing(true,store)}};Button("Annulla",role:.cancel){}}message:{Text("Verrà inviata solo quando richiedi una lettura. Gli aggiornamenti a app chiusa richiedono una scelta separata.")}
