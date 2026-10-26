@@ -54,6 +54,7 @@ jobs:
           cp "$CONTAINER/Documents/profile-light.txt" evidence/ || true
           cp "$CONTAINER/Documents/dashboard-functional.txt" evidence/ || true
           cp "$CONTAINER/Documents/timetable-functional.txt" evidence/ || true
+          cp "$CONTAINER/Documents/swift-screen-state.txt" evidence/ || true
           cp "$CONTAINER/Documents/editing-state.txt" evidence/ || true
           cp "$CONTAINER/Documents/reaction-state.txt" evidence/ || true
           cp "$CONTAINER/Documents/onboarding-state.txt" evidence/ || true
