@@ -438,7 +438,7 @@ s=p.read_text()+r'''
 '''
 p.write_text(s)
 p=Path('/tmp/NOVAProductionVisual.swift')
-s=p.read_text().replace('await visualSwiftAssistantChecks(dir);try? Data()', 'await visualSwiftAssistantChecks(dir);visualSwiftSchoolChecks(dir);try? Data()',1)
+s=p.read_text().replace('await visualSwiftAssistantChecks(dir);try? Data()', 'await visualSwiftAssistantChecks(dir);visualSwiftSchoolChecks(dir);await visualSwiftNotificationChecks(dir);try? Data()',1)
 s+=r'''
 @MainActor func visualSwiftSchoolChecks(_ dir:URL){
  var checks:[String:Bool]=[:]
@@ -494,6 +494,25 @@ struct VisualSwiftNavigationFixture:View {
 @MainActor func visualSwiftNavigationScreen(_ web:WKWebView,_ dir:URL){
  guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
  root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:VisualSwiftNavigationFixture());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-navigation.png");visualSwiftImportOrigin(web,dir)}}}
+}
+'''
+p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text()+r'''
+@MainActor func visualSwiftNotificationChecks(_ dir:URL) async {
+ var checks:[String:Bool]=[:]
+ do{
+  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"fixture@example.invalid\",\"token\":\"synthetic\"},\"prof\":{\"username\":\"fixture\"}}"])
+  var paths:[String]=[];var changed=false
+  let model=NOVASwiftSocialNotifications{_,path,method,_,_ in paths.append(method+":"+path);if path=="profile"{return .object(["ok":.bool(true),"profile":.object(["ntfy_topic":.string(changed ? "nova-changed":"nova-fixture")])])};return .object(["ok":.bool(true),"accepted":.bool(true)])}
+  await model.load(store);checks["readNeverPublishesTest"] = paths==["GET:profile"]
+  checks["previewHiddenByDefault"] = !model.preview
+  paths=[];changed=true;await model.test(store);checks["changedTopicBlocksTest"] = !paths.contains("POST:notifications/test")
+  changed=false;await model.load(store);paths=[];await model.test(store);checks["explicitTestRechecksTopic"] = paths==["GET:profile","POST:notifications/test"]
+  model.cancel();checks["cancelClearsTopic"] = model.topic.isEmpty
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-notification-checks.txt"))
 }
 '''
 p.write_text(s)
