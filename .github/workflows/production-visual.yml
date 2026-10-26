@@ -1,7 +1,7 @@
 name: Full production SwiftUI visual acceptance
 on:
   push:
-    paths: ['.github/workflows/production-visual.yml', 'production_visual.py', 'Sources/NOVA/nova.html', 'Sources/NOVA/NOVAApp.swift', 'Sources/NOVAWidget/NOVAWidget.swift']
+    paths: ['.github/workflows/production-visual.yml', 'production_visual.py', 'Sources/NOVA/nova.html', 'Sources/NOVA/*.swift', 'Sources/NOVAWidget/NOVAWidget.swift']
   workflow_dispatch:
 permissions:
   contents: read
