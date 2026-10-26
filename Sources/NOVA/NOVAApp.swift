@@ -1866,3 +1866,79 @@ final class NativeDashboard:NSObject,UITextFieldDelegate {
  func textFieldDidEndEditing(_ field:UITextField){editing=false;input(field);if let b=pending{sync(b)}}
  func textFieldShouldReturn(_ field:UITextField)->Bool{field.resignFirstResponder();return true}
 }
+// Swift-owned state foundation. Not activated until screen/service parity is verified.
+// Unknown JSON keys survive import and every write. Legacy storage is never deleted.
+indirect enum NOVAJSON: Codable, Equatable {
+    case null, bool(Bool), number(Double), string(String), array([NOVAJSON]), object([String:NOVAJSON])
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null }
+        else if let v = try? c.decode(Bool.self) { self = .bool(v) }
+        else if let v = try? c.decode(Double.self) { self = .number(v) }
+        else if let v = try? c.decode(String.self) { self = .string(v) }
+        else if let v = try? c.decode([NOVAJSON].self) { self = .array(v) }
+        else { self = .object(try c.decode([String:NOVAJSON].self)) }
+    }
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .null: try c.encodeNil()
+        case .bool(let v): try c.encode(v)
+        case .number(let v): try c.encode(v)
+        case .string(let v): try c.encode(v)
+        case .array(let v): try c.encode(v)
+        case .object(let v): try c.encode(v)
+        }
+    }
+    var object: [String:NOVAJSON]? { if case .object(let o) = self { return o }; return nil }
+    var string: String? { if case .string(let s) = self { return s }; return nil }
+}
+struct NOVASwiftArchive: Codable {
+    let version: Int
+    let importedAt: Date
+    var localStorage: [String:String]
+    var active: NOVAJSON
+    var owner: String {
+        active.object?["acct"]?.object?["email"]?.string?.lowercased() ?? "local"
+    }
+    static func imported(_ values: [String:String]) throws -> NOVASwiftArchive {
+        guard let source = values["nova.v1"], let bytes = source.data(using:.utf8),
+              let state = try? JSONDecoder().decode(NOVAJSON.self, from:bytes), state.object != nil else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        return NOVASwiftArchive(version:1, importedAt:Date(), localStorage:values, active:state)
+    }
+}
+@MainActor final class NOVASwiftStore: ObservableObject {
+    @Published private(set) var archive: NOVASwiftArchive?
+    private let directory: URL
+    init(directory: URL? = nil) {
+        self.directory = directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("NOVASwift",isDirectory:true)
+        let url = self.directory.appendingPathComponent("state-v1.json")
+        if let data = try? Data(contentsOf:url) { archive = try? JSONDecoder().decode(NOVASwiftArchive.self,from:data) }
+    }
+    // Called only after the user reviews the one-time migration offer.
+    func importOnce(_ values: [String:String]) throws {
+        guard archive == nil else { throw CocoaError(.fileWriteFileExists) }
+        let imported = try NOVASwiftArchive.imported(values)
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let data = try encoder.encode(imported)
+        // Keep an immutable recovery copy before activating the new state.
+        try data.write(to:directory.appendingPathComponent("legacy-import-v1.json"),options:[.atomic,.completeFileProtection])
+        try data.write(to:directory.appendingPathComponent("state-v1.json"),options:[.atomic,.completeFileProtection])
+        let readBack = try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:directory.appendingPathComponent("state-v1.json")))
+        guard readBack.active == imported.active, readBack.localStorage == imported.localStorage else { throw CocoaError(.fileWriteUnknown) }
+        archive = readBack
+    }
+    func update(owner: String, _ edit: (inout [String:NOVAJSON]) throws -> Void) throws {
+        guard var current = archive, current.owner == owner, var state = current.active.object else { throw CocoaError(.userCancelled) }
+        let previousOwner = current.owner
+        try edit(&state); current.active = .object(state)
+        // Account transitions use a separate reviewed transaction, never an ordinary field update.
+        guard current.owner == previousOwner else { throw CocoaError(.userCancelled) }
+        let data = try JSONEncoder().encode(current)
+        try data.write(to:directory.appendingPathComponent("state-v1.json"),options:[.atomic,.completeFileProtection])
+        archive = current
+    }
+}
