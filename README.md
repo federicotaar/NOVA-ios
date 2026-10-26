@@ -197,3 +197,7 @@ Valori dei menu priorità/promemoria visibili nel modulo nativo; descrizione con
 ### 2026.10.25.49
 
 Correzioni da video e schermate reali: rimossi i duplicati nativi posizionati sopra le pagine web che restavano indietro durante lo scroll; i pulsanti originali restano usabili fino alla migrazione di quelle pagine. Spotify nativo a icone con etichette accessibilità. Separatore verifiche/scadenza. StandBy spento e pulsante rimosso. Batteria aggiornata al ritorno in primo piano; valori UIKit indicati come approssimativi, livello sconosciuto mai presentato come100%.
+
+### 2026.10.25.50
+
+L'editor dell'orario usa una pagina UIKit: giorni, lezioni, materie/aula, selettori dell'ora e azioni Salva/Annulla. I dati restano in bozza fino al salvataggio e mantengono lo stesso invio ai widget. L'importazione usa il selettore foto di sistema senza ritagliare la griglia dell'orario, poi lo stesso servizio Groq con la chiave locale. La lettura della foto resta da verificare sul dispositivo e non salva automaticamente il risultato.
