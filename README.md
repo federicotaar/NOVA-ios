@@ -129,3 +129,7 @@ Aprendo agent.md, il focus iniziale va al titolo invece di aprire subito l’edi
 ### 2026.10.25.32
 
 Il dialogo agent.md segue la finestra visibile durante la modifica, con titolo e conferme nel pannello scorrevole. Nessuna modifica ai file, ai permessi o al salvataggio.
+
+### 2026.10.25.33
+
+Prima schermata nativa: Impostazioni usa una lista UIKit con campi, interruttori e azioni nello stesso scorrimento. Non usa più controlli posizionati sopra righe HTML. Lo stato e le conferme restano nei gestori esistenti; le destinazioni separate profilo, orario e introduzione restano disponibili. Il resto dell’app continua la migrazione: non è ancora interamente nativo. Verifica su dispositivo ancora necessaria.
