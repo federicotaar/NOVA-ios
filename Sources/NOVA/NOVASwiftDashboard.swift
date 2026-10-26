@@ -123,16 +123,25 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
 @MainActor struct NOVASwiftGrades:View {
     @ObservedObject var store:NOVASwiftStore
     var grades:[NOVAJSON]{store.archive?.active.object?["gr"]?.array ?? []}
+    var grouped:[String:[NOVAJSON]]{Dictionary(grouping:grades,by:{$0.object?["subj"]?.string ?? "Materia"})}
     var body:some View {
         NavigationStack{List{
-            if grades.isEmpty{Text("Nessun voto numerico salvato. Collegamento ClasseViva ancora in verifica.").foregroundStyle(.secondary)}
-            let grouped=Dictionary(grouping:grades,by:{$0.object?["subj"]?.string ?? "Materia"})
-            ForEach(grouped.keys.sorted(),id:\.self){subject in
-                let values=(grouped[subject] ?? []).compactMap{value -> Double? in if case .number(let n)?=value.object?["v"]{return n};return nil}
-                if !values.isEmpty{let average=values.reduce(0,+)/Double(values.count),need=6*Double(values.count+1)-values.reduce(0,+)
-                    Section(subject){Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) voti").font(.title2);Text(average>=6 ? (need<=1 ? "Sei al sicuro":"Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al 6"):(need>10 ? "Servono più voti per arrivare al 6":"Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al 6")).font(.footnote).foregroundStyle(.secondary);ForEach(Array((grouped[subject] ?? []).sorted{($0.object?["date"]?.string ?? "")>($1.object?["date"]?.string ?? "")}.enumerated()),id:\.offset){_,grade in VStack(alignment:.leading,spacing:4){HStack{Text(grade.object?["d"]?.string ?? String(grade.object?["v"]?.double ?? 0)).font(.headline);Spacer();Text(grade.object?["date"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};if let kind=grade.object?["k"]?.string,!kind.isEmpty{Text(kind).font(.caption)};if let note=grade.object?["n"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}}}
-                }
-            }
+            if grades.isEmpty{Text("Nessun voto numerico salvato.").foregroundStyle(.secondary)}
+            ForEach(grouped.keys.sorted(),id:\.self){subject in subjectSection(subject)}
         }.navigationTitle("Voti")}.environment(\.locale,Locale(identifier:"it_IT"))
     }
+    @ViewBuilder func subjectSection(_ subject:String)->some View{
+        let rows=grouped[subject] ?? []
+        let values=rows.compactMap{row -> Double? in if case .number(let n)?=row.object?["v"]{return n};return nil}
+        if !values.isEmpty{
+            let total=values.reduce(0,+),average=total/Double(values.count),need=6*Double(values.count+1)-total
+            Section(subject){
+                Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) voti").font(.title2)
+                Text(target(average,need)).font(.footnote).foregroundStyle(.secondary)
+                ForEach(Array(rows.sorted{($0.object?["date"]?.string ?? "")>($1.object?["date"]?.string ?? "")}.enumerated()),id:\.offset){_,grade in gradeRow(grade)}
+            }
+        }
+    }
+    func target(_ average:Double,_ need:Double)->String{if average>=6{return need<=1 ? "Sei al sicuro":"Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al 6"};return need>10 ? "Servono piu voti per arrivare al 6":"Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al 6"}
+    func gradeRow(_ grade:NOVAJSON)->some View{VStack(alignment:.leading,spacing:4){HStack{Text(grade.object?["d"]?.string ?? String(grade.object?["v"]?.double ?? 0)).font(.headline);Spacer();Text(grade.object?["date"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};if let kind=grade.object?["k"]?.string,!kind.isEmpty{Text(kind).font(.caption)};if let note=grade.object?["n"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}}}
 }
