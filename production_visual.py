@@ -1,5 +1,5 @@
 from pathlib import Path
-s=Path('Sources/NOVA/NOVAApp.swift').read_text()+chr(10)+Path('Sources/NOVA/NOVASwiftMap.swift').read_text()
+s=Path('Sources/NOVA/NOVAApp.swift').read_text()+chr(10)+Path('Sources/NOVA/NOVASwiftMap.swift').read_text()+chr(10)+Path('Sources/NOVA/NOVASwiftBackup.swift').read_text()
 h=Path('Sources/NOVA/nova.html');html=h.read_text();html=html.replace(' const syncNative=()=>{syncDashboard();syncGlassButtons();', ' window.__settingsTestKeys=()=>({fields:nativeFields,epoch:settingsEpoch,sync:syncNative,dashboardFields,dashboardEpoch});const syncNative=()=>{syncDashboard();syncGlassButtons();');h.write_text(html)
 r=Path('ChatRegression.swift').read_text();fixture=r.split(' let fixture="""',1)[1].split('"""',1)[0]
 fixture += '''
