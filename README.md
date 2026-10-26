@@ -329,3 +329,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Dettaglio voti: conservati data, voto originale, componente e note per materia, oltre a media e obiettivo. Rimossa scheda Spotify duplicata. Profilo: salvataggio bloccato se il token cambia mentre la bozza e aperta. Servizi: refresh ClasseViva bloccato per credenziali non confermate su quell'account; letture asincrone Groq ricontrollano la chiusura schermata.
 
 - Accettazione interazione Swift: fixture isolata per vero trascinamento lente e tastiera, senza messaggi/account reali. Contenuto fermo durante pressione e cambio pagina solo al rilascio; cancellazione ripristina l'indice precedente. Workflow manuale separato, con errori reali bloccanti e prove salvate. Gesti/tastiera non accettati prima di esito e ispezione immagini/video.
+
+- Foto orario ripristinata in Swift: proposta in bozza, controllo account/sessione e chiusura durante lettura, nessuna scrittura prima di Salva. Giorni convertiti nello stesso formato dei widget; orari mancanti stimati e segnalati esplicitamente. Tre controlli parsing richiesti al prossimo checkpoint. Flusso Groq reale non eseguito.
