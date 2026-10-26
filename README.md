@@ -207,3 +207,6 @@ L'editor dell'orario usa una pagina UIKit: giorni, lezioni, materie/aula, selett
 L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia account o si avvia una lettura più recente. Il risultato resta da controllare e salvare esplicitamente.
 
  workflow manuale test IPA, non avviato: flag Swift dedicato, prerelease immutabile, blocco tramite marker assente finché i gate integrati non sono accettati. Aggiunto typecheck del percorso con flag; non costituisce accettazione o pubblicazione.
+
+- Manual296 accettato:71 controlli sintetici,3 shell/ricaricamento/recupero e2 origine, tutti76 veri. Ispezionate le cinque schede del vero shell Swift e profilo scuro. Il salvataggio tramite tocchi/riavvio e import tramite avvio restano gate separati.
+- Avvio-import1 non ha raggiunto fixture; aggiunta attesa dell'origine pronta e screenshot in caso timeout. Corretto percorso ripresentazione setup attraverso Impostazioni. Nessun nuovo IPA.
