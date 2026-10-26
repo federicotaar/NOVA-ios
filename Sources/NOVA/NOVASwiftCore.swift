@@ -653,6 +653,7 @@ extension NOVAJSON {
         .task{await social.open(id,store)}
         .task(id:phase){while !Task.isCancelled{try? await Task.sleep(for:.seconds(4));guard !Task.isCancelled else{return};if phase == .active{await social.refresh(store)}}}
         .onDisappear{mediaEpoch += 1;voice.cancel();playback.stop();social.close()}
+        .onChange(of:store.archive?.owner){_,_ in mediaEpoch += 1;draft="";photoDraft=nil;voice.cancel();playback.stop();social.close()}
         .onChange(of:photo){_,item in mediaEpoch += 1;let epoch=mediaEpoch,owner=store.archive.flatMap{NOVASession($0.active)};Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data) else{return};guard epoch==mediaEpoch,store.archive.flatMap({NOVASession($0.active)})==owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);photoDraft=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))}}}
     }
 }
