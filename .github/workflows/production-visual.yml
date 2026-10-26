@@ -48,6 +48,7 @@ jobs:
           cp "$CONTAINER/Documents/native-functional.txt" evidence/ || true
           cp "$CONTAINER/Documents/profile-extras.txt" evidence/ || true
           cp "$CONTAINER/Documents/profile-focus.txt" evidence/ || true
+          cp "$CONTAINER/Documents/profile-light.txt" evidence/ || true
           cp "$CONTAINER/Documents/editing-state.txt" evidence/ || true
           cp "$CONTAINER/Documents/reaction-state.txt" evidence/ || true
           cp "$CONTAINER/Documents/onboarding-state.txt" evidence/ || true
