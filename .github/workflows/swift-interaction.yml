@@ -1,0 +1,108 @@
+name: Swift-owned finger and keyboard acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  wk-chat:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build WKWebView regression app
+        run: |
+          set -e
+          mkdir -p /tmp/ChatTest.app
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          ARCH=$(uname -m)
+          NOVA_INTERACTION=1 python3 production_visual.py
+          xcrun swiftc -D DEBUG -parse-as-library -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" /tmp/NOVAProductionVisual.swift -o /tmp/ChatTest.app/ChatTest
+          cp Sources/NOVA/nova.html /tmp/ChatTest.app/nova.html
+          cat > /tmp/ChatTest.app/Info.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>site.federicotaranu.nova.chattest</string><key>CFBundleExecutable</key><string>ChatTest</string><key>CFBundleName</key><string>ChatTest</string><key>CFBundleVersion</key><string>1</string><key>CFBundlePackageType</key><string>APPL</string><key>MinimumOSVersion</key><string>17.0</string><key>UILaunchScreen</key><dict/></dict></plist>
+          PLIST
+          codesign --force --sign - /tmp/ChatTest.app
+      - name: Boot install launch and verify
+        run: |
+          set -e
+          UDID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v if "iPhone" in x["name"]))')
+          defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool NO
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl spawn "$UDID" defaults write com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool YES
+          xcrun simctl spawn "$UDID" defaults write com.apple.Preferences DidShowContinuousPathIntroduction -bool YES
+          xcrun simctl install "$UDID" /tmp/ChatTest.app
+          mkdir -p evidence
+          xcrun simctl launch "$UDID" site.federicotaranu.nova.chattest
+          CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
+          for i in $(seq 1 45); do [ -f "$CONTAINER/Documents/interaction-ready" ] && break; sleep 1; done
+          xcrun simctl io "$UDID" screenshot evidence/native-segment-rest.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-Swift-interaction-rest
+          path: evidence/native-segment-rest.png
+      - name: Install native UI driver
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Real finger navigation capture
+        run: |
+          cat > /tmp/nav.yaml <<'FLOW'
+          appId: site.federicotaranu.nova.chattest
+          ---
+          - launchApp
+          - extendedWaitUntil:
+              visible:
+                id: "swiftOwnedNavigation"
+              timeout: 30000
+          - takeScreenshot: evidence/swift-nav-before
+          - swipe:
+              start: "14%,91%"
+              end: "85%,91%"
+              duration: 2000
+          - assertVisible: "Pagina 4"
+          - takeScreenshot: evidence/swift-nav-profile
+          - swipe:
+              start: "85%,91%"
+              end: "14%,91%"
+              duration: 2000
+          - assertVisible: "Pagina 0"
+          - takeScreenshot: evidence/swift-nav-return
+          - tapOn:
+              id: "interactionComposer"
+          - inputText: "Bozza tastiera Swift"
+          - takeScreenshot: evidence/swift-keyboard
+          - tapOn: "Chiudi tastiera"
+          - takeScreenshot: evidence/swift-keyboard-dismissed
+          FLOW
+          UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
+          xcrun simctl io "$UDID" recordVideo --codec=h264 evidence/nav-real-drag.mp4 >/tmp/nav-video.log 2>&1 &
+          PID=$!
+          export MAESTRO_DRIVER_STARTUP_TIMEOUT=240000
+          python3 - <<'PYRUN'
+          import subprocess
+          try: subprocess.run(['maestro','test','/tmp/nav.yaml'],timeout=360,check=True)
+          except subprocess.TimeoutExpired: raise SystemExit('UI driver exceeded360s; acceptance incomplete')
+          PYRUN
+          CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
+          cp "$CONTAINER/Documents/swift-interaction.json" evidence/
+          python3 - <<'VERIFY'
+          import json
+          x=json.load(open('evidence/swift-interaction.json'))
+          assert x['selected']==0 and x['draft']=='Bozza tastiera Swift',x
+          assert x['checks'].get('contentHeldUntilRelease') and x['checks'].get('noEarlyPageCommit') and x['checks'].get('fingerEnded'),x
+          VERIFY
+          find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
+          kill -INT "$PID" || true
+          sleep 5
+          kill -TERM "$PID" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: NOVA-Swift-finger-keyboard
+          path: |
+            evidence/*.png
+            evidence/*.mp4
+            evidence/*.json
+            /tmp/**/*.png
+            /tmp/.maestro/**/*.png
+            /Users/runner/.maestro/**/*.png
