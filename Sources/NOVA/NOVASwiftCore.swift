@@ -398,6 +398,9 @@ extension NOVAJSON {
     @State private var status=""
     @State private var generation=0
     @State private var owner=""
+    @State private var photo:PhotosPickerItem?
+    @State private var photoDraft:String?
+    @State private var photoEpoch=0
     var messages:[NOVAJSON]{store.archive?.active.object?["chat"]?.array ?? []}
     var body:some View {
         NavigationStack {
@@ -410,33 +413,44 @@ extension NOVAJSON {
                             Text(o["r"]?.string=="user" ? "Tu":"NOVA").font(.caption.bold()).foregroundStyle(.secondary)
                             if let image=o["img"]?.string,let data=Data(base64Encoded:image.components(separatedBy:",").last ?? ""),let ui=UIImage(data:data){Image(uiImage:ui).resizable().scaledToFit().frame(maxHeight:200)}
                             Text(o["c"]?.string ?? "").textSelection(.enabled)
-                            if !((o["acts"]?.array ?? []).isEmpty){Text("Azioni conservate. Esecuzione ancora da verificare nella versione Swift.").font(.caption).foregroundStyle(.secondary)}
+                            ForEach(Array((o["acts"]?.array ?? []).enumerated()),id:\.offset){action,value in
+                                let item=value.object ?? [:],state=item["st"]?.string ?? ""
+                                VStack(alignment:.leading){Text(item["a"]?.string=="open" ? "Apri: "+(item["page"]?.string ?? ""):"Aggiungi: "+(item["title"]?.string ?? ""));if state=="wait",item["swiftID"]?.string != nil{HStack{Button("Conferma"){Task{await NOVASwiftAssistantActions.run(store,owner:owner,message:index,action:action)}};Button("Annulla"){try? NOVASwiftAssistantActions.update(store,owner:owner,message:index,action:action,state:"no",note:"Annullata.")}}}else{Text(item["note"]?.string ?? (state=="pending" ? "Attendo conferma…":state=="off" ? "Azioni disattivate":"Azione conservata, non rieseguita.")).font(.caption).foregroundStyle(.secondary)}}
+                            }
                         }.padding(14).frame(maxWidth:.infinity,alignment:.leading).background(o["r"]?.string=="user" ? Color.blue.opacity(0.1):Color.secondary.opacity(0.08),in:RoundedRectangle(cornerRadius:20)).id(index)
                     }
                 }.padding()}.onChange(of:messages.count){_,_ in if !messages.isEmpty{proxy.scrollTo(messages.count-1,anchor:.bottom)}}}
                 if !status.isEmpty{Text(status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
+                if let photoDraft=photoDraft,let data=Data(base64Encoded:photoDraft.components(separatedBy:",").last ?? ""),let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Rimuovi foto",role:.destructive){self.photoDraft=nil}}}
                 HStack(alignment:.bottom){
+                    PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
                     TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.roundedBorder)
-                    Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                    Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                 }.padding()
             }.navigationTitle("Assistente")
-        }.onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1}
+        }.onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1;photoEpoch+=1;sending=false}
+        .onChange(of:store.archive?.owner){_,_ in generation+=1;photoEpoch+=1;owner=store.archive?.owner ?? "";draft="";photoDraft=nil;sending=false}
+        .onChange(of:photo){_,item in photoEpoch+=1;let epoch=photoEpoch,expectedOwner=owner;Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),epoch==photoEpoch,owner==expectedOwner,owner==store.archive?.owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};photoDraft="data:image/jpeg;base64,"+jpeg.base64EncodedString()}}
+
     }
     func send(){
         let text=draft.trimmingCharacters(in:.whitespacesAndNewlines)
-        guard !text.isEmpty,!sending,owner==store.archive?.owner else{return}
+        let image=photoDraft
+        guard (!text.isEmpty || image != nil),!sending,owner==store.archive?.owner else{return}
         guard Secret.get("groq") != nil else{status="Prima salva la tua chiave Groq nelle impostazioni.";return}
         let snapshot=store.archive!.active.object ?? [:]
-        do{try store.update(owner:owner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("user"),"c":.string(text)]));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Messaggio non salvato. Riprova.";return}
-        draft="";sending=true;generation+=1;let expected=generation,expectedOwner=owner
+        do{try store.update(owner:owner){root in var chat=root["chat"]?.array ?? [];var item:[String:NOVAJSON]=["r":.string("user"),"c":.string(text)];if let image=image{item["img"] = .string(image)};chat.append(.object(item));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Messaggio non salvato. Riprova.";return}
+        draft="";photoDraft=nil;sending=true;generation+=1;let expected=generation,expectedOwner=owner
         let permission=snapshot["aiAct"]?.string ?? "ask"
-        let system="Sei NOVA, assistente di studio. Rispondi in italiano in modo concreto. Non dichiarare di aver modificato dati, programmato notifiche o eseguito azioni: questa anteprima non esegue azioni. Permesso azioni salvato: "+permission+". Nome: "+(snapshot["name"]?.string ?? "")
+        let system=NOVASwiftAssistantActions.system(snapshot)
         let history=messages.suffix(12).map{message -> [String:String] in let o=message.object ?? [:];return["role":o["r"]?.string=="user" ? "user":"assistant","content":o["c"]?.string ?? ""]}
         Task{
-            let response=await Groq.handle(["op":"chat","messages":[["role":"system","content":system]]+history])
+            let response:[String:Any]
+            if let image=image{response=await Groq.handle(["op":"vision","img":image,"prompt":system+"\nRichiesta: "+text])}else{response=await Groq.handle(["op":"chat","messages":[["role":"system","content":system]]+history])}
             guard expected==generation,expectedOwner==store.archive?.owner else{return};sending=false
             let answer=(response["ok"] as? Int)==1 ? (response["text"] as? String ?? ""):"Richiesta non completata. Controlla connessione e chiave Groq."
-            do{try store.update(owner:expectedOwner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("assistant"),"c":.string(answer)]));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Risposta ricevuta ma non salvata: "+answer}
+            let (visible,actions)=NOVASwiftAssistantActions.parse(answer,permission:permission)
+            do{try store.update(owner:expectedOwner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("assistant"),"c":.string(visible),"acts":.array(actions)]));root["chat"] = .array(Array(chat.suffix(40)))};if permission=="always"{let message=messages.count-1;for action in actions.indices{await NOVASwiftAssistantActions.run(store,owner:expectedOwner,message:message,action:action)}}}catch{status="Risposta ricevuta ma non salvata: "+visible}
         }
     }
 }
@@ -688,7 +702,7 @@ extension NOVAJSON {
             Section("Assistente AI"){
                 Picker("Azioni",selection:text("aiAct","ask")){Text("Chiedi prima").tag("ask");Text("Sempre").tag("always");Text("Mai").tag("deny")}
                 TextEditor(text:text("agentMd")).frame(minHeight:100)
-                Text("La scelta viene conservata, ma l'esecuzione delle azioni non è ancora attiva in questa anteprima Swift.").font(.footnote).foregroundStyle(.secondary)
+                Text("Chiedi prima mostra la conferma per ogni azione. Sempre può aggiungere compiti e promemoria o aprire schermate senza chiedere; Mai disattiva le nuove azioni.").font(.footnote).foregroundStyle(.secondary)
             }
             Section("Privacy"){
                 Text("La migrazione non attiva la posizione, Fantasma, notifiche o accessi ai servizi. I permessi e i segreti esistenti restano invariati.")
@@ -702,13 +716,16 @@ extension NOVAJSON {
 @MainActor struct NOVASwiftShell:View {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var sync=NOVASwiftSync()
+    @State private var selectedTab=0
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
     var body:some View {
-        TabView {
-            NOVASwiftOverview(store:store).tabItem{Label("Home",systemImage:"house")}
-            NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}
-            NOVASwiftSettings(store:store).tabItem{Label("Profilo",systemImage:"person.crop.circle")}
-        }.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store)}.onDisappear{sync.stop()}
+        TabView(selection:$selectedTab) {
+            NOVASwiftOverview(store:store).tabItem{Label("Home",systemImage:"house")}.tag(0)
+            NavigationStack{NOVASwiftGrades(store:store)}.tabItem{Label("Voti",systemImage:"chart.bar")}.tag(1)
+            NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}.tag(2)
+            NOVASwiftMap(store:store).tabItem{Label("Mappa",systemImage:"map")}.tag(3)
+            NOVASwiftSettings(store:store).tabItem{Label("Profilo",systemImage:"person.crop.circle")}.tag(4)
+        }.onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store)}.onDisappear{sync.stop()}
     }
 }
 
