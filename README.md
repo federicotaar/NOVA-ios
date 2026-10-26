@@ -121,3 +121,7 @@ Anche il selettore foto nella configurazione iniziale usa un pulsante glass: apr
 ### 2026.10.25.30
 
 Il selettore del file di personalità dell’assistente usa lo stesso pulsante glass degli altri caricamenti. Tipi di file, lettura locale e conferma del testo restano invariati. Nessun file viene scelto o letto senza il gesto dell’utente.
+
+### 2026.10.25.31
+
+Aprendo agent.md, il focus iniziale va al titolo invece di aprire subito l’editor. Altezza del testo limitata alla finestra: selettore e conferme restano nel dialogo. Lettura locale e salvataggio esplicito invariati.
