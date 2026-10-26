@@ -316,3 +316,29 @@ struct VisualSongFixture:View {@State var draft:[String:NOVAJSON]=[:];var body:s
 }
 '''
 p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('await visualSwiftSyncChecks(dir);try? Data()', 'await visualSwiftSyncChecks(dir);await visualSwiftSocialChecks(dir);try? Data()',1)
+s+=r'''
+@MainActor func visualSwiftSocialChecks(_ dir:URL) async {
+ var checks:[String:Bool]=[:]
+ do{
+  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"fixture@example.invalid\",\"token\":\"synthetic\"},\"tasks\":[]}"])
+  var paths:[String]=[]
+  let social=NOVASwiftSocial{_,path,method,body,_ in
+   paths.append(method+":"+path)
+   if path=="chats/1/messages" && method=="GET"{return .object(["messages":.array([.object(["id":.number(2),"sender":.string("fixture@example.invalid"),"kind":.string("text"),"body":.string("Example")])])])}
+   if path=="media"{return .object(["url":.string("/media/synthetic")])}
+   return .object(["ok":.bool(true)])
+  }
+  await social.open("1",store);checks["readReceiptAfterVisibleOpen"]=paths.contains("POST:chats/1/read")
+  let sent=await social.send("Draft",store);checks["textSendSameConversation"]=sent && paths.contains("POST:chats/1/messages")
+  paths=[];let other:NOVAJSON = .object(["id":.number(3),"sender":.string("other@example.invalid"),"kind":.string("text")]);await social.action(other,operation:"delete",store);checks["cannotDeleteOtherSender"]=paths.isEmpty
+  let own=social.messages.first!;await social.action(own,operation:"react",value:"👍",store);checks["reactionUsesEstablishedEndpoint"]=paths.contains("POST:messages/2/react")
+  paths=[];let uploaded=await social.media(Data(repeating:1,count:1000),mime:"image/jpeg",kind:"image",store);checks["mediaUploadThenMessage"]=uploaded && paths.first=="POST:media" && paths.contains("POST:chats/1/messages")
+  social.close();paths=[];let closed=await social.send("Blocked",store);checks["closedConversationCannotSend"] = !closed && paths.isEmpty
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-social-checks.txt"))
+}
+'''
+p.write_text(s)
