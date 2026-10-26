@@ -563,3 +563,10 @@ s+=r"""
 }
 """
 p.write_text(s)
+
+import os
+if os.environ.get('NOVA_INTERACTION')=='1':
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text().replace('visualNativeProfileReady(web,0)','visualSwiftInteractionReady(web,0)',1)
+    s+='\n'+Path('NOVAInteractionFixture.swift').read_text()
+    p.write_text(s)
