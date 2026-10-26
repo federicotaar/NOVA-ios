@@ -346,3 +346,6 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Ripristino backup disattiva anche proposte AI in attesa del vecchio archivio. Aggiunte prove visive per canzone profilo, scuro, dettaglio compito e bozza AI non inviata. Lotto ancora da verificare. Migrazione inattiva, nessuna nuova release.
 
 - Mappa Swift: i messaggi di conferma posizione/Fantasma richiedono anche ok:true dal server. Ripristino backup disattiva proposte AI in attesa e un controllo sintetico dedicato lo verifica. Ultimo lotto ancora in compilazione; gesti/tastiera restano da accettare, nessuna attivazione o pubblicazione.
+
+- Checkpoint277: 69 controlli sintetici piu 2 importazione/origine tutti veri. Controllati canzone profilo, dettaglio compito chiaro/scuro e contesto AI come bozza non inviata. Compilazione276 superata.
+- Interazione3 ha eseguito trascinamenti avanti/indietro, cambio pagina e inserimento bozza, ma il gate pressione/rilascio ha rifiutato l’assenza degli eventi dal controllo di sistema. Aggiunto osservatore simultaneo senza sostituire il gesto di sistema; richiesto nuovo test4. Non dichiarati accettati pressione/rilascio o tastiera, percorso sempre inattivo.
