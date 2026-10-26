@@ -44,10 +44,25 @@ import AVFoundation
                 HStack{TextField("Titolo o artista",text:$query).autocorrectionDisabled();Button("Cerca"){Task{await songs.search(query)}}}
                 if !songs.status.isEmpty{Text(songs.status).font(.footnote).foregroundStyle(.secondary)}
                 ForEach(Array(songs.results.enumerated()),id:\.offset){_,song in let o=song.object ?? [:]
-                    HStack{if let art=o["art"]?.string,let url=URL(string:art),url.scheme=="https"{AsyncImage(url:url){image in image.resizable().scaledToFill()}placeholder:{Color.secondary.opacity(0.1)}.frame(width:48,height:48).clipShape(RoundedRectangle(cornerRadius:8))};VStack(alignment:.leading){Text(o["t"]?.string ?? "");Text(o["a"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};Spacer();Button{Task{await songs.preview(song)}}label:{Image(systemName:"play.fill")}.buttonStyle(.bordered).accessibilityLabel("Ascolta anteprima");Button("Scegli"){draft["song"]=song;songs.stop();dismiss()}.buttonStyle(.borderedProminent)}
+                    HStack{NOVASwiftSongArtwork(song:song,size:56);VStack(alignment:.leading){Text(o["t"]?.string ?? "");Text(o["a"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};Spacer();Button{Task{await songs.preview(song)}}label:{Image(systemName:"play.fill")}.buttonStyle(.bordered).accessibilityLabel("Ascolta anteprima");Button("Scegli"){draft["song"]=song;songs.stop();dismiss()}.buttonStyle(.borderedProminent)}
                 }
                 Button("Rimuovi canzone",role:.destructive){draft["song"] = .null;songs.stop();dismiss()}
             }.navigationTitle("La tua canzone").toolbar{ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}};ToolbarItem(placement:.bottomBar){Button("Ferma anteprima"){songs.stop()}}}
         }.onDisappear{songs.stop()}
     }
+}
+
+struct NOVASwiftSongArtwork:View {
+    let song:NOVAJSON
+    var size:CGFloat=76
+    var body:some View{
+        Group{if let address=song.object?["art"]?.string,let url=URL(string:address),url.scheme=="https"{
+            AsyncImage(url:url){phase in if let image=phase.image{image.resizable().scaledToFill()}else{placeholder}}
+        }else{placeholder}}.frame(width:size,height:size).clipShape(RoundedRectangle(cornerRadius:size*0.16)).accessibilityLabel("Copertina di "+(song.object?["t"]?.string ?? "canzone"))
+    }
+    var placeholder:some View{ZStack{LinearGradient(colors:[.pink.opacity(0.55),.purple.opacity(0.5)],startPoint:.topLeading,endPoint:.bottomTrailing);Image(systemName:"music.note").font(.system(size:size*0.35,weight:.medium)).foregroundStyle(.white)}}
+}
+struct NOVASwiftSongCard:View {
+    let song:NOVAJSON
+    var body:some View{HStack(spacing:14){NOVASwiftSongArtwork(song:song);VStack(alignment:.leading,spacing:5){Text(song.object?["t"]?.string ?? "").font(.headline);Text(song.object?["a"]?.string ?? "").font(.subheadline).foregroundStyle(.secondary)};Spacer(minLength:0)}.padding(.vertical,6)}
 }
