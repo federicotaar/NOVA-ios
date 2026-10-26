@@ -578,6 +578,7 @@ extension NOVAJSON {
     @ObservedObject var store:NOVASwiftStore
     @State private var error=""
     @State private var profile=false
+    @State private var login=false
     func text(_ key:String,_ fallback:String="")->Binding<String>{Binding(get:{store.archive?.active.object?[key]?.string ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .string(value)}}catch{self.error="Modifica non salvata"}})}
     func flag(_ key:String,_ fallback:Bool=false)->Binding<Bool>{Binding(get:{store.archive?.active.object?[key]?.flag ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .number(value ? 1:0)}}catch{self.error="Modifica non salvata"}})}
     func widget(_ key:String)->Binding<Bool>{Binding(get:{store.archive?.active.object?["w"]?.object?[key]?.flag ?? true},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){root in var widgets=root["w"]?.object ?? [:];widgets[key] = .number(value ? 1:0);root["w"] = .object(widgets)}}catch{self.error="Modifica non salvata"}})}
@@ -585,6 +586,8 @@ extension NOVAJSON {
         NavigationStack{Form{
             Section("Il tuo account"){
                 Button("Modifica profilo"){profile=true}
+                Button("Accedi o cambia account"){login=true}
+                NavigationLink("Backup account"){NOVASwiftBackup(store:store)}
                 TextField("Il tuo nome",text:text("name"))
                 if let email=store.archive?.active.object?["acct"]?.object?["email"]?.string{Text(email).foregroundStyle(.secondary)}
                 Text("Accesso, uscita e confronto backup ancora in verifica. Nessuna sostituzione automatica dei dati.").font(.footnote).foregroundStyle(.secondary)
@@ -608,6 +611,7 @@ extension NOVAJSON {
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
         }.navigationTitle("Impostazioni").environment(\.locale,Locale(identifier:"it_IT"))}
         .sheet(isPresented:$profile){NOVASwiftProfileEditor(store:store)}
+        .sheet(isPresented:$login){NavigationStack{NOVASwiftAccountLogin(store:store)}}
     }
 }
 @MainActor struct NOVASwiftShell:View {
