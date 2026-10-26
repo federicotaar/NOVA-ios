@@ -2058,3 +2058,56 @@ struct NOVALessonDraft: Identifiable {
         }.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}
     }
 }
+// Swift transport preserves backend permissions; no privileged endpoints or invented defaults.
+struct NOVASession: Equatable {
+    let email: String
+    let token: String
+    init?(_ state: NOVAJSON) {
+        guard let acct=state.object?["acct"]?.object,
+              let email=acct["email"]?.string, let token=acct["token"]?.string,
+              !email.isEmpty, !token.isEmpty else {return nil}
+        self.email=email.lowercased();self.token=token
+    }
+}
+enum NOVAServiceError: Error { case invalidResponse, http(Int,String), accountChanged }
+struct NOVAAccountService {
+    let session: NOVASession
+    let base=URL(string:"https://api.federicotaranu.site")!
+    func request(_ path:String,method:String="GET",body:NOVAJSON?=nil,query:[URLQueryItem]=[]) async throws -> NOVAJSON {
+        var components=URLComponents(url:base.appendingPathComponent(path),resolvingAgainstBaseURL:false)!
+        if !query.isEmpty{components.queryItems=query}
+        var request=URLRequest(url:components.url!);request.httpMethod=method;request.timeoutInterval=25
+        request.setValue("application/json",forHTTPHeaderField:"Content-Type")
+        request.setValue("Bearer "+session.token,forHTTPHeaderField:"Authorization")
+        if let body=body{request.httpBody=try JSONEncoder().encode(body)}
+        let (data,response)=try await URLSession.shared.data(for:request)
+        guard let response=response as? HTTPURLResponse else{throw NOVAServiceError.invalidResponse}
+        let json=try JSONDecoder().decode(NOVAJSON.self,from:data)
+        guard (200..<300).contains(response.statusCode) else{throw NOVAServiceError.http(response.statusCode,json.object?["error"]?.string ?? "Richiesta non riuscita")}
+        return json
+    }
+    func account() async throws -> NOVAJSON { try await request("account-data") }
+    func profile() async throws -> NOVAJSON { try await request("profile") }
+    func friends() async throws -> NOVAJSON { try await request("friends") }
+    func chats() async throws -> NOVAJSON { try await request("chats") }
+}
+@MainActor final class NOVASwiftAccountCoordinator: ObservableObject {
+    @Published private(set) var remote: NOVAJSON?
+    @Published private(set) var status=""
+    private var generation=0
+    // Read-only until conflict comparison and reviewed selection are available.
+    func refresh(_ store:NOVASwiftStore) async {
+        guard let archive=store.archive,let session=NOVASession(archive.active) else{return}
+        generation+=1;let expected=generation
+        status="Controllo backup account…"
+        do {
+            let response=try await NOVAAccountService(session:session).account()
+            guard expected==generation,let active=store.archive?.active,NOVASession(active)==session else{return}
+            remote=response;status="Copia online letta. Nessuna sovrascrittura automatica."
+        }catch{
+            guard expected==generation,let active=store.archive?.active,NOVASession(active)==session else{return}
+            status="Copia online non verificata. Dati locali conservati."
+        }
+    }
+    func invalidate(){generation+=1;remote=nil;status=""}
+}
