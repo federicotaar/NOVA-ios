@@ -559,7 +559,7 @@ s+=r"""
 @MainActor func visualSwiftProfileOverview(_ web:WKWebView,_ dir:URL){
  guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try? store.importOnce(["nova.v1":"{\"name\":\"Studente dimostrativo\",\"prof\":{\"username\":\"nova.demo\",\"study\":\"Scuola dimostrativa\",\"skills\":\"Matematica e informatica\",\"hobbies\":\"Musica\",\"song\":{\"t\":\"Canzone dimostrativa\",\"a\":\"Artista\"}}}"])
- let page=UIHostingController(rootView:NOVASwiftProfile(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-profile-overview.png");visualSwiftImportOrigin(web,dir)}}
+ let page=UIHostingController(rootView:NOVASwiftProfile(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-profile-overview.png");visualSwiftFinalDetailScreens(web,store,dir,page)}}
 }
 """
 p.write_text(s)
@@ -615,6 +615,21 @@ s=p.read_text()+r"""
  func scroll(_ view:UIView)->UIScrollView?{if let s=view as? UIScrollView{return s};for child in view.subviews{if let s=scroll(child){return s}};return nil}
  if let view=scroll(page.view){view.setContentOffset(CGPoint(x:0,y:max(0,view.contentSize.height-view.bounds.height)),animated:false)}
  DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-services-lower.png");visualSwiftLifecycleScreens(web,store,dir)}
+}
+"""
+p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text()+r"""
+@MainActor func visualSwiftFinalDetailScreens(_ web:WKWebView,_ store:NOVASwiftStore,_ dir:URL,_ page:UIViewController){
+ func scroll(_ view:UIView)->UIScrollView?{if let s=view as? UIScrollView{return s};for child in view.subviews{if let s=scroll(child){return s}};return nil}
+ if let view=scroll(page.view){view.setContentOffset(CGPoint(x:0,y:max(0,view.contentSize.height-view.bounds.height)),animated:false)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-profile-lower.png");page.overrideUserInterfaceStyle = .dark
+ DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-profile-dark.png");page.dismiss(animated:false){
+ guard let root=web.window?.rootViewController else{return}
+ let task:NOVAJSON = .object(["title":.string("Ripasso funzioni, dominio e grafici"),"subj":.string("Matematica"),"kind":.string("test"),"due":.string("2026-11-03T09:00"),"note":.string("Porta il quaderno e controlla gli esercizi."),"src":.string("cv")])
+ let help=UIHostingController(rootView:NOVASwiftTaskHelp(store:store,task:task));help.modalPresentationStyle = .fullScreen;root.present(help,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-detail.png");help.overrideUserInterfaceStyle = .dark;DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-detail-dark.png");help.dismiss(animated:false){let ai=UIHostingController(rootView:NOVASwiftAssistant(store:store,initialDraft:"Aiutami a prepararmi per la verifica di Matematica."));ai.modalPresentationStyle = .fullScreen;root.present(ai,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-task-ai-draft.png");visualSwiftImportOrigin(web,dir)}}}}}}
+ }}}
 }
 """
 p.write_text(s)
