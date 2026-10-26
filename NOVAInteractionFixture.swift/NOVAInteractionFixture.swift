@@ -22,3 +22,13 @@ import UIKit
     guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftInteractionReady(web,attempt+1)}};return}
     let page=UIHostingController(rootView:NOVAInteractionFixture());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor func visualSwiftRootInteractionReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftRootInteractionReady(web,attempt+1)}};return}
+ let directory=FileManager.default.temporaryDirectory.appendingPathComponent("root-interaction")
+ let store=NOVASwiftStore(directory:directory)
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Studente demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"w\":{\"wx\":0,\"sp\":0},\"tasks\":[],\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"studente.demo\"}}"])}
+ let page=UIHostingController(rootView:NOVASwiftProtectedRoot(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ func persist(){let docs=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];if let value=store.archive?.active,let data=try? JSONEncoder().encode(value){try? data.write(to:docs.appendingPathComponent("swift-root-state.json"))};DispatchQueue.main.asyncAfter(deadline:.now()+0.5){persist()}}
+ persist()
+}
