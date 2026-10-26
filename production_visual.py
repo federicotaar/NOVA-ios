@@ -484,3 +484,16 @@ s=p.read_text()+r'''
 }
 '''
 p.write_text(s)
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('visualProductionSave(web,"production-swift-owned-device-settings.png");visualSwiftImportOrigin(web,dir)','visualProductionSave(web,"production-swift-owned-device-settings.png");visualSwiftNavigationScreen(web,dir)',1)
+s+=r'''
+struct VisualSwiftNavigationFixture:View {
+ @State var selected=0
+ var body:some View{VStack{Text(["Home","Voti","Chat","Mappa","Profilo"][selected]).font(.largeTitle.bold());Text("Contenuto dimostrativo: cambia solo al rilascio").foregroundStyle(.secondary);Spacer()}.padding().safeAreaInset(edge:.bottom){NOVASwiftNavigation(selected:$selected,avatar:"").frame(height:58).padding(18)}}
+}
+@MainActor func visualSwiftNavigationScreen(_ web:WKWebView,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:VisualSwiftNavigationFixture());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-navigation.png");visualSwiftImportOrigin(web,dir)}}}
+}
+'''
+p.write_text(s)
