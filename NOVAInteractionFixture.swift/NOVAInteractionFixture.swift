@@ -37,7 +37,7 @@ import UIKit
 @MainActor final class NOVALaunchFixtureOrigin:NSObject,WKNavigationDelegate {
  static let shared=NOVALaunchFixtureOrigin()
  var completion:(()->Void)?
- func prepare(_ web:WKWebView,_ completion:@escaping()->Void){self.completion=completion;web.navigationDelegate=self
+ func prepare(_ web:WKWebView,_ completion:@escaping()->Void){self.completion=completion;web.stopLoading();web.configuration.userContentController.removeAllUserScripts();web.navigationDelegate=self
  #if SWIFT_PACKAGE
  let bundle=Bundle.module
  #else
