@@ -45,9 +45,10 @@ import UserNotifications
                 try store.logoutConfirmed(session:owner,snapshot:snapshot)
                 let defaults=UserDefaults.standard;defaults.set(false,forKey:"nova.bgLoc.on");defaults.removeObject(forKey:"nova.bgLoc.session");defaults.removeObject(forKey:"nova.bgLoc.token");defaults.set(false,forKey:"nova.bgLoc.sharing")
                 CLLocationManager().stopMonitoringSignificantLocationChanges()
+                    UserDefaults.standard.removeObject(forKey:"nova.plan");UserDefaults.standard.removeObject(forKey:"nova.known")
                 let center=UNUserNotificationCenter.current(),pending=await UNUserNotificationCenter.current().pendingNotificationRequests()
                 guard store.archive?.owner=="local" else{busy=false;return}
-                center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("rem.")})
+                center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("rem.") || $0.hasPrefix("manual.swift.") || $0.hasPrefix("hw.") || $0.hasPrefix("plan.")})
                 status="Uscita completata. Copia locale conservata."
             }catch{status="Uscita non completata. Account e dati restano sul telefono."}
             busy=false
