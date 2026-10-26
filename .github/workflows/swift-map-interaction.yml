@@ -51,15 +51,12 @@ jobs:
           appId: site.federicotaranu.nova.chattest
           ---
           - launchApp
-          - assertVisible:
-              id: "swiftMapExpand"
+          - assertVisible: "Persone"
           - takeScreenshot: evidence/swift-map-full
-          - tapOn:
-              id: "swiftMapExpand"
+          - tapOn: "Persone"
           - assertVisible: "Anche a app chiusa"
           - takeScreenshot: evidence/swift-map-options
-          - tapOn:
-              id: "swiftMapExpand"
+          - tapOn: "Persone"
           - assertNotVisible: "Anche a app chiusa"
           - takeScreenshot: evidence/swift-map-collapsed
           FLOW
@@ -75,6 +72,7 @@ jobs:
           PYRUN
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
+          cp "$CONTAINER/Documents/map-consent-checks.json" evidence/
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           kill -INT "$PID" || true
           sleep 5
