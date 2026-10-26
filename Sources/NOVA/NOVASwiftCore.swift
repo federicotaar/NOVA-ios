@@ -760,6 +760,7 @@ extension NOVASwiftStore {
         var next:[String:NOVAJSON]
         if target==oldOwner {next=current.active.object ?? [:]}
         else if let saved=current.localStorage["nova.swift.account."+target],let bytes=saved.data(using:.utf8),let state=try? JSONDecoder().decode(NOVAJSON.self,from:bytes).object {next=state}
+        else if let saved=current.localStorage["nova.account.v3."+target],let bytes=saved.data(using:.utf8),let envelope=try? JSONDecoder().decode(NOVAJSON.self,from:bytes),let data=envelope.object?["data"],data.object != nil {next=data.object!;next["cv"] = .object(["on":.number(0)]);next["profConfirmed"] = .string("");next["profPending"] = .number(1)}
         else {next=["name":.string(""),"theme":.string("auto"),"sb":.string("off"),"tasks":.array([]),"chat":.array([]),"gr":.array([]),"tt":.object(["lessons":.array([])]),"prof":.object([:]),"w":.object([:]),"done":.number(0),"ob":.number(0),"aiAct":.string("ask")]}
         next["acct"] = .object(["email":.string(target),"token":.string(token)])
         next["locShare"] = .number(0);next["bgLoc"] = .number(0);next["locSession"] = .string("");next["locSessionToken"] = .string("")
