@@ -205,3 +205,7 @@ L'editor dell'orario usa una pagina UIKit: giorni, lezioni, materie/aula, selett
 ### 2026.10.25.51
 
 L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia account o si avvia una lettura più recente. Il risultato resta da controllare e salvare esplicitamente.
+
+### Correzione privacy del codice pubblico
+
+Rimossi l'orario personale incorporato, il riempimento automatico basato sul nome e la copia nelle prove visive. Nessuna cancellazione dell'orario già salvato sul dispositivo. Il widget non deve sostituire un orario vuoto o assente con lezioni personali incorporate. Le vecchie versioni, i commit e i file distribuiti possono conservare copie e richiedono una verifica separata prima di rendere nuovamente pubblico il progetto. Pubblicazione automatica sospesa durante la bonifica.
