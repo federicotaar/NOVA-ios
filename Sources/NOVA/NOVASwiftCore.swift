@@ -440,17 +440,17 @@ extension NOVAJSON {
         guard Secret.get("groq") != nil else{status="Prima salva la tua chiave Groq nelle impostazioni.";return}
         let snapshot=store.archive!.active.object ?? [:]
         do{try store.update(owner:owner){root in var chat=root["chat"]?.array ?? [];var item:[String:NOVAJSON]=["r":.string("user"),"c":.string(text)];if let image=image{item["img"] = .string(image)};chat.append(.object(item));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Messaggio non salvato. Riprova.";return}
-        draft="";photoDraft=nil;sending=true;generation+=1;let expected=generation,expectedOwner=owner
+        draft="";photoDraft=nil;sending=true;generation+=1;let expected=generation,expectedOwner=owner,expectedSession=store.archive.flatMap{NOVASession($0.active)}
         let permission=snapshot["aiAct"]?.string ?? "ask"
         let system=NOVASwiftAssistantActions.system(snapshot)
         let history=messages.suffix(12).map{message -> [String:String] in let o=message.object ?? [:];return["role":o["r"]?.string=="user" ? "user":"assistant","content":o["c"]?.string ?? ""]}
         Task{
             let response:[String:Any]
             if let image=image{response=await Groq.handle(["op":"vision","img":image,"prompt":system+"\nRichiesta: "+text])}else{response=await Groq.handle(["op":"chat","messages":[["role":"system","content":system]]+history])}
-            guard expected==generation,expectedOwner==store.archive?.owner else{return};sending=false
+            guard expected==generation,expectedOwner==store.archive?.owner,store.archive.flatMap({NOVASession($0.active)})==expectedSession else{return};sending=false
             let answer=(response["ok"] as? Int)==1 ? (response["text"] as? String ?? ""):"Richiesta non completata. Controlla connessione e chiave Groq."
             let (visible,actions)=NOVASwiftAssistantActions.parse(answer,permission:permission)
-            do{try store.update(owner:expectedOwner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("assistant"),"c":.string(visible),"acts":.array(actions)]));root["chat"] = .array(Array(chat.suffix(40)))};if permission=="always"{let message=messages.count-1;for action in actions.indices{await NOVASwiftAssistantActions.run(store,owner:expectedOwner,message:message,action:action)}}}catch{status="Risposta ricevuta ma non salvata: "+visible}
+            do{try store.update(owner:expectedOwner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("assistant"),"c":.string(visible),"acts":.array(actions)]));root["chat"] = .array(Array(chat.suffix(40)))};if permission=="always"{let message=messages.count-1;for action in actions.indices{await NOVASwiftAssistantActions.run(store,owner:expectedOwner,message:message,action:action,automatic:true)}}}catch{status="Risposta ricevuta ma non salvata: "+visible}
         }
     }
 }
