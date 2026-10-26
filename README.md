@@ -245,3 +245,5 @@ La mappa Swift autonoma è in verifica: MapKit, lettura posizione solo su richie
 Il confronto backup Swift è esplicito: mostra copie diverse senza scelta automatica, conserva un recupero verificato prima del cambio e usa la revisione server per bloccare conflitti. Il ripristino non riesegue azioni IA e non attiva posizione o servizi. Sono ancora da collegare accesso/uscita, salvataggio automatico e verifiche complete; il percorso resta inattivo.
 
 La lettura mappa mostra l'ora reale della posizione, non una promessa di aggiornamento continuo. Gli invii richiedono che il token della sessione di condivisione corrisponda all'account attivo, anche per dati importati.
+
+Le verifiche e la compilazione di produzione includono anche i nuovi moduli Swift separati. La pubblicazione IPA resta disattivata durante la migrazione: nessuna versione precedente viene sostituita.
