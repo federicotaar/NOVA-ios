@@ -293,3 +293,8 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Aggiunta conferma esplicita con avviso prima di abilitare Sempre; aggiunti test sintetici per proposte senza effetti, proprietario errato, conferma compito e mancata riesecuzione. Esiti ancora da leggere nel prossimo checkpoint manuale.
 - Checkpoint social 165 completato con 8 controlli superati (inclusi invio rifiutato dal server e chiusura durante upload), oltre a 15 dati/privacy, 5 sync e 2 importazione. Schermate conversazione e scelta amici controllate, ma stile finale e gesti non ancora accettati.
 - Le azioni sospese ricontrollano ora anche la sessione completa e i permessi dopo attese; le risposte dell'assistente dopo un cambio credenziali vengono ignorate. Nessun test reale con chiavi o notifiche è stato eseguito.
+
+### Servizi Swift (non attivi)
+- Aggiunte impostazioni native ClasseViva, Groq e Spotify e controlli di riproduzione Swift. Riutilizzano i servizi Swift esistenti, non modelli JavaScript, conservando Portachiavi e account.
+- Importazione registro preserva compiti manuali, completamenti e campi sconosciuti dei dati già importati. Errori non cancellano i dati precedenti. Test sintetici e verifiche visive ancora da completare; nessun account reale usato durante lo sviluppo.
+- La Home del percorso inattivo usa ora la dashboard Swift; restano da verificare onboarding, notifiche, aggiornamenti in background, posizione/meteo e stile/gesti finali. Nessuna nuova pubblicazione.
