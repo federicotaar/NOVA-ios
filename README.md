@@ -335,3 +335,6 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Ripristino cache vecchio account: il cambio Swift legge anche l'involucro nova.account.v3 originale importato, senza scartare il contenuto dell'altro account. Posizione/servizi non riattivati e conferma profilo richiesta. L'originale rimane nella copia immutabile di recupero.
 
 - Validazione: i push superati vengono cancellati automaticamente dal push piu recente, mentre l'accettazione manuale rimane indipendente. Evita code di compilazioni obsolete senza eliminare le prove finali. Tre controlli cache account aggiunti. Nessuna riduzione della parita richiesta.
+
+- Checkpoint229: tutti i 61 controlli sintetici e le due verifiche importazione/origine sono veri; controllate immagini dei 16 passi iniziali, intro e composer. Audio completo, gesti e comportamento fisico non ancora accettati.
+- Dettaglio compito/verifica e pulsante AI ripristinati in Swift: il contesto apre una bozza, non invia in automatico. Al cambio sessione le vecchie proposte restano leggibili ma non eseguibili; promemoria locali del vecchio account rimossi. Ulteriori controlli durante le attese delle notifiche scolastiche. Lotto successivo ancora in compilazione; percorso resta inattivo.
