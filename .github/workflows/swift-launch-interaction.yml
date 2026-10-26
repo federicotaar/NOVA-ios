@@ -64,7 +64,7 @@ jobs:
           - tapOn: "Nuovo compito"
           - tapOn: "Cosa devi fare?"
           - inputText: "Compito integrazione"
-          - hideKeyboard
+          - tapOn: "Fine tastiera"
           - tapOn:
               id: "taskReminderPicker"
           - takeScreenshot: evidence/swift-root-reminder-menu
