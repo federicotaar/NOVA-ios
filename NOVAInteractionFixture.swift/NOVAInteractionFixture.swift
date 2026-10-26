@@ -104,6 +104,11 @@ import UIKit
    do{try VNImageRequestHandler(cgImage:resized.cgImage!).perform([request]);checks[username+"-"+String(size)]=request.results?.first?.payloadStringValue=="nova:add:"+username}catch{checks[username+"-"+String(size)]=false}
   }
  }
+
+ let control=CIFilter.qrCodeGenerator();control.message=Data("nova:add:demo".utf8);control.correctionLevel="M"
+ if let output=control.outputImage,let cg=CIContext().createCGImage(output.transformed(by:CGAffineTransform(scaleX:10,y:10)),from:output.extent.applying(CGAffineTransform(scaleX:10,y:10))){
+  let request=VNDetectBarcodesRequest();request.symbologies=[.qr];do{try VNImageRequestHandler(cgImage:cg).perform([request]);let detail:[String:Any]=["count":request.results?.count ?? 0,"payloads":request.results?.compactMap{$0.payloadStringValue} ?? []];try? JSONSerialization.data(withJSONObject:detail).write(to:dir.appendingPathComponent("qr-vision-control.json"))}catch{try? String(describing:error).write(to:dir.appendingPathComponent("qr-vision-error.txt"),atomically:true,encoding:.utf8)}
+ }
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("qr-scan-checks.json"))
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("qr-layout-fixture"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"prof\":{\"username\":\"nova.demo\"},\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"tasks\":[]}"])}
  let page=UIHostingController(rootView:NOVASwiftQR(store:store,people:NOVASwiftPeople()));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
