@@ -85,6 +85,7 @@ jobs:
           try: subprocess.run(['maestro','test','/tmp/nav.yaml'],timeout=360,check=True)
           except subprocess.TimeoutExpired: raise SystemExit('UI driver exceeded360s; acceptance incomplete')
           PYRUN
+          find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
           cp "$CONTAINER/Documents/swift-interaction.json" evidence/
           python3 - <<'VERIFY'
