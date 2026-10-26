@@ -45,6 +45,7 @@ jobs:
           echo "$CONTAINER" > /tmp/nova-container
           cp "$CONTAINER/Documents/production-"*.png evidence/
           cp "$CONTAINER/Documents/visual-errors.txt" evidence/ || true
+          cp "$CONTAINER/Documents/native-functional.txt" evidence/ || true
           cp "$CONTAINER/Documents/editing-state.txt" evidence/ || true
           cp "$CONTAINER/Documents/reaction-state.txt" evidence/ || true
           cp "$CONTAINER/Documents/onboarding-state.txt" evidence/ || true
