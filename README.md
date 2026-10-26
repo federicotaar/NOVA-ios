@@ -234,3 +234,7 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 - Le vecchie flag di condivisione non bastano più per nuovi invii: conferma esplicita per condivisione e scelta separata per background. Uno stato precedente non confermato non viene presentato come server spento. Fantasma ferma gli invii locali e richiede conferma server.
 - Copertine canzoni in profilo, modifica profilo, profilo pubblico e ricerca con componenti Swift nativi.
 - Verifiche simulatore e pacchetto TEST ancora in corso. I riscontri iPhone non costituiscono accettazione finale di tutti i servizi.
+
+## QR amici con N: verifica in corso
+- Codice amici `nova:add:username` invariato, moduli arrotondati e N centrale; nessun collegamento a pagamenti. La scansione propone lo username e non invia richieste senza conferma.
+- Correzione errore alta, bordo libero conservato. Gate dedicato decodifica tre username sintetici a due dimensioni prima di accettare l'IPA.
