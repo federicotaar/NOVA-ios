@@ -193,3 +193,7 @@ Nuovo compito nativo con titolo, descrizione multilinea, data e ora, priorità e
 ### 2026.10.25.48
 
 Valori dei menu priorità/promemoria visibili nel modulo nativo; descrizione con etichetta di sezione esplicita.
+
+### 2026.10.25.49
+
+Correzioni da video e schermate reali: rimossi i duplicati nativi posizionati sopra le pagine web che restavano indietro durante lo scroll; i pulsanti originali restano usabili fino alla migrazione di quelle pagine. Spotify nativo a icone con etichette accessibilità. Separatore verifiche/scadenza. StandBy spento e pulsante rimosso. Batteria aggiornata al ritorno in primo piano; valori UIKit indicati come approssimativi, livello sconosciuto mai presentato come100%.
