@@ -32,7 +32,7 @@ import UserNotifications
     }
     static func run(_ store:NOVASwiftStore,owner:String,message:Int,action:Int) async {
         guard let root=store.archive?.active.object,store.archive?.owner==owner,root["aiAct"]?.string != "deny",let messages=root["chat"]?.array,messages.indices.contains(message),let actions=messages[message].object?["acts"]?.array,actions.indices.contains(action),let original=actions[action].object,let id=original["swiftID"]?.string,["wait","go"].contains(original["st"]?.string ?? ""),let normalized=normalize(.object(original)),let value=normalized.object else{return}
-        func current()->Bool {store.archive?.owner==owner && store.archive?.active.object?["chat"]?.array[safe:message]?.object?["acts"]?.array[safe:action]?.object?["swiftID"]?.string==id}
+        func current()->Bool {store.archive?.owner==owner && store.archive?.active.object?["aiAct"]?.string != "deny" && store.archive?.active.object?["chat"]?.array[safe:message]?.object?["acts"]?.array[safe:action]?.object?["swiftID"]?.string==id}
         do{try update(store,owner:owner,message:message,action:action,state:"pending") }catch{return}
         var ok=false,note="Azione non completata."
         if value["a"]?.string=="task",let due=value["due"]?.string,let date=date(due){
