@@ -342,3 +342,23 @@ s+=r'''
 }
 '''
 p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('visualProductionSave(web,"production-swift-owned-song-search.png");visualSwiftImportOrigin(web,dir)','visualProductionSave(web,"production-swift-owned-song-search.png");visualSwiftSocialScreens(web,dir)',1)
+s+=r'''
+@MainActor func visualSwiftSocialScreens(_ web:WKWebView,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+ try? store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"fixture@example.invalid\",\"token\":\"synthetic\"}}"])
+ let social=NOVASwiftSocial{_,path,_,_,_ in
+  if path=="friends"{return .object(["friends":.array([.object(["username":.string("amico_esempio")]),.object(["username":.string("compagna_esempio")])])])}
+  if path.hasSuffix("/messages"){return .object(["messages":.array([.object(["id":.number(1),"sender":.string("other@example.invalid"),"kind":.string("text"),"body":.string("Ripassiamo insieme per la verifica?")]),.object(["id":.number(2),"sender":.string("fixture@example.invalid"),"kind":.string("text"),"body":.string("Sì, preparo gli appunti."),"edited":.bool(true)]),.object(["id":.number(3),"sender":.string("other@example.invalid"),"deleted":.bool(true)])]),"reactions":.object(["2":.array([.object(["emoji":.string("👍")])])]),"senders":.object(["other@example.invalid":.string("Amico dimostrativo")])])}
+  return .object(["ok":.bool(true)])
+ }
+ root.presentedViewController?.dismiss(animated:false){
+  let conversation=UIHostingController(rootView:NavigationStack{NOVASwiftConversation(store:store,social:social,id:"fixture",title:"Gruppo dimostrativo")});conversation.modalPresentationStyle = .fullScreen
+  root.present(conversation,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-conversation.png");conversation.dismiss(animated:false){let create=UIHostingController(rootView:NOVASwiftChatCreation(store:store,social:social));create.modalPresentationStyle = .fullScreen;root.present(create,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-create-chat.png");visualSwiftImportOrigin(web,dir)}}}}}
+ }
+}
+'''
+p.write_text(s)
