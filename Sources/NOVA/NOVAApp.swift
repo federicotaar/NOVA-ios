@@ -2005,6 +2005,7 @@ struct NOVALessonDraft: Identifiable {
                 if !error.isEmpty { Text(error).foregroundStyle(.red) }
                 Text("Le modifiche restano in bozza fino a Salva. I widget ricevono l'orario solo se la condivisione è disponibile.").font(.footnote).foregroundStyle(.secondary)
             }
+            .environment(\.locale,Locale(identifier:"it_IT"))
             .navigationTitle("Il tuo orario")
             .toolbar {
                 ToolbarItem(placement:.cancellationAction) { Button("Annulla"){dismiss()} }
@@ -2055,7 +2056,7 @@ struct NOVALessonDraft: Identifiable {
                 }
                 Section("Orario") {
                     Button("Modifica orario"){timetable=true}
-                    Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) lezioni salvate")
+                    Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")")
                 }
             if !actionError.isEmpty{Text(actionError).foregroundStyle(.red)}
             }.navigationTitle("NOVA")
