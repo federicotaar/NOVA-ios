@@ -355,3 +355,6 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Interazione5 supera trascinamento avanti/indietro e gate pressione/rilascio, con bozza conservata. Tastiera visibile e poi chiusa controllate in immagini; annullamento e iPhone fisico restano separati. Nessuna pubblicazione.
 - Aggiunta verifica integrata delle cinque schede Swift reali, con ricaricamento archivio e recupero originale, oltre alle schermate isolate. Non usa account reali; stato ancora inattivo.
+
+- Preparato avvio Swift ancora inattivo: verifica locale senza eseguire pagine HTML, importazione esplicita con copia originale immutabile, nessun reset/reinstallazione suggerito in errore. Archivio assente e dati precedenti non verificati restano casi distinti.
+- Verifica interattiva dedicata al ProtectedRoot reale: salvataggio compito locale, impostazioni, ritorno onboarding e riavvio. Non usa account reali, non prova permessi/background fisici. Esecuzione e verifica visiva ancora pendenti.
