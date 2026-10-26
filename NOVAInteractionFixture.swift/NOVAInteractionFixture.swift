@@ -32,3 +32,12 @@ import UIKit
  func persist(){let docs=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];if let value=store.archive?.active,let data=try? JSONEncoder().encode(value){try? data.write(to:docs.appendingPathComponent("swift-root-state.json"))};DispatchQueue.main.asyncAfter(deadline:.now()+0.5){persist()}}
  persist()
 }
+
+@MainActor func visualSwiftLaunchInteractionReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftLaunchInteractionReady(web,attempt+1)}};return}
+ let directory=FileManager.default.temporaryDirectory.appendingPathComponent("launch-interaction")
+ let store=NOVASwiftStore(directory:directory)
+ web.evaluateJavaScript("localStorage.clear();localStorage.setItem('nova.v1',JSON.stringify({name:'Studente demo',done:1,introOff:1,theme:'light',w:{wx:0,sp:0},tasks:[],tt:{lessons:[]},prof:{username:'studente.demo'},locShare:1,bgLoc:1,locSession:'expired',locSessionToken:'expired'}));true"){_,error in guard error==nil else{return};let page=UIHostingController(rootView:NOVASwiftLaunchRoot(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
+ func persist(){let docs=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];if let value=store.archive?.active,let data=try? JSONEncoder().encode(value){try? data.write(to:docs.appendingPathComponent("swift-root-state.json"))};DispatchQueue.main.asyncAfter(deadline:.now()+0.5){persist()}}
+ persist()
+}
