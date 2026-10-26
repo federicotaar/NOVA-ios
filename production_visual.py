@@ -262,3 +262,32 @@ addition=r'''let transition=NOVASwiftStore(directory:FileManager.default.tempora
   let privateState:NOVAJSON'''
 s=s.replace(needle,addition,1)
 p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('try? Data().write(to:dir.appendingPathComponent("visual-done"))\n   _ = reader','Task{await visualSwiftSyncChecks(dir);try? Data().write(to:dir.appendingPathComponent("visual-done"))}\n   _ = reader',1)
+s+=r'''
+@MainActor func visualSwiftSyncChecks(_ dir:URL) async {
+ var checks:[String:Bool]=[:]
+ do{
+  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+  try store.importOnce(["nova.v1":"{\"name\":\"Fixture\",\"acct\":{\"email\":\"fixture@example.invalid\",\"token\":\"synthetic\"},\"tasks\":[]}"])
+  let initial=NOVASwiftBackupData.snapshot(store.archive!.active)
+  var putCount=0
+  let sync=NOVASwiftSync{_,method,body in
+   if method=="GET"{return .object(["data":initial,"rev":.number(1)])}
+   putCount += 1;return .object(["rev":.number(2)])
+  }
+  await sync.inspect(store);checks["matchingBaselineVerified"]=sync.canLeave(store)
+  try store.update(owner:"fixture@example.invalid"){$0["name"] = .string("Changed")}
+  checks["unsavedEditBlocksLeave"] = !sync.canLeave(store)
+  await sync.flush(store);checks["revisionWriteConfirmed"]=putCount==1 && sync.canLeave(store)
+  let conflict=NOVASwiftSync{_,method,_ in if method=="GET"{return .object(["data":initial,"rev":.number(1)])};throw NOVAServiceError.http(409,"conflict")}
+  await conflict.inspect(store);await conflict.flush(store);checks["differentCloudNeverOverwritten"]=conflict.conflict && !conflict.canLeave(store)
+  let revision=NOVASwiftSync{_,method,_ in if method=="GET"{return .object(["data":NOVASwiftBackupData.snapshot(store.archive!.active),"rev":.number(1)])};throw NOVAServiceError.http(409,"conflict")}
+  await revision.inspect(store);try store.update(owner:"fixture@example.invalid"){$0["name"] = .string("New edit")};await revision.flush(store)
+  checks["serverConflictBlocksLeave"] = revision.conflict && !revision.canLeave(store)
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-sync-checks.txt"))
+}
+'''
+p.write_text(s)
