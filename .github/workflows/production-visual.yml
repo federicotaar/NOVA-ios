@@ -16,6 +16,7 @@ jobs:
           mkdir -p /tmp/ChatTest.app
           SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
           ARCH=$(uname -m)
+          xcrun swiftc -parse-as-library -typecheck -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" Sources/NOVAWidget/NOVAWidget.swift
           python3 production_visual.py
           xcrun swiftc -parse-as-library -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" /tmp/NOVAProductionVisual.swift -o /tmp/ChatTest.app/ChatTest
           cp Sources/NOVA/nova.html /tmp/ChatTest.app/nova.html
