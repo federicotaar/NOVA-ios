@@ -209,3 +209,7 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 ### Correzione privacy del codice pubblico
 
 Rimossi l'orario personale incorporato, il riempimento automatico basato sul nome e la copia nelle prove visive. Nessuna cancellazione dell'orario già salvato sul dispositivo. Il widget non deve sostituire un orario vuoto o assente con lezioni personali incorporate. Le vecchie versioni, i commit e i file distribuiti possono conservare copie e richiedono una verifica separata prima di rendere nuovamente pubblico il progetto. Pubblicazione automatica sospesa durante la bonifica.
+
+### Fondazione Swift (non attiva)
+
+Inizia la sostituzione del modello HTML/JS con dati e persistenza Swift. L'importazione proposta conserva anche chiavi sconosciute, cache dei diversi account e copia di recupero, verifica la rilettura e non elimina la memoria precedente. Non è ancora il motore attivo dell'app: le schermate e i servizi devono raggiungere la stessa copertura prima del passaggio. Nessun orario personale viene incluso nel codice.
