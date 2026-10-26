@@ -373,7 +373,7 @@ extension NOVAJSON {
 @MainActor enum NOVASwiftTaskSync {
     static func apply(_ store:NOVASwiftStore) async -> Bool {
         guard let archive=store.archive else{return false}
-        let owner=archive.owner
+        let owner=archive.owner,snapshot=archive.active
         let tasks=archive.active.object?["tasks"]?.array ?? []
         let homework=tasks.compactMap{task -> NOVAJSON? in
             let o=task.object ?? [:]
@@ -383,11 +383,11 @@ extension NOVAJSON {
         if let data=try? JSONEncoder().encode(NOVAJSON.object(["v":.number(1),"items":.array(homework)])),let json=String(data:data,encoding:.utf8){_ = TT.saveHomework(json)}
         let center=UNUserNotificationCenter.current()
         let settings=await center.notificationSettings()
-        guard store.archive?.owner==owner else{return false}
+        guard store.archive?.owner==owner,store.archive?.active==snapshot else{return false}
         guard [.authorized,.provisional,.ephemeral].contains(settings.authorizationStatus) else{return false}
         // Remove first and await the read, avoiding the previous scheduling race.
         let pending=await center.pendingNotificationRequests()
-        guard store.archive?.owner==owner else{return false}
+        guard store.archive?.owner==owner,store.archive?.active==snapshot else{return false}
         center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("rem.")})
         let formatter=DateFormatter();formatter.locale=Locale(identifier:"en_US_POSIX");formatter.dateFormat="yyyy-MM-dd'T'HH:mm"
         let reminders=tasks.compactMap{task -> (String,String,Date)? in
@@ -398,7 +398,7 @@ extension NOVAJSON {
         }.sorted{$0.2<$1.2}.prefix(25)
         var success=true
         for (id,title,date) in reminders {
-            guard store.archive?.owner==owner else{return false}
+            guard store.archive?.owner==owner,store.archive?.active==snapshot else{return false}
             let content=UNMutableNotificationContent();content.title="NOVA · Promemoria";content.body=title;content.sound = .default
             let components=Calendar.current.dateComponents([.year,.month,.day,.hour,.minute,.second],from:date)
             do{try await center.add(UNNotificationRequest(identifier:"rem."+id,content:content,trigger:UNCalendarNotificationTrigger(dateMatching:components,repeats:false)))}catch{success=false}
