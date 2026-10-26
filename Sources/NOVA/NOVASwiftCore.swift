@@ -708,6 +708,7 @@ extension NOVAJSON {
             }
             Section("Privacy"){
                 NavigationLink("Blocco app e notifiche"){NOVASwiftDeviceSettings()}
+                NavigationLink("Notifiche sociali ntfy"){NOVASwiftSocialNotificationSettings(store:store)}
                 Text("La migrazione non attiva la posizione, Fantasma, notifiche o accessi ai servizi. I permessi e i segreti esistenti restano invariati.")
             }
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
