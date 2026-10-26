@@ -210,3 +210,7 @@ old=state.read_text()
 production=Path("Sources/NOVA/NOVAApp.swift").read_text()
 foundation=production.split("// Swift-owned state foundation.",1)[1].split("// Swift-only screens",1)[0]
 state.write_text("import Foundation\nimport Combine\n// Swift-owned state foundation."+foundation+"\n@main struct StateTests"+old.split("@main struct StateTests",1)[1])
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('guard let root=web.window?.rootViewController else{return}', 'guard let root=(web.window ?? UIApplication.shared.connectedScenes.compactMap{$0 as? UIWindowScene}.flatMap{$0.windows}.first{$0.isKeyWindow})?.rootViewController else{return}')
+p.write_text(s)
