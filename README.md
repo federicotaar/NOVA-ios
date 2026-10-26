@@ -325,3 +325,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Profilo Swift separato dalle impostazioni, con foto, campi, canzone, badge, amici/liste/QR e accesso all'editor. Ancora da controllare in immagini.
 - Registro Swift: login/refresh senza effetti collaterali prima della verifica proprietario/sessione; credenziali salvate solo dopo risposta accettata. Percorso background Swift preparato ma disattivato fino all'attivazione della migrazione. Refresh all'apertura/rientro con pausa minima 15 minuti, iOS pianifica gli aggiornamenti in background senza puntualita garantita. Notifiche automatiche compiti e orario collegate alle impostazioni; attivazione finale e comportamento fisico ancora da verificare.
+
+- Dettaglio voti: conservati data, voto originale, componente e note per materia, oltre a media e obiettivo. Rimossa scheda Spotify duplicata. Profilo: salvataggio bloccato se il token cambia mentre la bozza e aperta. Servizi: refresh ClasseViva bloccato per credenziali non confermate su quell'account; letture asincrone Groq ricontrollano la chiusura schermata.
