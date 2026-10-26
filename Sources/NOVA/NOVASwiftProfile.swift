@@ -21,7 +21,7 @@ import SwiftUI
     .sheet(isPresented:$edit){NOVASwiftProfileEditor(store:store)}
     .sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
     .sheet(isPresented:$qr){NOVASwiftQR(store:store,people:people)}
-    .onDisappear{songs.stop();people.reset()}
+    .onDisappear{songs.stop()}
     .onChange(of:store.archive?.owner){_,_ in songs.stop();people.reset();edit=false;settings=false;qr=false}
     }
 }
