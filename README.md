@@ -181,3 +181,7 @@ Home nativa con titolo e scadenza compiti separati, marcatori calendario per com
 ### 2026.10.25.45
 
 Pagina Voti nativa: media generale, voti recenti e medie per materia con gli stessi calcoli e suggerimenti della versione precedente. Dati ClasseViva e account non modificati.
+
+### 2026.10.25.46
+
+Accesso alle impostazioni dalla pagina Voti nativa mantenendo i controlli account/sessione/modali.
