@@ -141,3 +141,7 @@ Impostazioni native: gruppi dedicati a profilo, nome, account e preferenze; le s
 ### 2026.10.25.35
 
 Anche i collegamenti presenti nelle spiegazioni dei servizi hanno un’azione nella pagina nativa. Proseguono i controlli su campi, interruttori, isolamento account e ritorno alle destinazioni esistenti.
+
+### 2026.10.25.36
+
+Editor del profilo in pagina nativa: selettore foto iOS, username, scuola, punti forti, hobby, ricerca canzone e Salva/Annulla. Gestori originali per disponibilità username e salvataggio. La migrazione continua su dashboard, chat, mappa e altre schermate: non sono ancora tutte native.
