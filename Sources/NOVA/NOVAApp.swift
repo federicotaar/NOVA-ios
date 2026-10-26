@@ -2303,3 +2303,61 @@ extension NOVAJSON {
         }
     }
 }
+@MainActor struct NOVASwiftProfileEditor:View {
+    @ObservedObject var store:NOVASwiftStore
+    @Environment(\.dismiss) var dismiss
+    @State private var draft:[String:NOVAJSON]=[:]
+    @State private var owner=""
+    @State private var token=""
+    @State private var status=""
+    @State private var saving=false
+    @State private var photo:PhotosPickerItem?
+    @State private var photoEpoch=0
+    @State private var active=false
+    func field(_ key:String)->Binding<String>{Binding(get:{draft[key]?.string ?? ""},set:{draft[key] = .string($0)})}
+    var body:some View {
+        NavigationStack{Form{
+            Section("Foto profilo"){
+                if let value=draft["avatar"]?.string,let bytes=Data(base64Encoded:value.components(separatedBy:",").last ?? ""),let image=UIImage(data:bytes){Image(uiImage:image).resizable().scaledToFill().frame(width:80,height:80).clipShape(Circle())}
+                PhotosPicker("Scegli foto",selection:$photo,matching:.images)
+                Text("Visibile secondo le regole del profilo e dell'amicizia.").font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Username"){TextField("Username",text:field("username")).textInputAutocapitalization(.never).autocorrectionDisabled()}
+            Section("Su di te"){
+                TextField("Dove studi",text:field("study"));TextField("Punti forti",text:field("skills"));TextField("Hobby",text:field("hobbies"))
+            }
+            if let song=draft["song"]?.object{Section("La tua canzone"){Text(song["t"]?.string ?? "");Text(song["a"]?.string ?? "").foregroundStyle(.secondary);Text("La ricerca e la selezione sono ancora da collegare nella versione Swift.").font(.footnote)}}
+            if !status.isEmpty{Text(status).foregroundStyle(.secondary)}
+        }.navigationTitle("Il tuo profilo").toolbar{
+            ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}.disabled(saving)}
+            ToolbarItem(placement:.confirmationAction){Button(saving ? "Salvo…":"Salva"){Task{await save()}}.disabled(saving)}
+        }}.onAppear{guard !active else{return};active=true;owner=store.archive?.owner ?? "";draft=store.archive?.active.object?["prof"]?.object ?? [:];token=store.archive?.active.object?["acct"]?.object?["token"]?.string ?? ""}
+        .onDisappear{active=false;photoEpoch+=1}
+        .onChange(of:photo){_,item in
+            photoEpoch+=1;let expected=photoEpoch,expectedOwner=owner
+            Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data) else{return}
+                guard active,expected==photoEpoch,expectedOwner==store.archive?.owner else{return}
+                let side=min(image.size.width,image.size.height);let scale=256/side
+                let jpeg=UIGraphicsImageRenderer(size:CGSize(width:256,height:256)).jpegData(withCompressionQuality:0.65){_ in image.draw(in:CGRect(x:-(image.size.width-side)*scale/2,y:-(image.size.height-side)*scale/2,width:image.size.width*scale,height:image.size.height*scale))}
+                draft["avatar"] = .string("data:image/jpeg;base64,"+jpeg.base64EncodedString())
+            }
+        }
+    }
+    func save() async {
+        guard active,!saving,owner==store.archive?.owner else{return}
+        let username=(draft["username"]?.string ?? "").trimmingCharacters(in:.whitespacesAndNewlines).lowercased()
+        guard username.range(of:"^[a-z0-9_.]{3,20}$",options:.regularExpression) != nil else{status="Username: 3-20 caratteri, lettere minuscole, numeri, punto e trattino basso.";return}
+        var profile=draft;profile["username"] = .string(username)
+        guard (profile["study"]?.string?.count ?? 0)<=60,(profile["skills"]?.string?.count ?? 0)<=80,(profile["hobbies"]?.string?.count ?? 0)<=80 else{status="Accorcia i campi del profilo prima di salvare.";return}
+        if !token.isEmpty {
+            saving=true;defer{saving=false}
+            let expected=NOVASession(store.archive!.active)!
+            do{
+                let result=try await NOVAAccountService(session:expected).request("profile",method:"PUT",body:.object(profile))
+                guard active,owner==store.archive?.owner,NOVASession(store.archive!.active)==expected else{return}
+                guard result.object?["ok"]?.flag==true else{status="Profilo non confermato online. Bozza conservata.";return}
+            }catch{status="Profilo non salvato online. Bozza conservata, riprova.";return}
+        }
+        do{try store.update(owner:owner){root in root["prof"] = .object(profile);root["profConfirmed"] = .string(username);root["profPending"] = .number(0)};dismiss()}catch{status="Profilo non salvato sul dispositivo. Bozza conservata."}
+    }
+}
