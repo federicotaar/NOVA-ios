@@ -1752,17 +1752,48 @@ final class NativeGlassNavigation:NSObject,UIGestureRecognizerDelegate {
 // Real system switches sit over the opaque settings rows; the existing handlers own all state and permissions.
 @available(iOS 26.0, *)
 final class NativeSettingsControls:NSObject {
- weak var web:WKWebView?;var switches:[String:UISwitch]=[:];var owner="";var epoch=0;var shown=false
- let done=UIButton(type:.system)
- init(web:WKWebView){super.init();self.web=web;var c=UIButton.Configuration.glass();c.title="Fatto";done.configuration=c;done.accessibilityIdentifier="nativeSettingsDone";done.addTarget(self,action:#selector(closeSettings),for:.touchUpInside);done.isHidden=true;web.addSubview(done)}
- func quoted(_ value:String)->String{let d=try! JSONSerialization.data(withJSONObject:[value]);return String(String(data:d,encoding:.utf8)!.dropFirst().dropLast())}
- @objc func closeSettings(){guard shown else{return};web?.evaluateJavaScript("window.__nativeSettingsClose&&__nativeSettingsClose(\(quoted(owner)),\(epoch))",completionHandler:nil)}
- @objc func changed(_ sender:UISwitch){guard shown,let id=sender.accessibilityIdentifier else{return};sender.isEnabled=false;web?.evaluateJavaScript("window.__nativeSettingsToggle&&__nativeSettingsToggle(\(quoted(id)),\(quoted(owner)),\(epoch),\(!sender.isOn))",completionHandler:nil)}
- func sync(_ b:[String:Any]){guard let web=web else{return};shown=b["show"] as? Bool ?? false;owner=b["account"] as? String ?? "";epoch=b["epoch"] as? Int ?? 0;let dark=b["dark"] as? Bool ?? false;done.overrideUserInterfaceStyle=dark ? .dark:.light;done.isHidden = !shown
- if let r=b["done"] as? [String:Any]{done.frame=CGRect(x:r["x"] as? CGFloat ?? 0,y:r["y"] as? CGFloat ?? 0,width:r["w"] as? CGFloat ?? 76,height:r["h"] as? CGFloat ?? 44)}
- var active=Set<String>();for row in b["items"] as? [[String:Any]] ?? []{guard let id=row["id"] as? String else{continue};guard ["bHw","bIntro","bFid","bDiag","bNtfyPv","settingsWidget_wx","settingsWidget_bat","settingsWidget_cal","settingsWidget_task","settingsWidget_nx","settingsWidget_sp"].contains(id) else{continue};active.insert(id);let control:UISwitch;if let old=switches[id]{control=old}else{control=UISwitch();control.accessibilityIdentifier=id;control.addTarget(self,action:#selector(changed(_:)),for:.valueChanged);web.addSubview(control);switches[id]=control};control.overrideUserInterfaceStyle=dark ? .dark:.light;control.accessibilityLabel=row["label"] as? String;control.setOn(row["on"] as? Bool ?? false,animated:false);control.isEnabled = !(row["disabled"] as? Bool ?? false);control.frame.origin=CGPoint(x:row["x"] as? CGFloat ?? 0,y:row["y"] as? CGFloat ?? 0);control.isHidden = !shown || !(row["show"] as? Bool ?? false);if !control.isHidden{web.bringSubviewToFront(control)}}
- for(id,c)in switches where !active.contains(id){c.isHidden=true};if shown{web.bringSubviewToFront(done)}
+ weak var web:WKWebView?;var screen:NativeSettingsPage?;var presenting=false
+ init(web:WKWebView){self.web=web;super.init()}
+ func sync(_ b:[String:Any]){guard let web=web else{return}
+ let shown=b["show"] as? Bool ?? false
+ if !shown{if let page=screen{screen=nil;page.dismiss(animated:false)};return}
+ if let page=screen{page.apply(b);return}
+ guard !presenting,var root=web.window?.rootViewController else{return};while let next=root.presentedViewController{root=next}
+ let page=NativeSettingsPage();page.web=web;page.apply(b);let nav=UINavigationController(rootViewController:page);nav.modalPresentationStyle = .fullScreen;screen=page;presenting=true;root.present(nav,animated:false){self.presenting=false}
  }
+}
+@available(iOS 26.0, *)
+final class NativeSettingsPage:UITableViewController,UITextFieldDelegate {
+ weak var web:WKWebView?;var groups:[[String:Any]]=[];var owner="";var epoch=0;var last="";var editingField=false
+ init(){super.init(style:.insetGrouped)}
+ required init?(coder:NSCoder){fatalError("init(coder:) is not used")}
+ override func viewDidLoad(){super.viewDidLoad();title="Impostazioni";navigationController?.navigationBar.prefersLargeTitles=true;navigationItem.rightBarButtonItem=UIBarButtonItem(title:"Fatto",style:.done,target:self,action:#selector(done));tableView.keyboardDismissMode = .interactive;tableView.accessibilityIdentifier="nativeSettingsTable"}
+ func quote(_ s:String)->String{String(String(data:try! JSONSerialization.data(withJSONObject:[s]),encoding:.utf8)!.dropFirst().dropLast())}
+ func call(_ id:String,_ value:String?=nil){guard let web=web else{return};let v=value.map(quote) ?? "null";web.evaluateJavaScript("window.__nativeSettingsPageAction&&__nativeSettingsPageAction("+quote(id)+","+v+","+quote(owner)+","+String(epoch)+")",completionHandler:nil)}
+ @objc func done(){view.endEditing(true);call("__close")}
+ func apply(_ b:[String:Any]){owner=b["account"] as? String ?? "";epoch=b["epoch"] as? Int ?? 0;let dark=b["dark"] as? Bool ?? false;overrideUserInterfaceStyle=dark ? .dark:.light;navigationController?.overrideUserInterfaceStyle=overrideUserInterfaceStyle
+ guard let next=b["groups"] as? [[String:Any]],let data=try? JSONSerialization.data(withJSONObject:next,options:[.sortedKeys]),let bodyKey=String(data:data,encoding:.utf8) else{return};let key=bodyKey+String(b["revision"] as? Int ?? 0);guard key != last else{return}
+ if editingField{return};last=key;groups=next;if isViewLoaded{let offset=tableView.contentOffset;tableView.reloadData();tableView.layoutIfNeeded();tableView.setContentOffset(CGPoint(x:0,y:min(offset.y,max(-tableView.adjustedContentInset.top,tableView.contentSize.height-tableView.bounds.height+tableView.adjustedContentInset.bottom))),animated:false)}
+ }
+ override func numberOfSections(in tableView:UITableView)->Int{groups.count}
+ override func tableView(_ tableView:UITableView,numberOfRowsInSection section:Int)->Int{(groups[section]["rows"] as? [[String:Any]] ?? []).count}
+ func row(_ path:IndexPath)->[String:Any]{(groups[path.section]["rows"] as! [[String:Any]])[path.row]}
+ override func tableView(_ tableView:UITableView,titleForHeaderInSection section:Int)->String?{groups[section]["title"] as? String}
+ override func tableView(_ tableView:UITableView,cellForRowAt path:IndexPath)->UITableViewCell{
+ let r=row(path),kind=r["kind"] as? String ?? "text",id=r["id"] as? String ?? "",label=r["label"] as? String ?? "",enabled = !(r["disabled"] as? Bool ?? false)
+ let cell=UITableViewCell(style:.subtitle,reuseIdentifier:nil);cell.backgroundColor = .secondarySystemGroupedBackground;cell.textLabel?.numberOfLines=0;cell.textLabel?.font = .preferredFont(forTextStyle:.body);cell.textLabel?.text=label;cell.selectionStyle = .none;cell.accessibilityIdentifier=id
+ if kind=="toggle"{let control=UISwitch();control.accessibilityIdentifier=id;control.accessibilityLabel=label;control.isOn=r["on"] as? Bool ?? false;control.isEnabled=enabled;control.addTarget(self,action:#selector(toggle(_:)),for:.valueChanged);cell.accessoryView=control}
+ else if kind=="field"{cell.textLabel?.text=nil;let field=UITextField();field.placeholder=label;field.text=r["value"] as? String ?? "";field.isSecureTextEntry=r["secure"] as? Bool ?? false;field.isEnabled=enabled;field.accessibilityIdentifier=id;field.accessibilityLabel=label;field.font = .preferredFont(forTextStyle:.body);field.delegate=self;field.clearButtonMode = .whileEditing;let type=r["type"] as? String ?? "";field.keyboardType=type=="email" ? .emailAddress:(r["numeric"] as? Bool ?? false) ? .numberPad:.default;field.autocapitalizationType=type=="email" || field.isSecureTextEntry ? .none:.sentences;field.autocorrectionType=type=="email" || field.isSecureTextEntry ? .no:.default;field.addTarget(self,action:#selector(fieldChanged(_:)),for:.editingChanged);field.translatesAutoresizingMaskIntoConstraints=false;cell.contentView.addSubview(field);NSLayoutConstraint.activate([field.leadingAnchor.constraint(equalTo:cell.contentView.layoutMarginsGuide.leadingAnchor),field.trailingAnchor.constraint(equalTo:cell.contentView.layoutMarginsGuide.trailingAnchor),field.topAnchor.constraint(equalTo:cell.contentView.topAnchor,constant:12),field.bottomAnchor.constraint(equalTo:cell.contentView.bottomAnchor,constant:-12),field.heightAnchor.constraint(greaterThanOrEqualToConstant:24)])}
+ else if kind=="button"{cell.textLabel?.textColor=enabled ? .systemBlue:.tertiaryLabel;cell.accessoryType=(r["selected"] as? Bool ?? false) ? .checkmark:.none;cell.selectionStyle=enabled ? .default:.none}
+ else{cell.textLabel?.font = .preferredFont(forTextStyle:.footnote);cell.textLabel?.textColor = .secondaryLabel}
+ return cell
+ }
+ @objc func toggle(_ control:UISwitch){guard let id=control.accessibilityIdentifier else{return};control.isEnabled=false;call(id,control.isOn ? "true":"false")}
+ @objc func fieldChanged(_ field:UITextField){if let id=field.accessibilityIdentifier{call(id,field.text ?? "")}}
+ func textFieldDidBeginEditing(_ field:UITextField){editingField=true}
+ func textFieldDidEndEditing(_ field:UITextField){editingField=false;if let id=field.accessibilityIdentifier{call(id,field.text ?? "")}}
+ func textFieldShouldReturn(_ field:UITextField)->Bool{field.resignFirstResponder();return true}
+ override func tableView(_ tableView:UITableView,didSelectRowAt path:IndexPath){tableView.deselectRow(at:path,animated:true);let r=row(path);guard r["kind"] as? String=="button",!(r["disabled"] as? Bool ?? false),let id=r["id"] as? String else{return};view.endEditing(true);call(id)}
 }
 
 @available(iOS 26.0, *)
