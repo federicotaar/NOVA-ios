@@ -73,6 +73,7 @@ struct NOVASwiftMapFriend:Identifiable {
         guard let archive=store.archive,let owner=NOVASession(archive.active) else{status="Collega prima il tuo account NOVA.";return}
         generation += 1;let expected=generation;changing=enabled
         if !enabled {
+            NOVASwiftBackgroundLocation.shared.stop(clear:true)
             // Stop local visibility immediately. No further location upload is allowed.
             do{try store.update(owner:archive.owner){$0["locShare"] = .number(0);$0["locSession"] = .string("");$0["bgLoc"] = .number(0)}}catch{status="Impossibile salvare Fantasma. Nessuna nuova posizione inviata.";changing=false;return}
             // Stop legacy significant-change monitoring before any network wait.
@@ -113,6 +114,7 @@ struct NOVASwiftMapFriend:Identifiable {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var model=NOVASwiftMapModel()
     @StateObject private var position=NOVASwiftPosition()
+    @ObservedObject private var background=NOVASwiftBackgroundLocation.shared
     @State private var camera:MapCameraPosition = .region(MKCoordinateRegion(center:CLLocationCoordinate2D(latitude:20,longitude:0),span:MKCoordinateSpan(latitudeDelta:140,longitudeDelta:300)))
     var sharing:Bool {store.archive?.active.object?["locShare"]?.flag==true}
     var body:some View {
@@ -132,10 +134,13 @@ struct NOVASwiftMapFriend:Identifiable {
                         Button{position.read()}label:{Image(systemName:"location.fill")}.accessibilityLabel("Leggi la mia posizione")
                         Button{Task{await model.refresh(store)}}label:{Image(systemName:"arrow.clockwise")}.accessibilityLabel("Aggiorna amici")
                     }.buttonStyle(.bordered)
-                    Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Lo spegnimento offline richiede conferma del server. Aggiornamenti in background ancora in verifica.").font(.caption).foregroundStyle(.secondary)
+                    Toggle("Anche a app chiusa",isOn:Binding(get:{store.archive?.active.object?["bgLoc"]?.flag==true},set:{background.enabled($0,store)})).disabled(!sharing)
+                    if !background.status.isEmpty{Text(background.status).font(.caption).foregroundStyle(.secondary)}
+                    Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Lo spegnimento offline richiede conferma del server. Gli aggiornamenti a app chiusa sono ai grandi spostamenti: iOS può ritardarli o sospenderli.").font(.caption).foregroundStyle(.secondary)
                 }.padding(.horizontal).padding(.bottom)
             }.navigationTitle("Mappa").task{await model.refresh(store)}
             .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
+            .onChange(of:store.archive?.owner){_,_ in position.stop();model.cancel()}
             .onDisappear{position.stop();model.cancel()}
         }
     }
