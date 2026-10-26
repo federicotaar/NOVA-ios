@@ -233,3 +233,5 @@ Anche la conversazione testuale dell'assistente ha un percorso Swift autonomo in
 Il profilo Swift usa una bozza, il selettore foto di sistema e controlli account/epoca per il caricamento. Il salvataggio online usa il profilo dell'account corrente e non cambia amicizie o visibilità. La scelta canzone resta da portare prima dell'attivazione; dati e canzone esistenti restano conservati.
 
 Le verifiche del percorso Swift confermano creazione, completamento, rimozione, blocco duplicati e isolamento account dei compiti. Il lettore di importazione ha letto correttamente la stessa origine locale nel simulatore senza eliminare la memoria originale. La prova sul dispositivo resta necessaria prima dell'attivazione.
+
+Elenco chat e conversazione testuale hanno ora percorsi Swift autonomi in verifica, con risposte legate ad account/conversazione e bozze conservate se l'invio fallisce. Gruppi, media, reazioni, ricevute e aggiornamenti continui richiedono ancora parità prima dell'attivazione. Nessuna chiamata a account reali viene fatta dai test sintetici.
