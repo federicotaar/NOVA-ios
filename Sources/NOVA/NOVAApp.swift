@@ -232,7 +232,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
     static func polyfill() -> String {
         let d = UIDevice.current
         d.isBatteryMonitoringEnabled = true
-        let level = d.batteryLevel < 0 ? 1.0 : Double(d.batteryLevel)
+        let level = d.batteryLevel < 0 ? -1.0 : Double(d.batteryLevel)
         let charging = d.batteryState == .charging || d.batteryState == .full
         return """
         (function(){
@@ -257,6 +257,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
                 self?.pushBattery()
             }
         }
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object:nil, queue:.main){[weak self] _ in self?.pushBattery()}
         NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
             self?.stopIntro()
             self?.introEvent("end")
@@ -268,7 +269,7 @@ final class Bridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate, UNUs
 
     func pushBattery() {
         let d = UIDevice.current
-        let level = d.batteryLevel < 0 ? 1.0 : Double(d.batteryLevel)
+        let level = d.batteryLevel < 0 ? -1.0 : Double(d.batteryLevel)
         let charging = d.batteryState == .charging || d.batteryState == .full
         UIApplication.shared.isIdleTimerDisabled = charging   // schermo acceso solo in carica
         web?.evaluateJavaScript("window.__novaBattery&&__novaBattery(\(level),\(charging))")
