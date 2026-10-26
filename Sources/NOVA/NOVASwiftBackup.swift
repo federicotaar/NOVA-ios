@@ -21,7 +21,7 @@ enum NOVASwiftBackupData {
         if !["always","ask","deny"].contains(root["aiAct"]?.string ?? ""){root["aiAct"] = .string("ask")}
         root["chat"] = .array((root["chat"]?.array ?? []).map{message in
             guard var m=message.object else{return message}
-            if let actions=m["acts"]{m["acts"] = .array(actions.array.map{action in guard var a=action.object else{return action};if ["go","pending"].contains(a["st"]?.string ?? ""){a["st"] = .string("no");a["note"] = .string("Non rieseguita dopo il ripristino")};return .object(a)})}
+            if let actions=m["acts"]{m["acts"] = .array(actions.array.map{action in guard var a=action.object else{return action};if ["wait","go","pending"].contains(a["st"]?.string ?? ""){a["st"] = .string("no");a["note"] = .string("Non rieseguita dopo il ripristino")};return .object(a)})}
             return .object(m)
         })
         // Importing a cloud snapshot never enables location or services.
