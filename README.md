@@ -365,3 +365,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Le verifiche integrate non sono ancora accettate: due errori fixture corretti (finestra staccata dopo assistente, menu promemoria con tastiera aperta). Compile295 pulito; nuovi tentativi shell/root/import avviati.
 - Predisposto solo flag di compilazione NOVA_SWIFT_TEST per un futuro IPA di prova con vero avvio Swift; la build normale resta sul percorso precedente. Lettura migrazione con timeout e riprova senza cancellare dati. Pubblicatore ancora disabilitato; nessun nuovo IPA.
+
+- Preparato workflow manuale test IPA, non avviato: flag Swift dedicato, prerelease immutabile, blocco tramite marker assente finché i gate integrati non sono accettati. Aggiunto typecheck del percorso con flag; non costituisce accettazione o pubblicazione.
