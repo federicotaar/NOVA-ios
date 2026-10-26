@@ -369,7 +369,7 @@ extension NOVAJSON {
             Section("Scadenza"){DatePicker("Scadenza",selection:$due)}
             Section("Opzioni"){
                 Picker("Priorità",selection:$priority){Text("Alta").tag("alta");Text("Media").tag("media");Text("Bassa").tag("bassa")}
-                Picker("Promemoria",selection:$reminder){Text("Nessuno").tag(0);Text("10 minuti prima").tag(10);Text("1 ora prima").tag(60);Text("1 giorno prima").tag(1440)}
+                Picker("Promemoria",selection:$reminder){Text("Nessuno").tag(0);Text("10 minuti prima").tag(10);Text("1 ora prima").tag(60);Text("1 giorno prima").tag(1440)}.accessibilityIdentifier("taskReminderPicker")
             }
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
         }.environment(\.locale,Locale(identifier:"it_IT")).navigationTitle("Nuovo compito").toolbar{
