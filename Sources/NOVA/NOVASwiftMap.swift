@@ -6,12 +6,13 @@ import CoreLocation
 @MainActor final class NOVASwiftPosition: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var coordinate: CLLocationCoordinate2D?
     @Published var status = ""
+    @Published private(set) var fixVersion=0
     private let manager = CLLocationManager()
     private var waiting = false
     private var generation = 0
     override init() { super.init(); manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyHundredMeters }
     func read() {
-        generation += 1; waiting = true; status = "Lettura posizione…"
+        generation += 1; waiting = true; coordinate=nil; status = "Lettura posizione…"
         switch manager.authorizationStatus {
         case .notDetermined: manager.requestWhenInUseAuthorization()
         case .authorizedAlways, .authorizedWhenInUse: start()
@@ -33,7 +34,7 @@ import CoreLocation
     }
     func locationManager(_ manager: CLLocationManager,didUpdateLocations locations:[CLLocation]) {
         guard waiting, let fix=locations.last, fix.horizontalAccuracy >= 0, abs(fix.timestamp.timeIntervalSinceNow) < 900 else{return}
-        coordinate=fix.coordinate;status="Posizione letta adesso";stop()
+        coordinate=fix.coordinate;fixVersion += 1;status="Ultima lettura: "+fix.timestamp.formatted(date:.abbreviated,time:.standard);stop()
     }
     func locationManager(_ manager:CLLocationManager,didFailWithError error:Error) {
         if (error as? CLError)?.code == .locationUnknown{return};stop();status="Lettura posizione non riuscita. Riprova."
@@ -99,7 +100,7 @@ struct NOVASwiftMapFriend:Identifiable {
     }
     func upload(_ coordinate:CLLocationCoordinate2D,_ store:NOVASwiftStore) async {
         guard let archive=store.archive,let owner=NOVASession(archive.active),let root=archive.active.object,
-              root["locShare"]?.flag==true,let session=root["locSession"]?.string,!session.isEmpty else{return}
+              root["locShare"]?.flag==true,root["locSessionToken"]?.string==owner.token,let session=root["locSession"]?.string,!session.isEmpty else{return}
         let expected=generation
         do {
             _ = try await NOVAAccountService(session:owner).request("location",method:"PUT",body:.object(["lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude),"sharing":.bool(true),"session":.string(session)]))
@@ -134,7 +135,7 @@ struct NOVASwiftMapFriend:Identifiable {
                     Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Lo spegnimento offline richiede conferma del server. Aggiornamenti in background ancora in verifica.").font(.caption).foregroundStyle(.secondary)
                 }.padding(.horizontal).padding(.bottom)
             }.navigationTitle("Mappa").task{await model.refresh(store)}
-            .onChange(of:position.coordinate?.latitude){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
+            .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
             .onDisappear{position.stop();model.cancel()}
         }
     }
