@@ -508,7 +508,7 @@ extension NOVAJSON {
                 TextField("Dove studi",text:field("study"));TextField("Punti forti",text:field("skills"));TextField("Hobby",text:field("hobbies"))
             }
             if draft["song"]?.object==nil{Section("La tua canzone"){Button("Scegli canzone"){songPicker=true}}}
-            if let song=draft["song"]?.object{Section("La tua canzone"){Text(song["t"]?.string ?? "");Text(song["a"]?.string ?? "").foregroundStyle(.secondary);Button("Cambia canzone"){songPicker=true}}}
+            if let song=draft["song"]?.object{Section("La tua canzone"){NOVASwiftSongCard(song:.object(song));Button("Cambia canzone"){songPicker=true}}}
             if !status.isEmpty{Text(status).foregroundStyle(.secondary)}
         }.navigationTitle("Il tuo profilo").toolbar{
             ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}.disabled(saving)}
