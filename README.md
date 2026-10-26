@@ -213,3 +213,7 @@ Rimossi l'orario personale incorporato, il riempimento automatico basato sul nom
 ### Fondazione Swift (non attiva)
 
 Inizia la sostituzione del modello HTML/JS con dati e persistenza Swift. L'importazione proposta conserva anche chiavi sconosciute, cache dei diversi account e copia di recupero, verifica la rilettura e non elimina la memoria precedente. Non è ancora il motore attivo dell'app: le schermate e i servizi devono raggiungere la stessa copertura prima del passaggio. Nessun orario personale viene incluso nel codice.
+
+### Schermate Swift autonome (in verifica, non attive)
+
+Prima schermata e editor dell'orario leggono e salvano direttamente dal modello Swift, senza modello DOM o azioni JavaScript. L'editor usa una bozza, controlla account e orari, conserva i campi sconosciuti e scrive il formato widget esistente. Non sono ancora il percorso attivo: importazione, servizi e resto delle funzioni richiedono verifica prima del passaggio. Nessuna perdita di funzioni viene nascosta dietro la parola nativo.
