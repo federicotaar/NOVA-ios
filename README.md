@@ -360,3 +360,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Verifica interattiva dedicata al ProtectedRoot reale: salvataggio compito locale, impostazioni, ritorno onboarding e riavvio. Non usa account reali, non prova permessi/background fisici. Esecuzione e verifica visiva ancora pendenti.
 
 - Recupero protetto: un archivio Swift già esistente ma non leggibile non viene trattato come nuova installazione e non può essere sovrascritto da una seconda importazione; aggiunto controllo dei byte originali. Compilazione e verifica aggiornate ancora richieste.
+
+- Manual282 accettato:70 controlli sintetici +2 import/origine tutti veri, compreso import iniziale senza riattivare condivisione. Le nuove verifiche shell/root e archivio non leggibile sono successive e ancora pendenti. Corretto anche campo errore nel nuovo avvio inattivo.
