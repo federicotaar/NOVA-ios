@@ -294,9 +294,9 @@ p.write_text(s)
 
 p=Path("/tmp/NOVAProductionVisual.swift")
 s=p.read_text().replace('checks["accountTransitionRestoresOwnCache"] = transition.archive!.active.object?["name"] == .string("First")',r'''checks["accountTransitionRestoresOwnCache"] = transition.archive!.active.object?["name"] == .string("First")
-  let owner=NOVASession(transition.archive!.active)!,snapshot=NOVASwiftBackupData.snapshot(transition.archive!.active)
+  let owner=NOVASession(transition.archive!.active)!,logoutSnapshot=NOVASwiftBackupData.snapshot(transition.archive!.active)
   try transition.update(owner:"first@example.invalid"){$0["name"] = .string("Changed after review")}
-  do{try transition.logoutConfirmed(session:owner,snapshot:snapshot)}catch{}
+  do{try transition.logoutConfirmed(session:owner,snapshot:logoutSnapshot)}catch{}
   checks["logoutRejectsChangedSnapshot"]=NOVASession(transition.archive!.active)==owner
   try transition.logoutConfirmed(session:owner,snapshot:NOVASwiftBackupData.snapshot(transition.archive!.active))
   checks["logoutPreservesAccountCache"]=transition.archive!.owner=="local" && transition.archive!.localStorage["nova.swift.account.first@example.invalid"] != nil
