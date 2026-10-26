@@ -63,7 +63,7 @@ struct NOVASwiftArchive: Codable {
         // Copy personal data, never re-enable visibility or device services from a cached runtime flag.
         var active=imported.active.object ?? [:]
         for key in ["locShare","bgLoc"]{active[key] = .number(0)}
-        for key in ["locSession","locSessionToken"]{active[key] = .string("")}
+        for key in ["locSession","locSessionToken","locConsentV2","bgConsentV2"]{active[key] = .string("")}
         imported.active = .object(active)
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
@@ -801,7 +801,7 @@ extension NOVASwiftStore {
             });return .object(entry)
         })
         next["acct"] = .object(["email":.string(target),"token":.string(token)])
-        next["locShare"] = .number(0);next["bgLoc"] = .number(0);next["locSession"] = .string("");next["locSessionToken"] = .string("")
+        next["locShare"] = .number(0);next["bgLoc"] = .number(0);next["locSession"] = .string("");next["locSessionToken"] = .string("");next["locConsentV2"] = .string("");next["bgConsentV2"] = .string("")
         current.active = .object(next)
         let data=try encoder.encode(current),url=directory.appendingPathComponent("state-v1.json")
         try data.write(to:url,options:[.atomic,.completeFileProtection])
