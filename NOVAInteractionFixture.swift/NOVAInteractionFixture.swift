@@ -102,7 +102,7 @@ import UIKit
    let request=VNDetectBarcodesRequest();request.symbologies=[.qr]
    if revision==1{request.revision=VNDetectBarcodesRequestRevision1}
    var row:[String:Any]=["label":label,"requestedRevision":revision,"actualRevision":request.revision,"width":cg.width,"height":cg.height]
-   do{try VNImageRequestHandler(cgImage:cg,orientation:.up).perform([request]);let payloads=request.results?.compactMap{$0.payloadStringValue} ?? [];row["payloads"]=payloads;row["count"]=request.results?.count ?? 0;row["observations"]=request.results?.map{String(describing:$0)} ?? [];row["pass"]=payloads.contains(expected);if revision==0{defaultSuccess=payloads.contains(expected)}}catch{row["error"]=String(describing:error);row["nsError"]=(error as NSError).userInfo.description}
+   do{try VNImageRequestHandler(cgImage:cg,orientation:.up).perform([request]);let payloads=request.results?.compactMap{$0.payloadStringValue} ?? [];row["payloads"]=payloads;row["count"]=request.results?.count ?? 0;row["observations"]=request.results?.map{String(describing:$0)} ?? [];row["pass"]=payloads.contains(expected);if revision==1{defaultSuccess=payloads.contains(expected)}}catch{row["error"]=String(describing:error);row["nsError"]=(error as NSError).userInfo.description}
    diagnostics.append(row)
   }
   return defaultSuccess
