@@ -1148,7 +1148,8 @@ enum BGHandler {
 enum HomeNotifs {
     static var enabled: Bool { UserDefaults.standard.object(forKey: "nova.hwn") as? Bool ?? true }
 
-    static func process(_ events: [[String: Any]], background: Bool) async {
+    @MainActor static func process(_ events: [[String: Any]], background: Bool, valid:()->Bool = {true}) async {
+        guard valid() else{return}
         let center = UNUserNotificationCenter.current()
         let ud = UserDefaults.standard
         let ids = Set(events.compactMap { $0["id"] as? String })
@@ -1157,17 +1158,19 @@ enum HomeNotifs {
         ud.set(Array(ids), forKey: "nova.known")
         guard enabled else { return }
         let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized else { return }
+        guard valid(),settings.authorizationStatus == .authorized else { return }
 
         // Novità trovate dall'aggiornamento in background: avviso subito.
         if background && !known.isEmpty && !fresh.isEmpty {
             let c = UNMutableNotificationContent()
+            let identifier="hw.new.\(UUID().uuidString)"
             let tests = fresh.filter { ($0["kind"] as? String) == "test" }.count
             c.title = fresh.count == 1 ? (tests == 1 ? "NOVA · Nuova verifica" : "NOVA · Nuovo compito") : "NOVA · \(fresh.count) novità"
             c.body = fresh.prefix(3).map { line($0) }.joined(separator: "\n")
             c.sound = .default
-            try? await center.add(UNNotificationRequest(identifier: "hw.new.\(Int(Date().timeIntervalSince1970))", content: c,
+            try? await center.add(UNNotificationRequest(identifier: identifier, content: c,
                                                         trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)))
+            guard valid() else{center.removePendingNotificationRequests(withIdentifiers:[identifier]);return}
         }
 
         // Se l'assistente IA ha programmato un piano nelle ultime 36 ore, quello vince:
@@ -1181,6 +1184,7 @@ enum HomeNotifs {
         // - la sera prima: alle 16:30 se quel giorno ci sono 3+ cose da fare, altrimenti 18:30
         // - le verifiche hanno anche un avviso due giorni prima, alle 18:30
         let pending = await center.pendingNotificationRequests()
+        guard valid() else{return}
         center.removePendingNotificationRequests(withIdentifiers: pending.map { $0.identifier }.filter { $0.hasPrefix("hw.day.") || $0.hasPrefix("hw.morn.") || $0.hasPrefix("hw.test.") || $0.hasPrefix("plan.") })
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
@@ -1203,6 +1207,7 @@ enum HomeNotifs {
                  tests.isEmpty ? nil : cal.date(byAdding: .day, value: -2, to: due).flatMap { cal.date(bySettingHour: 18, minute: 30, second: 0, of: $0) })
             ]
             for slot in slots {
+                guard valid() else{return}
                 guard count < 40, let fire = slot.fire, fire > now else { continue }
                 let c = UNMutableNotificationContent()
                 c.title = slot.title
@@ -1213,6 +1218,7 @@ enum HomeNotifs {
                 let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
                 try? await center.add(UNNotificationRequest(identifier: slot.id, content: c,
                                                             trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)))
+                guard valid() else{center.removePendingNotificationRequests(withIdentifiers:[slot.id]);return}
                 count += 1
             }
         }
