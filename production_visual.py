@@ -95,7 +95,7 @@ func visualNativeSettingsCheck(_ web:WKWebView){
 p.write_text(x)
 
 p=Path('/tmp/NOVAProductionVisual.swift')
-x=p.read_text()+r"""
+x=p.read_text()+r'''
 @available(iOS 26.0, *)
 func visualNativeSettingsFunctional(_ web:WKWebView,_ page:NativeSettingsPage,_ dir:URL){
  let script="""
@@ -109,5 +109,5 @@ func visualNativeSettingsFunctional(_ web:WKWebView,_ page:NativeSettingsPage,_ 
  """
  web.callAsyncJavaScript("return await "+script,arguments:[:],in:nil,in:.page){result in try? String(describing:result).write(to:dir.appendingPathComponent("native-functional.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("visual-done"))}
 }
-"""
+'''
 p.write_text(x)
