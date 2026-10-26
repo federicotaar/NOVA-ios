@@ -466,6 +466,7 @@ extension NOVAJSON {
     @State private var songPicker=false
     @State private var photoEpoch=0
     @State private var active=false
+    @State private var initialized=false
     func field(_ key:String)->Binding<String>{Binding(get:{draft[key]?.string ?? ""},set:{draft[key] = .string($0)})}
     var body:some View {
         NavigationStack{Form{
@@ -485,7 +486,7 @@ extension NOVAJSON {
             ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}.disabled(saving)}
             ToolbarItem(placement:.confirmationAction){Button(saving ? "Salvo…":"Salva"){Task{await save()}}.disabled(saving)}
         }}.sheet(isPresented:$songPicker){NOVASwiftSongPicker(draft:$draft)}
-        .onAppear{guard !active else{return};active=true;owner=store.archive?.owner ?? "";draft=store.archive?.active.object?["prof"]?.object ?? [:];token=store.archive?.active.object?["acct"]?.object?["token"]?.string ?? ""}
+        .onAppear{active=true;guard !initialized else{return};initialized=true;owner=store.archive?.owner ?? "";draft=store.archive?.active.object?["prof"]?.object ?? [:];token=store.archive?.active.object?["acct"]?.object?["token"]?.string ?? ""}
         .onDisappear{active=false;photoEpoch+=1}
         .onChange(of:photo){_,item in
             photoEpoch+=1;let expected=photoEpoch,expectedOwner=owner
