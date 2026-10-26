@@ -424,7 +424,7 @@ extension NOVAJSON {
                 if let photoDraft=photoDraft,let data=Data(base64Encoded:photoDraft.components(separatedBy:",").last ?? ""),let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Rimuovi foto",role:.destructive){self.photoDraft=nil}}}
                 HStack(alignment:.bottom){
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
-                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.roundedBorder)
+                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.plain)
                     Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                 }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
             }.navigationTitle("Assistente")
@@ -660,7 +660,7 @@ extension NOVAJSON {
             HStack(alignment:.bottom){
                 PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
                 Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"mic")}.accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
-                TextField("Messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.roundedBorder).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
+                TextField("Messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.plain).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
                 Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
             }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
         }.navigationTitle(title)
