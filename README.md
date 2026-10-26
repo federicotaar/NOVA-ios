@@ -344,3 +344,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Checkpoint268 superato: 68 verifiche sintetiche piu 2 importazione/origine tutte vere. Profilo generale e parte bassa servizi controllati in immagine; compilazione271 superata. Interazione2 non ha raggiunto il gesto: il percorso di avvio mostrava ancora la schermata precedente. Corretto il punto di ingresso del test e richiesto interazione3, senza dichiarare superati gesti o tastiera.
 - Ripristino backup disattiva anche proposte AI in attesa del vecchio archivio. Aggiunte prove visive per canzone profilo, scuro, dettaglio compito e bozza AI non inviata. Lotto ancora da verificare. Migrazione inattiva, nessuna nuova release.
+
+- Mappa Swift: i messaggi di conferma posizione/Fantasma richiedono anche ok:true dal server. Ripristino backup disattiva proposte AI in attesa e un controllo sintetico dedicato lo verifica. Ultimo lotto ancora in compilazione; gesti/tastiera restano da accettare, nessuna attivazione o pubblicazione.
