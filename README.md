@@ -173,3 +173,7 @@ Home nativa UIKit con scorrimento e schede per ora, meteo, batteria, verifiche, 
 ### 2026.10.25.43
 
 Home nativa: intestazione con comandi a icone, testo compiti con spazio dedicato, giorni del calendario non spezzati su due righe. Epoch rinnovato anche uscendo e rientrando nella Home.
+
+### 2026.10.25.44
+
+Home nativa con titolo e scadenza compiti separati, marcatori calendario per compiti/verifiche e percentuale batteria. Il saluto viene aggiornato anche a schede invariate.
