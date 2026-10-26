@@ -149,3 +149,7 @@ Editor del profilo in pagina nativa: selettore foto iOS, username, scuola, punti
 ### 2026.10.25.37
 
 Titolo e azione di chiusura del profilo nativo distinti da Impostazioni. Restano Salva esplicito, Annulla e vincolo del primo profilo.
+
+### 2026.10.25.38
+
+Ricerca canzone nel profilo nativo: risultati aggiornati senza togliere il focus al campo. Username senza maiuscola automatica. Salvataggio del profilo ancora esplicito.
