@@ -216,3 +216,10 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 - Launch5: import esplicito, tastiera Fine tastiera, compito salvato, impostazioni, ritorno setup, chiusura/riavvio con compito presente. Archivio conferma condivisione/background/sessioni disattivati. Artifact: https://github.com/federicotaranudev/NOVA-ios/actions/runs/40358218516/artifacts/12667752258
 - Manual296:76 controlli tutti veri e cinque schede reali ispezionate.
 - Preparazione 2026.10.26.1 TEST Swift, non versione definitiva: IPA ancora da verificare. Installa sopra la stessa app, non eliminarla. Face ID, permessi, background su iPhone e servizi/account reali ancora non verificati.
+
+## 2026.10.26.1 TEST Swift: IPA verificato
+[Scarica IPA di prova](https://github.com/federicotaranudev/NOVA-ios/releases/download/v2026.10.26.1/NOVA-2026.10.26.1.ipa) - prerelease, non versione definitiva.
+- File1.678.691byte, SHA256 `38eca6c85a2b05f2f24a4d2adff3d73cedfe6cd6008f588470a7e8782ebfdf0b`. Bundle `federicotaranu.site`, versione2601, SDK iOS26.5 confermato dal binario. Nome visibile NOVA Test Swift.
+- Avvio reale `NOVASwiftLaunchRoot` con flag dedicato: schermate, stato e servizi Swift. HTML precedente conservato solo come risorsa/origine di migrazione una tantum, non come modello delle schermate del test. Widget e quattro clip narrazione inclusi. Nessun archivio personale confezionato.
+- Gate simulatore: import esplicito, tastiera, salvataggio compito, impostazioni/setup e chiusura/riavvio;76 controlli sintetici/import/shell passati. Installare sopra la stessa app, senza eliminarla; controllare i propri dati prima di abilitare servizi.
+- Ancora da verificare su iPhone: Face ID, foto/microfono, notifiche, comportamento background e servizi/account reali. La posizione non si attiva dalla migrazione. Pubblicatore normale disabilitato, release precedenti preservate.
