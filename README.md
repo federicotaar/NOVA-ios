@@ -307,3 +307,7 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Aggiunte basi Swift per blocco Face ID/codice, schermata di blocco durante inattività e permesso notifiche esplicito. Presentazione iniziale Swift breve come base, non ancora parità con la sequenza animata precedente.
 - Controllati profilo pubblico, QR e conferme assistente nel checkpoint 179: 7 controlli persone e 9 assistente superati. Ancora inattivo; servizi, meteo e ciclo di vita successivi richiedono compilazione e checkpoint propri.
 - Compilazione servizi/meteo/background corretta e passata nei controlli 193-196; aggiunte catture sintetiche delle impostazioni servizi, presentazione e privacy. Queste catture non richiedono permessi, non aprono account reali e non attivano la nuova app.
+
+### Navigazione e composer Swift (non attivi)
+- Aggiunta navigazione a cinque icone con lente di sistema: la lente segue il dito, la pagina cambia al rilascio. Avatar profilo legato ai dati Swift, senza callback JavaScript.
+- Aggiunte superfici Liquid Glass ai composer Swift su iOS 26, con materiale di sistema sulle versioni precedenti. Da verificare con tastiera, trascinamento, annullamento e cambio account prima di qualsiasi attivazione.
