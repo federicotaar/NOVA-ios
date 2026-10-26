@@ -2353,7 +2353,7 @@ extension NOVAJSON {
             saving=true;defer{saving=false}
             let expected=NOVASession(store.archive!.active)!
             do{
-                let result=try await NOVAAccountService(session:expected).request("profile",method:"PUT",body:.object(profile))
+                let result=try await NOVAAccountService(session:expected).request("profile",method:"PUT",body:.object(["username":.string(username),"study":profile["study"] ?? .string(""),"skills":profile["skills"] ?? .string(""),"hobbies":profile["hobbies"] ?? .string(""),"song":profile["song"] ?? .null,"badges":profile["badges"] ?? .array([]),"ntfy_topic":profile["ntfy"] ?? .string(""),"avatar":profile["avatar"] ?? .string("")]))
                 guard active,owner==store.archive?.owner,NOVASession(store.archive!.active)==expected else{return}
                 guard result.object?["ok"]?.flag==true else{status="Profilo non confermato online. Bozza conservata.";return}
             }catch{status="Profilo non salvato online. Bozza conservata, riprova.";return}
