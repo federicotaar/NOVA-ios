@@ -225,3 +225,5 @@ L'offerta di importazione Swift è esplicita: copia una volta la memoria precede
 Il percorso Swift in verifica include ora creazione e completamento dei compiti con bozza, controllo duplicati e scrittura atomica del modello Swift. Le notifiche e il backup devono ancora essere collegati prima dell'attivazione: non è una versione finale né una sostituzione silenziosa delle funzioni esistenti.
 
 Il percorso compiti Swift aggiorna il file widget e pianifica i promemoria solo con autorizzazione già concessa. Nessuna richiesta automatica di permessi durante l'importazione. L'esito di programmazione non promette la consegna iOS; verifica del dispositivo ancora necessaria.
+
+Le scadenze nella schermata Swift usano date e ore leggibili in italiano, non la stringa tecnica salvata. Anche il conteggio delle lezioni distingue singolare e plurale.
