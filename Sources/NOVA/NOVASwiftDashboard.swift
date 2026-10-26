@@ -64,10 +64,10 @@ import UIKit
                     if visible("task"){card("Compiti"){
                         Button("Nuovo compito"){createTask=true}
                         if (root["tasks"]?.array ?? []).isEmpty{Text("Nessun compito").foregroundStyle(.secondary)}
-                        ForEach(Array((root["tasks"]?.array ?? []).enumerated()),id:\.offset){_,task in taskRow(task)}
+                        ForEach(Array((root["tasks"]?.array ?? []).filter{$0.object?["done"]?.flag != true && $0.object?["kind"]?.string != "test" && !($0.object?["id"]?.string ?? "").hasPrefix("cvag")}.enumerated()),id:\.offset){_,task in taskRow(task)}
                     }}
                     if visible("nx"){card("Prossime verifiche"){
-                        let tests=(root["tasks"]?.array ?? []).filter{$0.object?["test"]?.flag==true && $0.object?["done"]?.flag != true}
+                        let tests=(root["tasks"]?.array ?? []).filter{($0.object?["kind"]?.string=="test" || ($0.object?["id"]?.string ?? "").hasPrefix("cvag")) && $0.object?["done"]?.flag != true}
                         if tests.isEmpty{Text("Nessuna verifica salvata.").foregroundStyle(.secondary)}
                         ForEach(Array(tests.enumerated()),id:\.offset){_,task in taskRow(task)}
                     }}
