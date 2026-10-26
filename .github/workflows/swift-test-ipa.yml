@@ -77,7 +77,7 @@ jobs:
       - name: Build unsigned IPA
         run: |
           set -e
-          test -f .swift-test-approved || { echo "Swift integrated gates not approved"; exit 1; }
+          test -f .github/swift-test-approved || { echo "Swift integrated gates not approved"; exit 1; }
           xtool dev build --ipa -c release
           IPA="$(ls xtool/*.ipa | head -n1)"
           mkdir /tmp/nova-sdk26
@@ -88,6 +88,8 @@ jobs:
           sed 's/let bundle = Bundle.module/let bundle = Bundle.main/' Sources/NOVA/NOVAApp.swift > /tmp/NOVAProduction.swift
           xcrun swiftc -D NOVA_SWIFT_TEST -parse-as-library -O -target arm64-apple-ios17.0 -sdk "$SDK" /tmp/NOVAProduction.swift $(find Sources/NOVA -maxdepth 1 -name '*.swift' ! -name NOVAApp.swift) -o "$APP/NOVA"
           cp Sources/NOVA/nova.html "$APP/nova.html"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName NOVA Test Swift" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NOVASwiftTestBuild bool true" "$APP/Info.plist"
           /usr/libexec/PlistBuddy -c "Add :DTSDKName string iphoneos$SDK_VERSION" "$APP/Info.plist"
           xcrun vtool -show-build "$APP/NOVA"
           xcrun vtool -show-build "$APP/NOVA" | grep -E 'sdk[[:space:]]+26'
