@@ -115,6 +115,7 @@ struct NOVALessonDraft: Identifiable {
     @State private var error = ""
     @State private var loaded = false
     @State private var owner = ""
+    @State private var session:NOVASession?
     @State private var photo:PhotosPickerItem?
     @State private var importing=false
     @State private var importEpoch=0
@@ -155,7 +156,7 @@ struct NOVALessonDraft: Identifiable {
             }
         }
         .onAppear {
-            active=true;guard !loaded else{return}; loaded=true; owner=store.archive?.owner ?? ""
+            active=true;guard !loaded else{return}; loaded=true; owner=store.archive?.owner ?? "";session=store.archive.flatMap({NOVASession($0.active)})
             lessons=(store.archive?.active.object?["tt"]?.object?["lessons"]?.array ?? []).map(NOVALessonDraft.init)
         }.onDisappear{active=false;importEpoch+=1;importing=false}.onChange(of:photo){_,item in importPhoto(item)}
     }
@@ -171,6 +172,7 @@ struct NOVALessonDraft: Identifiable {
         Binding(get:{Calendar.current.startOfDay(for:Date()).addingTimeInterval(Double(value.wrappedValue*60))},set:{date in let c=Calendar.current.dateComponents([.hour,.minute],from:date);value.wrappedValue=(c.hour ?? 0)*60+(c.minute ?? 0)})
     }
     func save() {
+        guard store.archive?.owner==owner,store.archive.flatMap({NOVASession($0.active)})==session else{error="Account cambiato. Chiudi e riapri l'orario.";return}
         guard lessons.allSatisfy({!$0.subject.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && $0.start >= 0 && $0.end <= 1440 && $0.end > $0.start}) else {error="Controlla materia e orari: la fine deve essere dopo l'inizio.";return}
         do {
             let values=lessons.sorted{$0.day==$1.day ? $0.start<$1.start:$0.day<$1.day}.map(\.json)
