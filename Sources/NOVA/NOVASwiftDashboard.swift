@@ -42,6 +42,7 @@ import UIKit
     @State private var settings=false
     @State private var status=""
     var root:[String:NOVAJSON]{store.archive?.active.object ?? [:]}
+    var dailyRange:String {let daily=weather.value?.object?["daily"]?.object ?? [:];let low=daily["temperature_2m_min"]?.array.first?.double ?? 0;let high=daily["temperature_2m_max"]?.array.first?.double ?? 0;return "Min "+String(Int(low.rounded()))+"° · Max "+String(Int(high.rounded()))+"°"}
     func visible(_ key:String)->Bool {root["w"]?.object?[key]?.flag ?? true}
     var body:some View {
         NavigationStack {
@@ -55,7 +56,7 @@ import UIKit
                             Text((root["city"]?.object?["name"]?.string ?? "")+" · "+NOVASwiftWeather.description(c["weather_code"]?.integer ?? 0)).foregroundStyle(.secondary)
                         }
                         if !weather.status.isEmpty{Text(weather.status).foregroundStyle(.secondary)}
-                        if let daily=weather.value?.object?["daily"]?.object{Text("Min "+(daily["temperature_2m_min"]?.array.first?.double ?? 0).formatted(.number.precision(.fractionLength(0)))+"° · Max "+(daily["temperature_2m_max"]?.array.first?.double ?? 0).formatted(.number.precision(.fractionLength(0)))+"°").font(.footnote)}
+                        Text(dailyRange).font(.footnote)
                         Button("Usa la mia posizione"){locationOwner=store.archive?.owner ?? "";position.read()}
                         if !position.status.isEmpty{Text(position.status).font(.footnote).foregroundStyle(.secondary)}
                         HStack{TextField("Città",text:$cityQuery).textInputAutocapitalization(.words);Button("Cerca"){findCity()}.disabled(searching||cityQuery.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}
@@ -90,7 +91,7 @@ import UIKit
             .sheet(isPresented:$createTask){NOVASwiftTaskEditor(store:store)}.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}.sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
             .sheet(item:Binding(get:{selectedDay.map{NOVASwiftSelectedDay(date:$0)}},set:{selectedDay=$0?.date})){day in NavigationStack{List{ForEach(Array((root["tasks"]?.array ?? []).filter{task in guard let due=task.object?["due"]?.string else{return false};return due.hasPrefix(day.date.formatted(.iso8601.year().month().day().dateSeparator(.dash)))}.enumerated()),id:\.offset){_,task in taskRow(task)}}.navigationTitle(day.date.formatted(.dateTime.day().month(.wide).locale(Locale(identifier:"it_IT")))).toolbar{Button("Fatto"){selectedDay=nil}}}}
             .task(id:root["city"]?.object?["name"]?.string){UIDevice.current.isBatteryMonitoringEnabled=true;if let city=root["city"]{await weather.load(city:city)}}
-            .onChange(of:position.fixVersion){_,_ in guard locationOwner==store.archive?.owner,let coordinate=position.coordinate else{return};let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude)]);Task{await weather.load(city:city)}}
+            .onChange(of:position.fixVersion){_,_ in useWeatherPosition()}
             .onChange(of:store.archive?.owner){_,_ in position.stop();weather.cancel();cityGeneration+=1;searching=false;cityQuery=""}
             .onDisappear{position.stop();weather.cancel();cityGeneration += 1}
         }.environment(\.locale,Locale(identifier:"it_IT"))
@@ -111,6 +112,7 @@ import UIKit
     }
     func hasTasks(_ date:Date)->Bool{let f=DateFormatter();f.dateFormat="yyyy-MM-dd";let day=f.string(from:date);return(root["tasks"]?.array ?? []).contains{($0.object?["due"]?.string ?? "").hasPrefix(day)}}
     func changeMonth(_ direction:Int){month=Calendar.current.date(byAdding:.month,value:direction,to:month) ?? month}
+    func useWeatherPosition(){guard locationOwner==store.archive?.owner,let coordinate=position.coordinate else{return};let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude)]);Task{await weather.load(city:city)}}
     func findCity(){
         let query=cityQuery.trimmingCharacters(in:.whitespacesAndNewlines),owner=store.archive?.owner ?? ""
         cityGeneration += 1;let expected=cityGeneration;searching=true;cityError=""
