@@ -2212,7 +2212,7 @@ extension NOVAJSON {
                 Picker("Promemoria",selection:$reminder){Text("Nessuno").tag(0);Text("10 minuti prima").tag(10);Text("1 ora prima").tag(60);Text("1 giorno prima").tag(1440)}
             }
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
-        }.navigationTitle("Nuovo compito").toolbar{
+        }.environment(\.locale,Locale(identifier:"it_IT")).navigationTitle("Nuovo compito").toolbar{
             ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}}
             ToolbarItem(placement:.confirmationAction){Button("Aggiungi"){do{try NOVASwiftTaskActions.add(store,owner:owner,title:title,note:note,due:due,priority:priority,reminder:reminder);dismiss()}catch{self.error="Controlla titolo, descrizione e duplicati. Nessun dato precedente è stato modificato."}}}
         }}.onAppear{owner=store.archive?.owner ?? ""}
