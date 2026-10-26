@@ -247,3 +247,5 @@ Il confronto backup Swift è esplicito: mostra copie diverse senza scelta automa
 La lettura mappa mostra l'ora reale della posizione, non una promessa di aggiornamento continuo. Gli invii richiedono che il token della sessione di condivisione corrisponda all'account attivo, anche per dati importati.
 
 Le verifiche e la compilazione di produzione includono anche i nuovi moduli Swift separati. La pubblicazione IPA resta disattivata durante la migrazione: nessuna versione precedente viene sostituita.
+
+Il ripristino esplicito dalla copia online disarma anche l'invio posizione ai grandi spostamenti già salvato sul telefono, per evitare che un vecchio monitor continui dopo la scelta della copia.
