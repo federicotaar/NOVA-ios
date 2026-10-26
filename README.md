@@ -275,3 +275,8 @@ Ricerca, scelta e rimozione della canzone preferita ora hanno un percorso Swift 
 Durante l'implementazione ogni modifica Swift controlla compilazione e test di persistenza. Le prove complete nel simulatore si avviano esplicitamente ai punti di verifica, per evitare code di esecuzioni identiche. Un controllo di compilazione non vale come verifica visiva o completamento della migrazione.
 
 Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e vocali in bozza con invio esplicito, riproduzione, reazioni, modifica ed eliminazione dei propri messaggi, ricevute e indicatore scrittura. Ogni risposta o caricamento resta legato ad account e conversazione; i test sintetici devono ancora confermare la parità e nessuna conversazione reale viene usata per questi test.
+
+### Checkpoint Swift chat (26 ottobre, non attivo)
+- Il ramo Swift ora comprende conversazioni, foto e vocali in bozza con invio esplicito, creazione chat/gruppi, reazioni, modifica/eliminazione dei propri messaggi, ricevute e indicazione di scrittura.
+- La compilazione del blocco social è passata; il checkpoint manuale usa trasporti sintetici e cattura conversazione e creazione chat. Non contatta amici o account reali e non dimostra ancora parità completa.
+- Recuperate e controllate le schermate Swift di accesso e scelta canzone: 15 controlli dati/account/privacy, 5 sync e 2 importazione superati. Nessuna nuova IPA: 51 resta l'ultima consegnata; pubblicazione automatica disabilitata.
