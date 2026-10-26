@@ -929,7 +929,7 @@ enum ClasseViva {
         }
     }
 
-    static func loginFlow(uid: String, pass: String, ident: String?, save: Bool, background: Bool = false) async -> [String: Any] {
+    static func loginFlow(uid: String, pass: String, ident: String?, save: Bool, background: Bool = false, sideEffects: Bool = true) async -> [String: Any] {
         var payload: [String: Any] = ["uid": uid, "pass": pass, "ident": NSNull()]
         if let ident = ident, !ident.isEmpty { payload["ident"] = ident }
         for pair in 0..<headerPairs.count {
@@ -962,6 +962,7 @@ enum ClasseViva {
                 let name = (first + " " + last).trimmingCharacters(in: .whitespaces)
                 let events = await fetchEvents(token: token, studentID: studentID, pair: pair)
                 let grades = await gradesItems(token: token, studentID: studentID, pair: pair)
+                if sideEffects {
                 // Condivide compiti/verifiche col widget calendario del mese (pallini rossi/blu).
                 // Gira anche negli aggiornamenti in background, quindi il widget resta fresco.
                 var seenDots = Set<String>()
@@ -993,6 +994,7 @@ enum ClasseViva {
                     _ = TT.saveHomework(hjson)
                 }
                 await HomeNotifs.process(events, background: background)
+                }
                 return ["ok": 1, "name": name, "events": events, "grades": grades]
             } catch {
                 return ["ok": 0, "err": "rete", "info": error.localizedDescription]
@@ -1126,7 +1128,8 @@ enum BGHandler {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: id, using: nil) { task in
             schedule()
             let work = Task {
-                let ok = await ClasseViva.backgroundRefresh()
+                let ok:Bool
+                if UserDefaults.standard.bool(forKey:"nova.swift.active"){ok = await NOVASwiftSchoolLifecycle.refresh(background:true)}else{ok = await ClasseViva.backgroundRefresh()}
                 task.setTaskCompleted(success: ok)
             }
             task.expirationHandler = { work.cancel() }
