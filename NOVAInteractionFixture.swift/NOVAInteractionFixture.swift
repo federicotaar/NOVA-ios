@@ -75,3 +75,12 @@ import UIKit
  let model=NOVASwiftMapModel{_,_,_,_ in .object(["friends":.array([])])}
  let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:3,mapModel:model,deviceServices:false));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor struct NOVASongArtworkFixture:View{
+ let song:NOVAJSON = .object(["t":.string("Yellow"),"a":.string("Coldplay"),"art":.string("https://cdn-images.dzcdn.net/images/cover/970dce98eeea6729244c0ae71707a83d/250x250-000000-80-0-0.jpg")])
+ var body:some View{NavigationStack{List{Section("La tua canzone"){NOVASwiftSongCard(song:song)};Section("Risultato di ricerca"){HStack{NOVASwiftSongArtwork(song:song,size:56);VStack(alignment:.leading){Text("Yellow");Text("Coldplay").font(.caption).foregroundStyle(.secondary)};Spacer();Image(systemName:"play.circle.fill").font(.title2)}}}.navigationTitle("La tua canzone")}.preferredColorScheme(.dark)}
+}
+@MainActor func visualSwiftSongInteractionReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftSongInteractionReady(web,attempt+1)}};return}
+ let page=UIHostingController(rootView:NOVASongArtworkFixture());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];DispatchQueue.main.asyncAfter(deadline:.now()+3){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
+}
