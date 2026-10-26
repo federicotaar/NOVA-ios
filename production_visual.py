@@ -690,3 +690,9 @@ if os.environ.get('NOVA_SONG_INTERACTION')=='1':
     s=p.read_text().replace('visualSwiftOwnedReady(web,0)','visualSwiftSongInteractionReady(web,0)',1)
     s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
     p.write_text(s)
+
+if os.environ.get('NOVA_QR_INTERACTION')=='1':
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text().replace('visualSwiftOwnedReady(web,0)','visualSwiftQRInteractionReady(web,0)',1)
+    s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
+    p.write_text(s)
