@@ -7,7 +7,8 @@ import UIKit
     private var generation=0
     func cancel(){generation += 1}
     func load(city:NOVAJSON) async {
-        guard let o=city.object,case .number(let lat)?=o["lat"],case .number(let lon)?=o["lon"],abs(lat)<=90,abs(lon)<=180 else{status="Scegli la città per il meteo.";return}
+        value=nil
+        guard let o=city.object,case .number(let lat)?=o["lat"],case .number(let lon)?=o["lon"],lat.isFinite,lon.isFinite,abs(lat)<=90,abs(lon)<=180 else{status="Scegli la città per il meteo.";return}
         generation += 1;let expected=generation;status="Carico il meteo…"
         var parts=URLComponents(string:"https://api.open-meteo.com/v1/forecast")!
         parts.queryItems=[URLQueryItem(name:"latitude",value:String(lat)),URLQueryItem(name:"longitude",value:String(lon)),URLQueryItem(name:"current",value:"temperature_2m,apparent_temperature,weather_code"),URLQueryItem(name:"daily",value:"temperature_2m_max,temperature_2m_min"),URLQueryItem(name:"timezone",value:"auto"),URLQueryItem(name:"forecast_days",value:"1")]
@@ -28,6 +29,8 @@ import UIKit
 @MainActor struct NOVASwiftDashboard:View {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var weather=NOVASwiftWeather()
+    @StateObject private var position=NOVASwiftPosition()
+    @State private var locationOwner=""
     @State private var cityQuery=""
     @State private var cityError=""
     @State private var searching=false
@@ -52,6 +55,9 @@ import UIKit
                             Text((root["city"]?.object?["name"]?.string ?? "")+" · "+NOVASwiftWeather.description(c["weather_code"]?.integer ?? 0)).foregroundStyle(.secondary)
                         }
                         if !weather.status.isEmpty{Text(weather.status).foregroundStyle(.secondary)}
+                        if let daily=weather.value?.object?["daily"]?.object{Text("Min "+(daily["temperature_2m_min"]?.array.first?.double ?? 0).formatted(.number.precision(.fractionLength(0)))+"° · Max "+(daily["temperature_2m_max"]?.array.first?.double ?? 0).formatted(.number.precision(.fractionLength(0)))+"°").font(.footnote)}
+                        Button("Usa la mia posizione"){locationOwner=store.archive?.owner ?? "";position.read()}
+                        if !position.status.isEmpty{Text(position.status).font(.footnote).foregroundStyle(.secondary)}
                         HStack{TextField("Città",text:$cityQuery).textInputAutocapitalization(.words);Button("Cerca"){findCity()}.disabled(searching||cityQuery.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}
                         if !cityError.isEmpty{Text(cityError).font(.footnote).foregroundStyle(.red)}
                     }}
@@ -84,7 +90,9 @@ import UIKit
             .sheet(isPresented:$createTask){NOVASwiftTaskEditor(store:store)}.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}.sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
             .sheet(item:Binding(get:{selectedDay.map{NOVASwiftSelectedDay(date:$0)}},set:{selectedDay=$0?.date})){day in NavigationStack{List{ForEach(Array((root["tasks"]?.array ?? []).filter{task in guard let due=task.object?["due"]?.string else{return false};return due.hasPrefix(day.date.formatted(.iso8601.year().month().day().dateSeparator(.dash)))}.enumerated()),id:\.offset){_,task in taskRow(task)}}.navigationTitle(day.date.formatted(.dateTime.day().month(.wide).locale(Locale(identifier:"it_IT")))).toolbar{Button("Fatto"){selectedDay=nil}}}}
             .task(id:root["city"]?.object?["name"]?.string){UIDevice.current.isBatteryMonitoringEnabled=true;if let city=root["city"]{await weather.load(city:city)}}
-            .onDisappear{weather.cancel();cityGeneration += 1}
+            .onChange(of:position.fixVersion){_,_ in guard locationOwner==store.archive?.owner,let coordinate=position.coordinate else{return};let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude)]);Task{await weather.load(city:city)}}
+            .onChange(of:store.archive?.owner){_,_ in position.stop();weather.cancel();cityGeneration+=1;searching=false;cityQuery=""}
+            .onDisappear{position.stop();weather.cancel();cityGeneration += 1}
         }.environment(\.locale,Locale(identifier:"it_IT"))
     }
     @ViewBuilder func card<Content:View>(_ title:String,@ViewBuilder content:()->Content)->some View {
