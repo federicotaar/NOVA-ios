@@ -1,5 +1,6 @@
 from pathlib import Path
 s=Path('Sources/NOVA/NOVAApp.swift').read_text()
+h=Path('Sources/NOVA/nova.html');html=h.read_text();html=html.replace(' const syncNative=()=>{syncGlassButtons();', ' window.__settingsTestKeys=()=>({fields:nativeFields,epoch:settingsEpoch});const syncNative=()=>{syncGlassButtons();');h.write_text(html)
 r=Path('ChatRegression.swift').read_text();fixture=r.split(' let fixture="""',1)[1].split('"""',1)[0]
 fixture += '''
  window.testErrorDetails=[];window.addEventListener('error',e=>testErrorDetails.push({message:e.message,file:e.filename,line:e.lineno,column:e.colno}));const demoCanvas=document.createElement('canvas');demoCanvas.width=demoCanvas.height=64;const demoCtx=demoCanvas.getContext('2d');demoCtx.fillStyle='#6877ef';demoCtx.fillRect(0,0,64,64);demoCtx.fillStyle='#fff';demoCtx.font='bold 36px sans-serif';demoCtx.fillText('N',17,45);const demoAvatar=demoCanvas.toDataURL('image/png');const demoState=JSON.parse(localStorage.getItem('nova.v1'));demoState.prof.avatar=demoAvatar;demoState.tasks=[{id:'synthetic-task',title:'Synthetic homework',subj:'Maths',due:'2026-10-30T17:00',done:0}];localStorage.setItem('nova.v1',JSON.stringify(demoState));const oldDemoFetch=window.fetch;window.fetch=async(...args)=>{const res=await oldDemoFetch(...args),oldJson=res.json;res.json=async()=>{const j=await oldJson();if(j.friends)j.friends.forEach(f=>f.avatar=demoAvatar);if(j.chats)j.chats=[{id:'synthetic',type:'dm',title:'Example friend',avatar:demoAvatar,unread:0}];return j};return res};
@@ -87,8 +88,26 @@ func visualNativeSettingsCheck(_ web:WKWebView){
  let window=web.window ?? UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow});guard let nav=window?.rootViewController?.presentedViewController as? UINavigationController,let page=nav.topViewController as? NativeSettingsPage else{return}
  if let section=page.groups.firstIndex(where:{($0["title"] as? String ?? "").hasPrefix("Aspetto e schermata Home")}){page.tableView.scrollToRow(at:IndexPath(row:0,section:section),at:.top,animated:false)}
  DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-native-settings-appearance.png");let rows=page.groups.enumerated().flatMap{section,g in (g["rows"] as? [[String:Any]] ?? []).enumerated().map{(section,$0.offset,$0.element)}};if let intro=rows.first(where:{($0.2["label"] as? String ?? "").hasPrefix("Intro all'")}){let path=IndexPath(row:intro.1,section:intro.0);page.tableView.scrollToRow(at:path,at:.middle,animated:false);page.tableView.layoutIfNeeded();if let control=page.tableView.cellForRow(at:path)?.accessoryView as? UISwitch{control.setOn(!control.isOn,animated:false);control.sendActions(for:.valueChanged)}}
- DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-native-settings-toggled.png");if page.groups.count>3{page.tableView.scrollToRow(at:IndexPath(row:0,section:page.groups.count-2),at:.top,animated:false)};DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-native-settings-privacy.png");let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];web.evaluateJavaScript("JSON.stringify({errors:testErrors,details:testErrorDetails,introOff:S.introOff,settingsOpen:$('#dSet').open,profile:S.prof.username,account:S.acct?.email})"){v,e in try? String(describing:v ?? e).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("visual-done"))}}}
+ DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-native-settings-toggled.png");if page.groups.count>3{page.tableView.scrollToRow(at:IndexPath(row:0,section:page.groups.count-2),at:.top,animated:false)};DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-native-settings-privacy.png");let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];web.evaluateJavaScript("JSON.stringify({errors:testErrors,details:testErrorDetails,introOff:S.introOff,settingsOpen:$('#dSet').open,profile:S.prof.username,account:S.acct?.email})"){v,e in try? String(describing:v ?? e).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8);visualNativeSettingsFunctional(web,page,dir)}}}
  }
+}
+"""
+p.write_text(x)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+x=p.read_text()+r"""
+@available(iOS 26.0, *)
+func visualNativeSettingsFunctional(_ web:WKWebView,_ page:NativeSettingsPage,_ dir:URL){
+ let script="""
+ (async()=>{const report={};const keyFor=q=>{const e=$(q);return [...__settingsTestKeys().fields.entries()].find(([k,v])=>v===e)?.[0]};const owner=S.acct?.email||'',epoch=__settingsTestKeys().epoch;
+ const nameKey=keyFor('#fN'),introKey=keyFor('#bIntro');const start=S.introOff;await __nativeSettingsPageAction(introKey,String(!!S.introOff),'wrong@test.invalid',epoch);report.wrongOwnerBlocked=S.introOff===start;await __nativeSettingsPageAction(introKey,String(!!S.introOff),owner,epoch-1);report.oldEpochBlocked=S.introOff===start;
+ await __nativeSettingsPageAction(nameKey,'Native field test',owner,epoch);report.nameSaved=S.name==='Native field test'&&JSON.parse(localStorage.getItem(K)).name==='Native field test';
+ const widgetKey=keyFor('#settingsWidget_bat'),before=S.w.bat;await __nativeSettingsPageAction(widgetKey,String(!before),owner,epoch);report.widgetChanged=!!S.w.bat===!before;
+ const oldHandler=$('#bIntro').onclick;$('#bIntro').onclick=async()=>{};await __nativeSettingsPageAction(introKey,String(!!S.introOff),owner,epoch);report.cancelPreserved=S.introOff===start;$('#bIntro').onclick=oldHandler;
+ const profileKey=keyFor('#bProf');await __nativeSettingsPageAction(profileKey,null,owner,epoch);report.profileOpened=$('#dProf').open;const current=S.introOff;await __nativeSettingsPageAction(introKey,String(!!S.introOff),owner,epoch);report.coveredActionBlocked=S.introOff===current;$('#dProf').close();
+ return JSON.stringify({...report,errors:testErrors,account:S.acct?.email,profile:S.prof.username,faceId:!!S.faceId})})()
+ """
+ web.callAsyncJavaScript("return await "+script,arguments:[:],in:nil,in:.page){result in try? String(describing:result).write(to:dir.appendingPathComponent("native-functional.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("visual-done"))}
 }
 """
 p.write_text(x)
