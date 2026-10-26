@@ -573,10 +573,8 @@ S.sb='off';
 S.w=Object.assign({wx:1,bat:1,cal:1,task:1,nx:1,gr:1,sp:1},S.w||{});S.cv=S.cv||{on:0,name:''};
 S.prof=Object.assign({username:'',avatar:'',study:'',skills:'',song:null},S.prof||{});
 S.aiAct=['always','ask','deny'].includes(S.aiAct)?S.aiAct:'ask';S.agentMd=typeof S.agentMd==='string'?S.agentMd:'';
-// Orario personale: i nuovi utenti partono vuoti. Solo l'installazione di Federico (gia' configurata) tiene il suo orario storico.
+// Orario personale: nessun dato incorporato. Conserva la copia salvata nell'app.
 if(!S.tt)S.tt={lessons:[]};
-// Orario di Federico: dopo una reinstallazione localStorage e' vuoto. Lo ripristina una sola volta,
-// appena il setup e' fatto e il nome corrisponde; ttPush() all'avvio lo passa ai widget.
 S.chat=S.chat||[];S.gr=S.gr||[];
 const post=m=>{try{webkit.messageHandlers.nova.postMessage(m)}catch(e){}};
 const haptic=s=>post({t:'haptic',style:s||'light'});
