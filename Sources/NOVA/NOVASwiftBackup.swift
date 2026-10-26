@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 // Same private-field allowlist as the existing account backup. Device secrets stay local.
 enum NOVASwiftBackupData {
@@ -68,6 +69,9 @@ enum NOVASwiftBackupData {
                   NOVASwiftBackupData.snapshot(store.archive!.active)==localAtRead else{status="Una copia è cambiata. Confronta di nuovo prima di scegliere.";return}
             try NOVASwiftBackupData.recovery(archive.active)
             try store.update(owner:archive.owner){NOVASwiftBackupData.apply(cloud,to:&$0)}
+            let defaults=UserDefaults.standard
+            defaults.set(false,forKey:"nova.bgLoc.on");defaults.removeObject(forKey:"nova.bgLoc.session");defaults.removeObject(forKey:"nova.bgLoc.token");defaults.set(false,forKey:"nova.bgLoc.sharing")
+            let background=CLLocationManager();background.stopMonitoringSignificantLocationChanges()
             localAtRead=NOVASwiftBackupData.snapshot(store.archive!.active);conflict=false
             status="Copia online importata. Recupero locale conservato; nessuna azione IA rieseguita."
         }catch{status="Ripristino fermato. Dati locali conservati."}
