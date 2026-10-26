@@ -71,7 +71,7 @@ import UIKit
                         if tests.isEmpty{Text("Nessuna verifica salvata.").foregroundStyle(.secondary)}
                         ForEach(Array(tests.enumerated()),id:\.offset){_,task in taskRow(task)}
                     }}
-                    if visible("cal"){card(month.formatted(.dateTime.month(.wide).year())){
+                    if visible("cal"){card(month.formatted(.dateTime.month(.wide).year().locale(Locale(identifier:"it_IT")))){
                         HStack{Button{changeMonth(-1)}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Mese precedente");Spacer();Button{changeMonth(1)}label:{Image(systemName:"chevron.right")}.accessibilityLabel("Mese successivo")}
                         calendar
                     }}
@@ -81,7 +81,7 @@ import UIKit
                 }.padding(20)
             }.background(Color(uiColor:.systemGroupedBackground)).navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented:$createTask){NOVASwiftTaskEditor(store:store)}.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}.sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
-            .sheet(item:Binding(get:{selectedDay.map{NOVASwiftSelectedDay(date:$0)}},set:{selectedDay=$0?.date})){day in NavigationStack{List{ForEach(Array((root["tasks"]?.array ?? []).filter{task in guard let due=task.object?["due"]?.string else{return false};return due.hasPrefix(day.date.formatted(.iso8601.year().month().day().dateSeparator(.dash)))}.enumerated()),id:\.offset){_,task in taskRow(task)}}.navigationTitle(day.date.formatted(.dateTime.day().month(.wide))).toolbar{Button("Fatto"){selectedDay=nil}}}}
+            .sheet(item:Binding(get:{selectedDay.map{NOVASwiftSelectedDay(date:$0)}},set:{selectedDay=$0?.date})){day in NavigationStack{List{ForEach(Array((root["tasks"]?.array ?? []).filter{task in guard let due=task.object?["due"]?.string else{return false};return due.hasPrefix(day.date.formatted(.iso8601.year().month().day().dateSeparator(.dash)))}.enumerated()),id:\.offset){_,task in taskRow(task)}}.navigationTitle(day.date.formatted(.dateTime.day().month(.wide).locale(Locale(identifier:"it_IT")))).toolbar{Button("Fatto"){selectedDay=nil}}}}
             .task(id:root["city"]?.object?["name"]?.string){UIDevice.current.isBatteryMonitoringEnabled=true;if let city=root["city"]{await weather.load(city:city)}}
             .onDisappear{weather.cancel();cityGeneration += 1}
         }.environment(\.locale,Locale(identifier:"it_IT"))
