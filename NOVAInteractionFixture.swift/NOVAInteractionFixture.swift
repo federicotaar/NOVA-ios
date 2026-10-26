@@ -90,3 +90,21 @@ import UIKit
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftSongInteractionReady(web,attempt+1)}};return}
  let page=UIHostingController(rootView:NOVASongArtworkFixture());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];DispatchQueue.main.asyncAfter(deadline:.now()+3){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
 }
+
+@MainActor func visualSwiftQRInteractionReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftQRInteractionReady(web,attempt+1)}};return}
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+ var checks:[String:Bool]=[:]
+ for username in ["demo","nova.demo","abcdefghijklmnopqrst"]{
+  guard let image=NOVASwiftQR.render(username) else{checks[username]=false;continue}
+  try? image.pngData()?.write(to:dir.appendingPathComponent("qr-"+username+".png"))
+  for size in [240,480]{
+   let resized=UIGraphicsImageRenderer(size:CGSize(width:size,height:size)).image{_ in image.draw(in:CGRect(x:0,y:0,width:size,height:size))}
+   let request=VNDetectBarcodesRequest();request.symbologies=[.qr]
+   do{try VNImageRequestHandler(cgImage:resized.cgImage!).perform([request]);checks[username+"-"+String(size)]=request.results?.first?.payloadStringValue=="nova:add:"+username}catch{checks[username+"-"+String(size)]=false}
+  }
+ }
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("qr-scan-checks.json"))
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("qr-layout-fixture"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"prof\":{\"username\":\"nova.demo\"},\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"tasks\":[]}"])}
+ let page=UIHostingController(rootView:NOVASwiftQR(store:store,people:NOVASwiftPeople()));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
