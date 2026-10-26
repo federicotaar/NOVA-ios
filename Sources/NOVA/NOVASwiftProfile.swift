@@ -10,7 +10,7 @@ import SwiftUI
     var profile:[String:NOVAJSON]{store.archive?.active.object?["prof"]?.object ?? [:]}
     var body:some View{NavigationStack{List{
         Section{HStack(spacing:16){NOVASwiftAvatar(value:profile["avatar"]?.string ?? "",username:profile["username"]?.string ?? "N");VStack(alignment:.leading){Text(store.archive?.active.object?["name"]?.string ?? "Il tuo profilo").font(.title2.bold());Text("@"+(profile["username"]?.string ?? "")).foregroundStyle(.secondary)}};Button("Modifica profilo"){edit=true}}
-        Section{HStack{NavigationLink("Amici e richieste"){NOVASwiftPeopleView(store:store)};Text("\(people.friends.count)").foregroundStyle(.secondary)};NavigationLink("Follower (\(people.followers.count))"){NOVASwiftPeopleView(store:store)};NavigationLink("Seguiti (\(people.following.count))"){NOVASwiftPeopleView(store:store)};Button("Il mio QR / Scansiona"){qr=true}}
+        Section{HStack{NavigationLink("Amici e richieste"){NOVASwiftPeopleView(store:store)};Text("\(people.friends.count)").foregroundStyle(.secondary)};NavigationLink("Follower (\(people.followers.count))"){followList(people.followers,title:"Follower")};NavigationLink("Seguiti (\(people.following.count))"){followList(people.following,title:"Seguiti")};Button("Il mio QR / Scansiona"){qr=true}}
         ForEach(["study","skills","hobbies"],id:\.self){key in if let value=profile[key]?.string,!value.isEmpty{Section(key=="study" ? "Dove studi":key=="skills" ? "Punti forti":"Hobby"){Text(value)}}}
         if let song=profile["song"],let title=song.object?["t"]?.string{Section("La tua canzone"){Text(title).font(.headline);Text(song.object?["a"]?.string ?? "").foregroundStyle(.secondary);Button("Ascolta anteprima"){Task{await songs.preview(song)}};Button("Ferma anteprima"){songs.stop()}}}
         if let badges=profile["badges"]?.array,!badges.isEmpty{Section("Badge"){ForEach(Array(badges.enumerated()),id:\.offset){_,badge in Text(badge.string ?? "")}}}
@@ -24,4 +24,5 @@ import SwiftUI
     .onDisappear{songs.stop()}
     .onChange(of:store.archive?.owner){_,_ in songs.stop();people.reset();edit=false;settings=false;qr=false}
     }
+    func followList(_ items:[NOVAJSON],title:String)->some View{List{if items.isEmpty{Text("Lista vuota.").foregroundStyle(.secondary)};ForEach(Array(items.enumerated()),id:\.offset){_,item in let username=item.object?["username"]?.string ?? "";NavigationLink{NOVASwiftPublicProfile(store:store,people:people,username:username)}label:{HStack{NOVASwiftAvatar(value:item.object?["avatar"]?.string ?? "",username:username);Text("@"+username)}}.disabled(username.isEmpty)}}.navigationTitle(title)}
 }
