@@ -2111,3 +2111,47 @@ struct NOVAAccountService {
     }
     func invalidate(){generation+=1;remote=nil;status=""}
 }
+// One-time legacy reader. Used only by an explicit migration offer, never as a screen model.
+@MainActor final class NOVALegacyReader: NSObject, WKNavigationDelegate {
+    private var web: WKWebView?
+    private var completion: ((Result<[String:String],Error>)->Void)?
+    func read(_ completion:@escaping(Result<[String:String],Error>)->Void) {
+        guard web==nil else{completion(.failure(CocoaError(.userCancelled)));return}
+        self.completion=completion
+        let config=WKWebViewConfiguration();config.websiteDataStore = .default()
+        let view=WKWebView(frame:.zero,configuration:config);view.navigationDelegate=self;web=view
+        #if SWIFT_PACKAGE
+        let bundle=Bundle.module
+        #else
+        let bundle=Bundle.main
+        #endif
+        guard let source=bundle.url(forResource:"nova",withExtension:"html") else{finish(.failure(CocoaError(.fileNoSuchFile)));return}
+        // Same origin as the old app, but no legacy scripts run and no network calls are made.
+        view.loadHTMLString("<!doctype html><meta charset='utf-8'><title>Importazione</title>",baseURL:source)
+    }
+    func webView(_ webView:WKWebView,didFinish navigation:WKNavigation!) {
+        webView.evaluateJavaScript("Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('nova.')).map(k=>[k,localStorage.getItem(k)]))"){[weak self] result,error in
+            guard let self=self else{return};if let error=error{self.finish(.failure(error));return}
+            guard let values=result as? [String:String],values["nova.v1"] != nil else{self.finish(.failure(CocoaError(.fileReadCorruptFile)));return}
+            self.finish(.success(values))
+        }
+    }
+    func webView(_ webView:WKWebView,didFail navigation:WKNavigation!,withError error:Error){finish(.failure(error))}
+    func webView(_ webView:WKWebView,didFailProvisionalNavigation navigation:WKNavigation!,withError error:Error){finish(.failure(error))}
+    private func finish(_ result:Result<[String:String],Error>){let callback=completion;completion=nil;web?.stopLoading();web?.navigationDelegate=nil;web=nil;callback?(result)}
+}
+@MainActor struct NOVASwiftMigrationOffer: View {
+    @ObservedObject var store:NOVASwiftStore
+    @State private var reader=NOVALegacyReader()
+    @State private var busy=false
+    @State private var error=""
+    var body:some View {
+        VStack(alignment:.leading,spacing:20){
+            Text("Passa ai dati Swift").font(.largeTitle.bold())
+            Text("Copia i dati già salvati su questo iPhone nel nuovo archivio Swift. La memoria precedente non viene cancellata. Conserviamo una copia di recupero e le cache dei tuoi account. Non vengono attivati permessi, posizione o servizi.")
+            Text("Questa anteprima non sostituisce ancora tutte le funzioni. Non usarla come aggiornamento definitivo.").foregroundStyle(.secondary)
+            if !error.isEmpty{Text(error).foregroundStyle(.red)}
+            Button(busy ? "Copia in corso…":"Importa una volta"){busy=true;reader.read{result in busy=false;do{try store.importOnce(result.get())}catch{self.error="Importazione non completata. I dati precedenti non sono stati modificati."}}}.disabled(busy)
+        }.padding(24)
+    }
+}
