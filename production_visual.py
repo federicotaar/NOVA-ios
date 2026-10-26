@@ -363,7 +363,7 @@ s+=r'''
  }
  root.presentedViewController?.dismiss(animated:false){
   let conversation=UIHostingController(rootView:NavigationStack{NOVASwiftConversation(store:store,social:social,id:"fixture",title:"Gruppo dimostrativo")});conversation.modalPresentationStyle = .fullScreen
-  root.present(conversation,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-conversation.png");conversation.dismiss(animated:false){let create=UIHostingController(rootView:NOVASwiftChatCreation(store:store,social:social));create.modalPresentationStyle = .fullScreen;root.present(create,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-create-chat.png");visualSwiftImportOrigin(web,dir)}}}}}
+  root.present(conversation,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-conversation.png");conversation.dismiss(animated:false){let create=UIHostingController(rootView:NOVASwiftChatCreation(store:store,social:social));create.modalPresentationStyle = .fullScreen;root.present(create,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-create-chat.png");visualSwiftPeopleScreens(web,store,dir)}}}}}
  }
 }
 '''
@@ -381,13 +381,23 @@ s+=r'''
   let request=await people.action("friends/request",username:"esempio",store);checks["explicitRequestEstablishedEndpoint"] = request && paths.contains("POST:friends/request")
   await people.open("esempio",store);checks["limitedProfilePreserved"] = people.profile?.object?["limited"]?.flag==true
   paths=[];let rejected=await people.action("unrelated/write",username:"x",store);checks["unknownActionRejected"] = !rejected && paths.isEmpty
-  checks["qrOnlyNOVAUsername"] = NOVASwiftQR.parse("nova:add:amico_test")=="amico_test" && NOVASwiftQR.parse("https://example.invalid/collect")==nil && NOVASwiftQR.parse("nova:add:bad/user")==nil
+  checks["qrOnlyNOVAUsername"] = NOVASwiftQR.parse("nova:add:amico_test")=="amico_test" && NOVASwiftQR.parse("https://example.invalid/collect")==nil && NOVASwiftQR.parse("nova:add:bad/user")==nil && NOVASwiftQR.parse("nova:add:amico.test")=="amico.test"
   var stale:NOVASwiftPeople!
   stale=NOVASwiftPeople{_,_,_,_,_ in stale.closeProfile();return .object(["ok":.bool(true),"profile":.object(["study":.string("STALE")])])}
   await stale.open("old",store);checks["closedProfileIgnoresResponse"] = stale.profile==nil
   people.reset();checks["resetClearsAllAccountLists"] = people.friends.isEmpty && people.results.isEmpty && people.profile==nil
  }catch{checks["exception"]=true}
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-people-checks.txt"))
+}
+'''
+p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text()+r'''
+@MainActor func visualSwiftPeopleScreens(_ web:WKWebView,_ store:NOVASwiftStore,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ let people=NOVASwiftPeople{_,_,_,_,_ in .object(["ok":.bool(true),"profile":.object(["study":.string("Scuola dimostrativa"),"skills":.string("Matematica e informatica"),"hobbies":.string("Musica e sport"),"badges":.array([.string("Primi passi")])]),"followers":.number(12),"following":.number(8),"you_follow":.bool(false),"is_friend":.bool(true)])}
+ root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NavigationStack{NOVASwiftPublicProfile(store:store,people:people,username:"esempio")});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-public-profile.png");page.dismiss(animated:false){try? store.update(owner:store.archive!.owner){$0["prof"] = .object(["username":.string("esempio")])};let qr=UIHostingController(rootView:NOVASwiftQR(store:store,people:people));qr.modalPresentationStyle = .fullScreen;root.present(qr,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-owned-qr.png");visualSwiftImportOrigin(web,dir)}}}}}}
 }
 '''
 p.write_text(s)
