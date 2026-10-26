@@ -9,7 +9,7 @@ import UserNotifications
     private var generation=0
     var enabled:Bool{UserDefaults.standard.bool(forKey:"nova.faceid")}
     func cover(){if enabled{locked=true}}
-    func unlock() async {guard enabled else{locked=false;return};generation+=1;let expected=generation;let context=LAContext();self.context=context;var error:NSError?;guard context.canEvaluatePolicy(.deviceOwnerAuthentication,error:&error) else{locked=false;status="Blocco non disponibile: configura Face ID o codice nelle impostazioni di iOS.";return};do{let ok=try await context.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:"Sblocca NOVA");guard expected==generation else{return};locked = !ok;status=ok ? "":"Sblocco non completato."}catch{if expected==generation{status="Sblocco non completato. Riprova."}}}
+    func unlock() async {guard enabled else{locked=false;return};generation+=1;let expected=generation;let context=LAContext();self.context=context;var error:NSError?;guard context.canEvaluatePolicy(.deviceOwnerAuthentication,error:&error) else{locked=true;status="Blocco non disponibile: configura Face ID o codice nelle impostazioni di iOS.";return};do{let ok=try await context.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:"Sblocca NOVA");guard expected==generation else{return};locked = !ok;status=ok ? "":"Sblocco non completato."}catch{if expected==generation{status="Sblocco non completato. Riprova."}}}
     func set(_ on:Bool) async {generation+=1;let expected=generation;let context=LAContext();self.context=context;var error:NSError?;guard context.canEvaluatePolicy(.deviceOwnerAuthentication,error:&error) else{status="Configura prima Face ID o il codice di iOS.";return};do{let ok=try await context.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:on ? "Attiva il blocco di NOVA":"Disattiva il blocco di NOVA");guard expected==generation,ok else{return};UserDefaults.standard.set(on,forKey:"nova.faceid");locked=false;status=on ? "Blocco attivato.":"Blocco disattivato."}catch{if expected==generation{status="Scelta non modificata."}}}
     func invalidate(){generation+=1;context?.invalidate();context=nil}
 }
@@ -59,7 +59,7 @@ import UserNotifications
         if intro{NOVASwiftCinematicIntro{endIntro()}.transition(.opacity).allowsHitTesting(true)}
         if lock.locked{ZStack{Color.black.ignoresSafeArea();VStack(spacing:20){Image(systemName:"lock.fill").font(.largeTitle);Text("NOVA è bloccata").font(.title.bold());Button("Sblocca con Face ID o codice"){Task{await lock.unlock()}}.buttonStyle(.borderedProminent);if !lock.status.isEmpty{Text(lock.status).font(.footnote)}}.foregroundStyle(.white).padding()}.zIndex(10)}
     }.task{lock.cover();if lock.locked{await lock.unlock()};let root=store.archive?.active.object ?? [:];intro=root["introOff"]?.flag != true && (root["introEvery"]?.flag==true || (root["introSeen"]?.flag != true && root["done"]?.flag != true))}
-    .onChange(of:phase){_,value in if value == .active{Task{await lock.unlock()};if store.archive?.active.object?["introEvery"]?.flag==true,store.archive?.active.object?["introOff"]?.flag != true{intro=true}}else{endIntro();lock.invalidate();lock.cover()}}
+    .onChange(of:phase){_,value in if value == .active{Task{await lock.unlock()}}else{endIntro();lock.invalidate();lock.cover()}}
     }
     private func endIntro(){intro=false;if let owner=store.archive?.owner{try? store.update(owner:owner){$0["introSeen"] = .number(1)}}}
 
