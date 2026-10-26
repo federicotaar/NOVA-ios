@@ -55,6 +55,7 @@ import UIKit
                         HStack{TextField("Città",text:$cityQuery).textInputAutocapitalization(.words);Button("Cerca"){findCity()}.disabled(searching||cityQuery.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}
                         if !cityError.isEmpty{Text(cityError).font(.footnote).foregroundStyle(.red)}
                     }}
+                    if visible("sp"){card("Spotify"){NOVASwiftMusicCard()}}
                     if visible("bat"){card("Batteria"){
                         TimelineView(.periodic(from:.now,by:60)){_ in
                             let device=UIDevice.current
