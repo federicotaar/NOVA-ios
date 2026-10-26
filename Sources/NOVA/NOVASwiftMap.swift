@@ -113,7 +113,7 @@ struct NOVASwiftMapFriend:Identifiable {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var model=NOVASwiftMapModel()
     @StateObject private var position=NOVASwiftPosition()
-    @State private var camera:MapCameraPosition = .automatic
+    @State private var camera:MapCameraPosition = .region(MKCoordinateRegion(center:CLLocationCoordinate2D(latitude:20,longitude:0),span:MKCoordinateSpan(latitudeDelta:140,longitudeDelta:300)))
     var sharing:Bool {store.archive?.active.object?["locShare"]?.flag==true}
     var body:some View {
         NavigationStack {
