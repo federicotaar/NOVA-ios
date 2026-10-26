@@ -645,7 +645,7 @@ p.write_text(s)
 p=Path('/tmp/NOVAProductionVisual.swift')
 s=p.read_text()+r"""
 @MainActor func visualSwiftIntegratedShell(_ web:WKWebView,_ dir:URL,_ index:Int){
- guard let root=web.window?.rootViewController else{return}
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
  let folder=FileManager.default.temporaryDirectory.appendingPathComponent("integrated-swift-"+UUID().uuidString)
  let store=NOVASwiftStore(directory:folder)
  let value="{\"name\":\"Studente demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tasks\":[{\"id\":\"task\",\"title\":\"Ripasso funzioni\",\"due\":\"2026-11-03T17:00\",\"subj\":\"Matematica\",\"rem\":0}],\"gr\":[{\"subj\":\"Matematica\",\"v\":7,\"date\":\"2026-10-20\"}],\"w\":{\"wx\":0,\"sp\":0},\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"studente.demo\"}}"
