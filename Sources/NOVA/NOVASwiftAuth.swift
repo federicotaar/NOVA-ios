@@ -71,7 +71,8 @@ struct NOVASwiftAuthService {
                     try store.changeAccount(email:address,token:token)
                     let defaults=UserDefaults.standard;defaults.set(false,forKey:"nova.bgLoc.on");defaults.removeObject(forKey:"nova.bgLoc.session");defaults.removeObject(forKey:"nova.bgLoc.token");defaults.set(false,forKey:"nova.bgLoc.sharing")
                     CLLocationManager().stopMonitoringSignificantLocationChanges()
-                    let center=UNUserNotificationCenter.current();let pending=await center.pendingNotificationRequests();guard store.archive.flatMap({NOVASession($0.active)})==NOVASession(.object(["acct":.object(["email":.string(address),"token":.string(token)])])) else{return};center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("rem.")})
+                    UserDefaults.standard.removeObject(forKey:"nova.plan");UserDefaults.standard.removeObject(forKey:"nova.known")
+                    let center=UNUserNotificationCenter.current();let pending=await center.pendingNotificationRequests();guard store.archive.flatMap({NOVASession($0.active)})==NOVASession(.object(["acct":.object(["email":.string(address),"token":.string(token)])])) else{return};center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("rem.") || $0.hasPrefix("manual.swift.") || $0.hasPrefix("hw.") || $0.hasPrefix("plan.")})
                     password="";code="";dismiss()
                 }
             }catch{if expected==generation{status="Accesso non completato. Controlla codice, password e connessione. La copia locale resta conservata."}}
