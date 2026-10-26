@@ -71,7 +71,8 @@ jobs:
               end: "50%,70%"
               duration: 500
           - takeScreenshot: evidence/swift-chat-dismiss
-          - back
+          - tapOn:
+              point: "8%,9%"
           - assertVisible: "Gruppo demo"
           - assertVisible:
               id: "swiftOwnedNavigation"
