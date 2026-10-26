@@ -66,6 +66,7 @@ jobs:
           PYRUN
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
           cp "$CONTAINER/Documents/qr-scan-checks.json" evidence/
+          cp "$CONTAINER/Documents/qr-vision-"* evidence/ || true
           cp "$CONTAINER/Documents/qr-"*.png evidence/
           python3 -c 'import json;d=json.load(open("evidence/qr-scan-checks.json"));assert len(d)==6 and all(d.values()),d'
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
