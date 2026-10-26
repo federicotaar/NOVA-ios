@@ -283,5 +283,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 ### Profili e amicizie Swift (non attivi)
 - Aggiunti modello indipendente e viste per ricerca utenti, richieste ricevute/inviate, rimozione con conferma, follower/seguiti e profili pubblici con limiti restituiti dal server.
-- Il QR personale usa lo stesso formato NOVA; lettura da foto con conferma prima della richiesta. Scansione diretta dalla fotocamera e verifiche funzionali/visive ancora da completare.
+- Il QR personale usa lo stesso formato NOVA; lettura da foto con conferma prima della richiesta. Aggiunta anche scansione diretta dalla fotocamera, con permesso al tocco e conferma dello username. Verifiche funzionali/visive ancora da completare.
 - Nessuna richiesta viene inviata in automatico durante migrazione o accesso. Risposte obsolete e cambi account vengono ignorati; questa parte non è ancora pronta per la pubblicazione.
