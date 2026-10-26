@@ -153,3 +153,7 @@ Titolo e azione di chiusura del profilo nativo distinti da Impostazioni. Restano
 ### 2026.10.25.38
 
 Ricerca canzone nel profilo nativo: risultati aggiornati senza togliere il focus al campo. Username senza maiuscola automatica. Salvataggio del profilo ancora esplicito.
+
+### 2026.10.25.39
+
+Campi nativi con limiti di lunghezza originali, niente correzione automatica username. Cambi account/sessione terminano la modifica del campo prima di aggiornare la pagina. Risultati di ricerca aggiornati anche a parità di numero di righe.
