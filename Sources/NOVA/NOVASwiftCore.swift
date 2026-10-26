@@ -449,6 +449,7 @@ extension NOVAJSON {
     @State private var status=""
     @State private var saving=false
     @State private var photo:PhotosPickerItem?
+    @State private var songPicker=false
     @State private var photoEpoch=0
     @State private var active=false
     func field(_ key:String)->Binding<String>{Binding(get:{draft[key]?.string ?? ""},set:{draft[key] = .string($0)})}
@@ -463,12 +464,14 @@ extension NOVAJSON {
             Section("Su di te"){
                 TextField("Dove studi",text:field("study"));TextField("Punti forti",text:field("skills"));TextField("Hobby",text:field("hobbies"))
             }
-            if let song=draft["song"]?.object{Section("La tua canzone"){Text(song["t"]?.string ?? "");Text(song["a"]?.string ?? "").foregroundStyle(.secondary);Text("La ricerca e la selezione sono ancora da collegare nella versione Swift.").font(.footnote)}}
+            if draft["song"]?.object==nil{Section("La tua canzone"){Button("Scegli canzone"){songPicker=true}}}
+            if let song=draft["song"]?.object{Section("La tua canzone"){Text(song["t"]?.string ?? "");Text(song["a"]?.string ?? "").foregroundStyle(.secondary);Button("Cambia canzone"){songPicker=true}}}
             if !status.isEmpty{Text(status).foregroundStyle(.secondary)}
         }.navigationTitle("Il tuo profilo").toolbar{
             ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}.disabled(saving)}
             ToolbarItem(placement:.confirmationAction){Button(saving ? "Salvo…":"Salva"){Task{await save()}}.disabled(saving)}
-        }}.onAppear{guard !active else{return};active=true;owner=store.archive?.owner ?? "";draft=store.archive?.active.object?["prof"]?.object ?? [:];token=store.archive?.active.object?["acct"]?.object?["token"]?.string ?? ""}
+        }}.sheet(isPresented:$songPicker){NOVASwiftSongPicker(draft:$draft)}
+        .onAppear{guard !active else{return};active=true;owner=store.archive?.owner ?? "";draft=store.archive?.active.object?["prof"]?.object ?? [:];token=store.archive?.active.object?["acct"]?.object?["token"]?.string ?? ""}
         .onDisappear{active=false;photoEpoch+=1}
         .onChange(of:photo){_,item in
             photoEpoch+=1;let expected=photoEpoch,expectedOwner=owner
