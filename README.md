@@ -137,3 +137,7 @@ Prima schermata nativa: Impostazioni usa una lista UIKit con campi, interruttori
 ### 2026.10.25.34
 
 Impostazioni native: gruppi dedicati a profilo, nome, account e preferenze; le spiegazioni restano a piè di gruppo invece di diventare righe separate. Intestazione nativa opaca con titolo visibile. Verifiche di scorrimento e azioni in corso.
+
+### 2026.10.25.35
+
+Anche i collegamenti presenti nelle spiegazioni dei servizi hanno un’azione nella pagina nativa. Proseguono i controlli su campi, interruttori, isolamento account e ritorno alle destinazioni esistenti.
