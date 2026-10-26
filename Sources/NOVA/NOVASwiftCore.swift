@@ -644,6 +644,7 @@ extension NOVAJSON {
     @ObservedObject var social:NOVASwiftSocial
     let id:String
     let title:String
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) var phase
     @State private var draft=""
     @State private var photo:PhotosPickerItem?
@@ -696,7 +697,7 @@ extension NOVAJSON {
                 TextField("Messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftConversationComposer").lineLimit(1...6).textFieldStyle(.plain).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
                 Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
             }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
-        }.navigationTitle(title).navigationBarTitleDisplayMode(.inline).preference(key:NOVASwiftHideTabsKey.self,value:true)
+        }.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .task{await social.open(id,store)}
