@@ -5,7 +5,7 @@ fixture += '''
  window.testErrorDetails=[];window.addEventListener('error',e=>testErrorDetails.push({message:e.message,file:e.filename,line:e.lineno,column:e.colno}));const demoCanvas=document.createElement('canvas');demoCanvas.width=demoCanvas.height=64;const demoCtx=demoCanvas.getContext('2d');demoCtx.fillStyle='#6877ef';demoCtx.fillRect(0,0,64,64);demoCtx.fillStyle='#fff';demoCtx.font='bold 36px sans-serif';demoCtx.fillText('N',17,45);const demoAvatar=demoCanvas.toDataURL('image/png');const demoState=JSON.parse(localStorage.getItem('nova.v1'));demoState.prof.avatar=demoAvatar;demoState.tasks=[{id:'synthetic-task',title:'Synthetic homework',subj:'Maths',due:'2026-10-30T17:00',done:0}];localStorage.setItem('nova.v1',JSON.stringify(demoState));const oldDemoFetch=window.fetch;window.fetch=async(...args)=>{const res=await oldDemoFetch(...args),oldJson=res.json;res.json=async()=>{const j=await oldJson();if(j.friends)j.friends.forEach(f=>f.avatar=demoAvatar);if(j.chats)j.chats=[{id:'synthetic',type:'dm',title:'Example friend',avatar:demoAvatar,unread:0}];return j};return res};
 '''
 s=s.replace('        let web = WKWebView(frame:', '        config.userContentController.addUserScript(WKUserScript(source:"""'+fixture+'""",injectionTime:.atDocumentStart,forMainFrameOnly:true))\n        let web = WKWebView(frame:',1)
-s=s.replace('        return web\n', '''        visualAssistantConfigReady(web,0)
+s=s.replace('        return web\n', '''        visualNativeSettingsReady(web,0)
         return web
 ''',1)
 s+=r'''
@@ -73,6 +73,21 @@ p=Path('/tmp/NOVAProductionVisual.swift')
 x=p.read_text()+r"""
 func visualAssistantConfigReady(_ web:WKWebView,_ attempt:Int){
  web.evaluateJavaScript("!!window.__novaMainReady"){v,e in if v as? Bool != true{if attempt<90{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualAssistantConfigReady(web,attempt+1)}};return};web.evaluateJavaScript("document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(2);$('#aiMD').click();JSON.stringify({errors:testErrors})"){v,e in DispatchQueue.main.asyncAfter(deadline:.now()+3){visualProductionSave(web,"production-assistant-config.png");let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];web.evaluateJavaScript("JSON.stringify({errors:testErrors,details:testErrorDetails,dialog:$('#dMD').open,inputHidden:$('#mdF').hidden,accept:$('#mdF').accept,handler:typeof $('#mdF').onchange,focus:document.activeElement.id,viewport:{scale:visualViewport.scale,height:visualViewport.height},dialogRect:$('#dMD').getBoundingClientRect().toJSON()})"){v,e in try? String(describing:v ?? e).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8);web.evaluateJavaScript("$('#mdT').focus()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+3){visualProductionSave(web,"production-assistant-editing.png");web.evaluateJavaScript("JSON.stringify({scale:visualViewport.scale,top:visualViewport.pageTop,height:visualViewport.height,dialog:$('#dMD').getBoundingClientRect().toJSON(),focus:document.activeElement.id})"){v,e in try? String(describing:v ?? e).write(to:dir.appendingPathComponent("editing-state.txt"),atomically:true,encoding:.utf8)};try? Data().write(to:dir.appendingPathComponent("visual-done"))}}}}}}
+}
+"""
+p.write_text(x)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+x=p.read_text()+r"""
+func visualNativeSettingsReady(_ web:WKWebView,_ attempt:Int){
+ web.evaluateJavaScript("!!window.__novaMainReady"){v,e in if v as? Bool != true{if attempt<90{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualNativeSettingsReady(web,attempt+1)}};return};web.evaluateJavaScript("$('#intro')?.remove();$('#ob').hidden=true;document.body.classList.remove('ovl');pg(4);$('#bSet').click()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+3){visualProductionSave(web,"production-native-settings-top.png");visualNativeSettingsCheck(web)}}}
+}
+func visualNativeSettingsCheck(_ web:WKWebView){
+ guard let nav=web.window?.rootViewController?.presentedViewController as? UINavigationController,let page=nav.topViewController as? NativeSettingsPage else{return}
+ if let section=page.groups.firstIndex(where:{$0["title"] as? String=="Aspetto e schermata Home"}){page.tableView.scrollToRow(at:IndexPath(row:0,section:section),at:.top,animated:false)}
+ DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-native-settings-appearance.png");let rows=page.groups.enumerated().flatMap{section,g in (g["rows"] as? [[String:Any]] ?? []).enumerated().map{(section,$0.offset,$0.element)}};if let intro=rows.first(where:{($0.2["label"] as? String ?? "").hasPrefix("Intro all'")}){let path=IndexPath(row:intro.1,section:intro.0);page.tableView.scrollToRow(at:path,at:.middle,animated:false);page.tableView.layoutIfNeeded();if let control=page.tableView.cellForRow(at:path)?.accessoryView as? UISwitch{control.setOn(!control.isOn,animated:false);control.sendActions(for:.valueChanged)}}
+ DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-native-settings-toggled.png");if page.groups.count>3{page.tableView.scrollToRow(at:IndexPath(row:0,section:page.groups.count-2),at:.top,animated:false)};DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-native-settings-privacy.png");let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];web.evaluateJavaScript("JSON.stringify({errors:testErrors,details:testErrorDetails,introOff:S.introOff,settingsOpen:$('#dSet').open,profile:S.prof.username,account:S.acct?.email})"){v,e in try? String(describing:v ?? e).write(to:dir.appendingPathComponent("visual-errors.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("visual-done"))}}}
+ }
 }
 """
 p.write_text(x)
