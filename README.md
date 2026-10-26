@@ -259,3 +259,7 @@ Verificati nel simulatore i campi del profilo, le impostazioni Swift e la mappa 
 Verificata la Home Swift in simulatore: schede e controlli leggibili. Le intestazioni del calendario ora usano esplicitamente l'italiano. Aggiunte catture della parte inferiore della Home, dei voti e del backup per verificarne la disposizione prima dell'attivazione.
 
 Verificate le immagini della Home inferiore, del calendario italiano, dei voti sintetici e del backup senza account. Corrette la forma singolare delle lezioni e la disponibilità del confronto backup senza una sessione. Le prove di rete reali e la parità restano da completare.
+
+Separato il modulo Swift autonomo dal contenitore precedente senza cambiare il comportamento attivo. Entrambe le parti sono state confrontate byte per byte con l'originale; la compilazione include tutti i moduli e le verifiche di persistenza leggono il sorgente attuale. Nessun dato, account o permesso viene cambiato dalla separazione.
+
+Separato il modulo Swift autonomo dal contenitore precedente senza cambiare il comportamento attivo. Entrambe le parti sono state confrontate byte per byte con l'originale; la compilazione include tutti i moduli e le verifiche di persistenza leggono il sorgente attuale. Nessun dato, account o permesso viene cambiato dalla separazione.
