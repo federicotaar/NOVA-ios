@@ -312,3 +312,5 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Aggiunta navigazione a cinque icone con lente di sistema: la lente segue il dito, la pagina cambia al rilascio. Avatar profilo legato ai dati Swift, senza callback JavaScript.
 - Aggiunte superfici Liquid Glass ai composer Swift su iOS 26, con materiale di sistema sulle versioni precedenti. Da verificare con tastiera, trascinamento, annullamento e cambio account prima di qualsiasi attivazione.
 - Rilevato e corretto isolamento del coordinatore navigazione durante compilazione. La nuova superficie resta inattiva e necessita di controllo visivo e gesti; nessuna modifica al pacchetto 51.
+
+- Aggiunte impostazioni Swift ntfy: codice letto online, test solo al tocco e con ricontrollo del codice server, anteprima salvata con conferma online. Nessuna promessa di consegna; nuovo codice non viene creato automaticamente. Configurazione iniziale ntfy ancora da completare.
