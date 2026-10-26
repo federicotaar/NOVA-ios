@@ -219,3 +219,5 @@ Inizia la sostituzione del modello HTML/JS con dati e persistenza Swift. L'impor
 Prima schermata e editor dell'orario leggono e salvano direttamente dal modello Swift, senza modello DOM o azioni JavaScript. L'editor usa una bozza, controlla account e orari, conserva i campi sconosciuti e scrive il formato widget esistente. Non sono ancora il percorso attivo: importazione, servizi e resto delle funzioni richiedono verifica prima del passaggio. Nessuna perdita di funzioni viene nascosta dietro la parola nativo.
 
 Il trasporto account Swift usa gli stessi endpoint e il token dell'account importato. La prima verifica è di sola lettura e scarta risposte dopo un cambio account. Nessun ripristino o caricamento automatico può sovrascrivere la copia locale prima della gestione dei conflitti.
+
+L'offerta di importazione Swift è esplicita: copia una volta la memoria precedente senza cancellarla, con copia di recupero e verifica. Il lettore usa solo la memoria locale dell'origine precedente, senza eseguire le funzioni HTML né fare richieste di rete. Questa strada resta inattiva finché l'importazione sul dispositivo e la parità delle funzioni non sono verificate.
