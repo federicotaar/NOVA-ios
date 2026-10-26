@@ -257,3 +257,5 @@ La Home Swift autonoma ora include schede, orologio, batteria, compiti, calendar
 Verificati nel simulatore i campi del profilo, le impostazioni Swift e la mappa autonoma. Le guardie sintetiche del backup escludono segreti e permessi, conservano campi sconosciuti e impediscono la riesecuzione delle azioni; l'importazione conserva lo stato precedente. La fotocamera iniziale della mappa è neutra finché non si richiede una posizione. Le verifiche reali sul dispositivo e la parità restano necessarie.
 
 Verificata la Home Swift in simulatore: schede e controlli leggibili. Le intestazioni del calendario ora usano esplicitamente l'italiano. Aggiunte catture della parte inferiore della Home, dei voti e del backup per verificarne la disposizione prima dell'attivazione.
+
+Verificate le immagini della Home inferiore, del calendario italiano, dei voti sintetici e del backup senza account. Corrette la forma singolare delle lezioni e la disponibilità del confronto backup senza una sessione. Le prove di rete reali e la parità restano da completare.
