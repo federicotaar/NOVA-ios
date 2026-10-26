@@ -710,6 +710,7 @@ extension NOVAJSON {
             }
             Section("Privacy"){
                 NavigationLink("Blocco app e notifiche"){NOVASwiftDeviceSettings()}
+                Toggle("Avvisi automatici compiti",isOn:Binding(get:{store.archive?.active.object?["hwn"]?.flag ?? true},set:{on in do{try store.update(owner:store.archive?.owner ?? ""){$0["hwn"] = .number(on ? 1:0)};UserDefaults.standard.set(on,forKey:"nova.hwn");if !on{Task{let center=UNUserNotificationCenter.current();let pending=await center.pendingNotificationRequests();center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("hw.")||$0.hasPrefix("plan.")})}}}catch{error="Scelta non salvata."}}))
                 NavigationLink("Notifiche sociali ntfy"){NOVASwiftSocialNotificationSettings(store:store)}
                 Text("La migrazione non attiva la posizione, Fantasma, notifiche o accessi ai servizi. I permessi e i segreti esistenti restano invariati.")
             }
@@ -725,11 +726,12 @@ extension NOVAJSON {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var sync=NOVASwiftSync()
     @State private var selectedTab=0
+    @Environment(\.scenePhase) private var scenePhase
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
     var body:some View {
         Group{switch selectedTab{case 1:NOVASwiftGrades(store:store);case 2:NOVASwiftChatList(store:store);case 3:NOVASwiftMap(store:store);case 4:NOVASwiftProfile(store:store);default:NOVASwiftDashboard(store:store)}}
         .safeAreaInset(edge:.bottom){NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}
-        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store)}.onDisappear{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}
+        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}
     }
 }
 
