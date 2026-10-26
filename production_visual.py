@@ -552,3 +552,14 @@ s+=r"""
 }
 """
 p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('intro.dismiss(animated:false){visualSwiftImportOrigin(web,dir)}','intro.dismiss(animated:false){visualSwiftProfileOverview(web,dir)}',1)
+s+=r"""
+@MainActor func visualSwiftProfileOverview(_ web:WKWebView,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try? store.importOnce(["nova.v1":"{\"name\":\"Studente dimostrativo\",\"prof\":{\"username\":\"nova.demo\",\"study\":\"Scuola dimostrativa\",\"skills\":\"Matematica e informatica\",\"hobbies\":\"Musica\",\"song\":{\"t\":\"Canzone dimostrativa\",\"a\":\"Artista\"}}}"])
+ let page=UIHostingController(rootView:NOVASwiftProfile(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-owned-profile-overview.png");visualSwiftImportOrigin(web,dir)}}
+}
+"""
+p.write_text(s)
