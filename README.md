@@ -117,3 +117,7 @@ Le superfici native includono i pulsanti della configurazione iniziale: Indietro
 ### 2026.10.25.29
 
 Anche il selettore foto nella configurazione iniziale usa un pulsante glass: apre lo stesso selettore di sistema e mantiene la gestione originale della foto. Nessuna attivazione automatica di account o permessi. Verifica visiva e su dispositivo ancora distinta.
+
+### 2026.10.25.30
+
+Il selettore del file di personalità dell’assistente usa lo stesso pulsante glass degli altri caricamenti. Tipi di file, lettura locale e conferma del testo restano invariati. Nessun file viene scelto o letto senza il gesto dell’utente.
