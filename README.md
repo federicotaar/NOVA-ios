@@ -298,3 +298,6 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Aggiunte impostazioni native ClasseViva, Groq e Spotify e controlli di riproduzione Swift. Riutilizzano i servizi Swift esistenti, non modelli JavaScript, conservando Portachiavi e account.
 - Importazione registro preserva compiti manuali, completamenti e campi sconosciuti dei dati già importati. Errori non cancellano i dati precedenti. Test sintetici e verifiche visive ancora da completare; nessun account reale usato durante lo sviluppo.
 - La Home del percorso inattivo usa ora la dashboard Swift; restano da verificare onboarding, notifiche, aggiornamenti in background, posizione/meteo e stile/gesti finali. Nessuna nuova pubblicazione.
+
+- Corretto un errore di chiusura nel nuovo modulo servizi rilevato dalla compilazione; esito della correzione ancora da controllare. Aggiunti min/max meteo e lettura posizione esplicita per il meteo, separata dalla condivisione amici.
+- Il checkpoint manuale ora deve fallire se manca un file di verifiche Swift, un controllo è falso o viene registrata un'eccezione. Compilazione non equivale ad accettazione funzionale.
