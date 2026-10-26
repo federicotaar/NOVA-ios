@@ -177,3 +177,7 @@ Home nativa: intestazione con comandi a icone, testo compiti con spazio dedicato
 ### 2026.10.25.44
 
 Home nativa con titolo e scadenza compiti separati, marcatori calendario per compiti/verifiche e percentuale batteria. Il saluto viene aggiornato anche a schede invariate.
+
+### 2026.10.25.45
+
+Pagina Voti nativa: media generale, voti recenti e medie per materia con gli stessi calcoli e suggerimenti della versione precedente. Dati ClasseViva e account non modificati.
