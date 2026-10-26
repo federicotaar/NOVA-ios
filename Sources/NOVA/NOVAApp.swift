@@ -2038,6 +2038,11 @@ struct NOVALessonDraft: Identifiable {
     @State private var taskEditor = false
     @State private var actionError = ""
     var root: [String:NOVAJSON] { store.archive?.active.object ?? [:] }
+    static func deadline(_ value:String)->String {
+        let parser=DateFormatter();parser.locale=Locale(identifier:"en_US_POSIX");parser.dateFormat="yyyy-MM-dd'T'HH:mm"
+        guard let date=parser.date(from:value) else{return value}
+        let output=DateFormatter();output.locale=Locale(identifier:"it_IT");output.dateFormat="EEE d MMM, HH:mm";return output.string(from:date)
+    }
     var body: some View {
         NavigationStack {
             List {
@@ -2051,7 +2056,7 @@ struct NOVALessonDraft: Identifiable {
                     if tasks.isEmpty {Text("Nessun compito")}
                     ForEach(Array(tasks.enumerated()),id:\.offset){_,task in
                         let o=task.object ?? [:]
-                        HStack{Button{do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "")}catch{actionError="Modifica non salvata"}}label:{Image(systemName:o["done"]?.flag == true ? "checkmark.circle.fill":"circle")}.buttonStyle(.plain);VStack(alignment:.leading){Text(o["title"]?.string ?? "Compito");Text(o["due"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}}
+                        HStack{Button{do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "")}catch{actionError="Modifica non salvata"}}label:{Image(systemName:o["done"]?.flag == true ? "checkmark.circle.fill":"circle")}.buttonStyle(.plain);VStack(alignment:.leading){Text(o["title"]?.string ?? "Compito");Text(NOVASwiftOverview.deadline(o["due"]?.string ?? "")).font(.caption).foregroundStyle(.secondary)}}
                     }
                 }
                 Section("Orario") {
@@ -2171,6 +2176,7 @@ extension NOVAJSON {
             if remove{items.remove(at:index)}else{var task=items[index].object!;task["done"] = .number(task["done"]?.flag == true ? 0:1);items[index] = .object(task)}
             root["tasks"] = .array(items)
         }
+        Task{_ = await NOVASwiftTaskSync.apply(store)}
     }
     static func add(_ store:NOVASwiftStore,owner:String,title:String,note:String,due:Date,priority:String,reminder:Int) throws {
         let title=title.trimmingCharacters(in:.whitespacesAndNewlines)
@@ -2183,6 +2189,7 @@ extension NOVAJSON {
             items.append(.object(["id":.string(UUID().uuidString),"title":.string(title),"note":.string(note.trimmingCharacters(in:.whitespacesAndNewlines)),"due":.string(date),"pr":.string(priority),"rem":.number(Double(reminder)),"done":.number(0),"fired":.number(0),"src":.string("manuale"),"kind":.string("man")]))
             root["tasks"] = .array(items)
         }
+        Task{_ = await NOVASwiftTaskSync.apply(store)}
     }
 }
 @MainActor struct NOVASwiftTaskEditor:View {
@@ -2209,5 +2216,41 @@ extension NOVAJSON {
             ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}}
             ToolbarItem(placement:.confirmationAction){Button("Aggiungi"){do{try NOVASwiftTaskActions.add(store,owner:owner,title:title,note:note,due:due,priority:priority,reminder:reminder);dismiss()}catch{self.error="Controlla titolo, descrizione e duplicati. Nessun dato precedente è stato modificato."}}}
         }}.onAppear{owner=store.archive?.owner ?? ""}
+    }
+}
+@MainActor enum NOVASwiftTaskSync {
+    static func apply(_ store:NOVASwiftStore) async -> Bool {
+        guard let archive=store.archive else{return false}
+        let owner=archive.owner
+        let tasks=archive.active.object?["tasks"]?.array ?? []
+        let homework=tasks.compactMap{task -> NOVAJSON? in
+            let o=task.object ?? [:]
+            guard o["done"]?.flag != true,o["kind"]?.string != "test",let due=o["due"]?.string else{return nil}
+            return .object(["t":o["title"] ?? .string(""),"s":o["subj"] ?? .string(""),"d":.string(String(due.prefix(10)))])
+        }
+        if let data=try? JSONEncoder().encode(NOVAJSON.object(["v":.number(1),"items":.array(homework)])),let json=String(data:data,encoding:.utf8){_ = TT.saveHomework(json)}
+        let center=UNUserNotificationCenter.current()
+        let settings=await center.notificationSettings()
+        guard store.archive?.owner==owner else{return false}
+        guard [.authorized,.provisional,.ephemeral].contains(settings.authorizationStatus) else{return false}
+        // Remove first and await the read, avoiding the previous scheduling race.
+        let pending=await center.pendingNotificationRequests()
+        guard store.archive?.owner==owner else{return false}
+        center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("rem.")})
+        let formatter=DateFormatter();formatter.locale=Locale(identifier:"en_US_POSIX");formatter.dateFormat="yyyy-MM-dd'T'HH:mm"
+        let reminders=tasks.compactMap{task -> (String,String,Date)? in
+            let o=task.object ?? [:]
+            guard o["done"]?.flag != true,let id=o["id"]?.string,let title=o["title"]?.string,
+                  let due=o["due"]?.string,let date=formatter.date(from:due),let minutes=o["rem"]?.integer,minutes>0 else{return nil}
+            let fire=date.addingTimeInterval(-Double(minutes*60));guard fire>Date() else{return nil};return(id,title,fire)
+        }.sorted{$0.2<$1.2}.prefix(25)
+        var success=true
+        for (id,title,date) in reminders {
+            guard store.archive?.owner==owner else{return false}
+            let content=UNMutableNotificationContent();content.title="NOVA · Promemoria";content.body=title;content.sound = .default
+            let components=Calendar.current.dateComponents([.year,.month,.day,.hour,.minute,.second],from:date)
+            do{try await center.add(UNNotificationRequest(identifier:"rem."+id,content:content,trigger:UNCalendarNotificationTrigger(dateMatching:components,repeats:false)))}catch{success=false}
+        }
+        return success
     }
 }
