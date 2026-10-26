@@ -92,7 +92,7 @@ struct NOVASwiftMapFriend:Identifiable {
                 try store.update(owner:archive.owner){$0["locSession"] = .string(session);$0["locSessionToken"] = .string(owner.token);$0["locShare"] = .number(1)}
                 status="Condivisione attiva. Leggi la posizione per inviare un aggiornamento."
             }else{
-                _ = try await service.request("location",method:"PUT",body:.object(["sharing":.bool(false)]))
+                let response=try await service.request("location",method:"PUT",body:.object(["sharing":.bool(false)]));guard response.object?["ok"]?.flag==true else{throw NOVAServiceError.invalidResponse}
                 guard generation==expected,store.archive.flatMap({NOVASession($0.active)})==owner else{return}
                 status="Condivisione spenta sul server."
             }
@@ -104,7 +104,7 @@ struct NOVASwiftMapFriend:Identifiable {
               root["locShare"]?.flag==true,root["locSessionToken"]?.string==owner.token,let session=root["locSession"]?.string,!session.isEmpty else{return}
         let expected=generation
         do {
-            _ = try await NOVAAccountService(session:owner).request("location",method:"PUT",body:.object(["lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude),"sharing":.bool(true),"session":.string(session)]))
+            let response=try await NOVAAccountService(session:owner).request("location",method:"PUT",body:.object(["lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude),"sharing":.bool(true),"session":.string(session)]));guard response.object?["ok"]?.flag==true else{throw NOVAServiceError.invalidResponse}
             guard generation==expected,store.archive.flatMap({NOVASession($0.active)})==owner else{return}
             status="Posizione aggiornata. Gli amici vedono l'ultima lettura recente."
         }catch{if generation==expected{status="Posizione non inviata. Riprova."}}
