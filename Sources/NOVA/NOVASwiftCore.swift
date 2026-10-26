@@ -728,7 +728,7 @@ extension NOVAJSON {
             NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}.tag(2)
             NOVASwiftMap(store:store).tabItem{Label("Mappa",systemImage:"map")}.tag(3)
             NOVASwiftSettings(store:store).tabItem{Label("Profilo",systemImage:"person.crop.circle")}.tag(4)
-        }.onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store)}.onDisappear{sync.stop()}
+        }.onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store)}.onDisappear{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}
     }
 }
 
