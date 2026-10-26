@@ -161,3 +161,7 @@ Campi nativi con limiti di lunghezza originali, niente correzione automatica use
 ### 2026.10.25.40
 
 Aggiornamenti del modulo nativo preservano il campo attivo anche nelle righe Punti forti e Hobby.
+
+### 2026.10.25.41
+
+Transizioni dei moduli nativi serializzate: una riapertura rapida non viene persa durante la chiusura della pagina precedente.
