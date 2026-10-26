@@ -3,6 +3,9 @@ on:
   push:
     paths: ['.github/workflows/production-visual.yml', 'production_visual.py', 'Sources/NOVA/nova.html', 'Sources/NOVA/*.swift', 'Sources/NOVAWidget/NOVAWidget.swift']
   workflow_dispatch:
+concurrency:
+  group: swift-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 permissions:
   contents: read
 jobs:
@@ -67,7 +70,7 @@ jobs:
           for f in evidence/*txt; do echo "--- $f"; cat "$f"; done
           python3 - <<'PYTEST'
           import json, pathlib
-          required=['swift-task-checks.txt','swift-sync-checks.txt','swift-social-checks.txt','swift-people-checks.txt','swift-assistant-checks.txt','swift-school-checks.txt','swift-notification-checks.txt','swift-privacy-service-checks.txt','swift-timetable-photo-checks.txt','swift-import-origin.txt']
+          required=['swift-task-checks.txt','swift-sync-checks.txt','swift-social-checks.txt','swift-people-checks.txt','swift-assistant-checks.txt','swift-school-checks.txt','swift-notification-checks.txt','swift-privacy-service-checks.txt','swift-timetable-photo-checks.txt','swift-account-cache-checks.txt','swift-import-origin.txt']
           for name in required:
               data=json.loads((pathlib.Path('evidence')/name).read_text())
               assert data and all(value is True for value in data.values()), (name,data)
