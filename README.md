@@ -211,3 +211,8 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 - Launch2 ha eseguito import esplicito e mostrato Home con dati sintetici corretti, condivisione spenta. Interazione poi ferma al hideKeyboard generico del driver, tastiera ancora visibile in pixel. Aggiunto vero pulsante tastiera Fine tastiera e chiusura interattiva tramite scroll nel form compito; nuovo test usa il pulsante. Salvataggio/riavvio ancora pendenti.
 
 - Launch3 ha rivelato concorrenza nel fixture: vecchia pagina sintetica riscriveva storage dopo il seed. Screenshot e archivio mostravano entrambi Synthetic invece del dato atteso. Ora interrompiamo navigazione/script fixture e passiamo a pagina inerte della stessa origine prima del seed. Non è prova di perdita dati reali, né un gate accettato.
+
+## Swift test: gate simulatore accettato
+- Launch5: import esplicito, tastiera Fine tastiera, compito salvato, impostazioni, ritorno setup, chiusura/riavvio con compito presente. Archivio conferma condivisione/background/sessioni disattivati. Artifact: https://github.com/federicotaranudev/NOVA-ios/actions/runs/40358218516/artifacts/12667752258
+- Manual296:76 controlli tutti veri e cinque schede reali ispezionate.
+- Preparazione 2026.10.26.1 TEST Swift, non versione definitiva: IPA ancora da verificare. Installa sopra la stessa app, non eliminarla. Face ID, permessi, background su iPhone e servizi/account reali ancora non verificati.
