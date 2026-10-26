@@ -246,3 +246,19 @@ s+=r'''
 }
 '''
 p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('checks["backupExcludesDeviceSecrets"]', 'checks["backupExcludesDeviceSecrets"]',1)
+needle='let privateState:NOVAJSON'
+addition=r'''let transition=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+  try transition.importOnce(["nova.v1":"{\"name\":\"Original\",\"future\":true,\"tasks\":[],\"tt\":{\"lessons\":[]}}"])
+  try transition.changeAccount(email:"first@example.invalid",token:"synthetic1")
+  checks["accountTransitionHasRecovery"] = transition.archive!.localStorage.keys.contains{$0.hasPrefix("nova.swift.recovery.")}
+  try transition.update(owner:"first@example.invalid"){$0["name"] = .string("First")}
+  try transition.changeAccount(email:"second@example.invalid",token:"synthetic2")
+  checks["accountTransitionIsolatesState"] = transition.archive!.active.object?["name"] == .string("")
+  try transition.changeAccount(email:"first@example.invalid",token:"synthetic3")
+  checks["accountTransitionRestoresOwnCache"] = transition.archive!.active.object?["name"] == .string("First")
+  let privateState:NOVAJSON'''
+s=s.replace(needle,addition,1)
+p.write_text(s)
