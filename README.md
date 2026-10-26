@@ -280,3 +280,8 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 - Il ramo Swift ora comprende conversazioni, foto e vocali in bozza con invio esplicito, creazione chat/gruppi, reazioni, modifica/eliminazione dei propri messaggi, ricevute e indicazione di scrittura.
 - La compilazione del blocco social è passata; il checkpoint manuale usa trasporti sintetici e cattura conversazione e creazione chat. Non contatta amici o account reali e non dimostra ancora parità completa.
 - Recuperate e controllate le schermate Swift di accesso e scelta canzone: 15 controlli dati/account/privacy, 5 sync e 2 importazione superati. Nessuna nuova IPA: 51 resta l'ultima consegnata; pubblicazione automatica disabilitata.
+
+### Profili e amicizie Swift (non attivi)
+- Aggiunti modello indipendente e viste per ricerca utenti, richieste ricevute/inviate, rimozione con conferma, follower/seguiti e profili pubblici con limiti restituiti dal server.
+- Il QR personale usa lo stesso formato NOVA; lettura da foto con conferma prima della richiesta. Scansione diretta dalla fotocamera e verifiche funzionali/visive ancora da completare.
+- Nessuna richiesta viene inviata in automatico durante migrazione o accesso. Risposte obsolete e cambi account vengono ignorati; questa parte non è ancora pronta per la pubblicazione.
