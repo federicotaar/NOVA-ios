@@ -165,3 +165,7 @@ Aggiornamenti del modulo nativo preservano il campo attivo anche nelle righe Pun
 ### 2026.10.25.41
 
 Transizioni dei moduli nativi serializzate: una riapertura rapida non viene persa durante la chiusura della pagina precedente.
+
+### 2026.10.25.42
+
+Home nativa UIKit con scorrimento e schede per ora, meteo, batteria, verifiche, compiti, calendario e Spotify. Dati e azioni restano negli handler esistenti; controlli nativi senza coordinate ricavate dal layout HTML. StandBy continua nel percorso originale. Azioni protette da account, sessione, pagina e modali aperti.
