@@ -761,7 +761,8 @@ struct NOVASwiftHideTabsKey:PreferenceKey{static var defaultValue:Bool{false};st
 @MainActor struct NOVASwiftShell:View {
     @ObservedObject var store:NOVASwiftStore
     let chatSocial:NOVASwiftSocial?
-    init(store:NOVASwiftStore,initialTab:Int=0,chatSocial:NOVASwiftSocial?=nil){self.store=store;self.chatSocial=chatSocial;_selectedTab=State(initialValue:max(0,min(4,initialTab)))}
+    let deviceServices:Bool
+    init(store:NOVASwiftStore,initialTab:Int=0,chatSocial:NOVASwiftSocial?=nil,deviceServices:Bool=true){self.store=store;self.chatSocial=chatSocial;self.deviceServices=deviceServices;_selectedTab=State(initialValue:max(0,min(4,initialTab)))}
     @StateObject private var sync=NOVASwiftSync()
     @State private var selectedTab=0
     @State private var hideTabs=false
@@ -771,7 +772,7 @@ struct NOVASwiftHideTabsKey:PreferenceKey{static var defaultValue:Bool{false};st
         Group{switch selectedTab{case 1:NOVASwiftGrades(store:store);case 2:NOVASwiftChatList(store:store,social:chatSocial);case 3:NOVASwiftMap(store:store);case 4:NOVASwiftProfile(store:store);default:NOVASwiftDashboard(store:store)}}
         .onPreferenceChange(NOVASwiftHideTabsKey.self){hideTabs=$0}
         .safeAreaInset(edge:.bottom){if !hideTabs{NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}}
-        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}
+        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{guard deviceServices else{return};sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in guard deviceServices else{return};if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{if deviceServices{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}}
     }
 }
 
