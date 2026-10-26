@@ -128,7 +128,7 @@ struct NOVASwiftAvatar:View {
             UIColor.white.setFill();renderer.fill(CGRect(x:0,y:0,width:size,height:size));UIColor.black.setFill()
             for y in 0..<width{for x in 0..<width{
                 let finder=(x<7 && y<7)||(x>=width-7 && y<7)||(x<7 && y>=width-7)
-                if pixels[(y*width+x)*4]<128 && !finder{let rect=CGRect(x:(CGFloat(x)+quiet)*scale,y:(CGFloat(y)+quiet)*scale,width:scale,height:scale).insetBy(dx:0.8,dy:0.8);UIBezierPath(roundedRect:rect,cornerRadius:scale/2).fill()}
+                if pixels[(y*width+x)*4]<128 && !finder{let rect=CGRect(x:(CGFloat(x)+quiet)*scale,y:(CGFloat(y)+quiet)*scale,width:scale,height:scale).insetBy(dx:-0.5,dy:-0.5);UIBezierPath(roundedRect:rect,cornerRadius:scale*0.38).fill()}
             }}
             for (x,y) in [(0,0),(width-7,0),(0,width-7)]{
                 let rect=CGRect(x:(CGFloat(x)+quiet)*scale,y:(CGFloat(y)+quiet)*scale,width:7*scale,height:7*scale)
