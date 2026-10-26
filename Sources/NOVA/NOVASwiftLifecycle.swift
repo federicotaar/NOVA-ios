@@ -20,13 +20,14 @@ import UserNotifications
 }
 @MainActor struct NOVASwiftWelcome:View {
     @ObservedObject var store:NOVASwiftStore
+    @Environment(\.dismiss) var dismiss
     @State private var step=0
     @State private var name=""
     @State private var status=""
     private let titles=["Benvenuto in NOVA","La tua giornata","Persone e privacy","Scegli i tuoi servizi"]
     private let descriptions=["Compiti, voti, studio e amici in un unico posto.","Organizza i compiti, consulta il calendario e personalizza la Home. Puoi aggiungere l'orario dalle impostazioni.","La posizione non viene condivisa da questa presentazione. Scegli tu quando aggiungere amici, condividere la posizione o attivare le notifiche.","ClasseViva, Groq e Spotify sono facoltativi. Puoi configurarli dopo nelle impostazioni. Le chiavi e le password restano nel Portachiavi di questo iPhone."]
     var body:some View{NavigationStack{VStack(alignment:.leading,spacing:24){Text("NOVA").font(.system(size:48,weight:.black,design:.rounded));Spacer();Text(titles[step]).font(.largeTitle.bold());Text(descriptions[step]).font(.title3).foregroundStyle(.secondary);if step==0{TextField("Come ti chiami?",text:$name).textFieldStyle(.roundedBorder)};if !status.isEmpty{Text(status).foregroundStyle(.red)};Spacer();HStack{if step>0{Button("Indietro"){step-=1}};Spacer();Text("\(step+1) / \(titles.count)").foregroundStyle(.secondary);Button(step==titles.count-1 ? "Inizia":"Continua"){if step<titles.count-1{step+=1}else{finish()}}.buttonStyle(.borderedProminent)}}.padding(24).toolbar{Button("Configura dopo"){finish()}}}.onAppear{name=store.archive?.active.object?["name"]?.string ?? ""}}
-    func finish(){do{try store.update(owner:store.archive?.owner ?? ""){root in if !name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty{root["name"] = .string(String(name.prefix(80)))};root["done"] = .number(1);root["ob"] = .number(2);root["profDone"] = .number(1)}}catch{status="Impostazioni non salvate. Riprova."}}
+    func finish(){do{try store.update(owner:store.archive?.owner ?? ""){root in if !name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty{root["name"] = .string(String(name.prefix(80)))};root["done"] = .number(1);root["ob"] = .number(2);root["profDone"] = .number(1)};dismiss()}catch{status="Impostazioni non salvate. Riprova."}}
 }
 @MainActor struct NOVASwiftProtectedRoot:View {
     @ObservedObject var store:NOVASwiftStore
