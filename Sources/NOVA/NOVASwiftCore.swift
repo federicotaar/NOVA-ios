@@ -586,7 +586,7 @@ extension NOVAJSON {
         NavigationStack{Form{
             Section("Il tuo account"){
                 Button("Modifica profilo"){profile=true}
-                Button("Accedi o cambia account"){login=true}
+                NavigationLink("Gestisci account"){NOVASwiftAccountManagement(store:store)}
                 NavigationLink("Backup account"){NOVASwiftBackup(store:store)}
                 TextField("Il tuo nome",text:text("name"))
                 if let email=store.archive?.active.object?["acct"]?.object?["email"]?.string{Text(email).foregroundStyle(.secondary)}
@@ -648,5 +648,17 @@ extension NOVASwiftStore {
         let verified=try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:url))
         guard verified.active==current.active,verified.localStorage==current.localStorage else{throw CocoaError(.fileWriteUnknown)}
         archive=verified
+    }
+}
+
+extension NOVASwiftStore {
+    func logoutConfirmed(session:NOVASession,snapshot:NOVAJSON) throws {
+        guard var current=archive,NOVASession(current.active)==session,NOVASwiftBackupData.snapshot(current.active)==snapshot else{throw CocoaError(.userCancelled)}
+        let bytes=try JSONEncoder().encode(current.active),saved=String(data:bytes,encoding:.utf8)!
+        current.localStorage["nova.swift.account."+current.owner]=saved
+        current.localStorage["nova.swift.recovery."+UUID().uuidString]=saved
+        current.active = .object(["name":.string(""),"theme":.string("auto"),"sb":.string("off"),"tasks":.array([]),"chat":.array([]),"gr":.array([]),"prof":.object([:]),"tt":.object(["lessons":.array([])]),"w":.object([:]),"locShare":.number(0),"bgLoc":.number(0),"locSession":.string("")])
+        let url=directory.appendingPathComponent("state-v1.json");try JSONEncoder().encode(current).write(to:url,options:[.atomic,.completeFileProtection])
+        let verified=try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:url));guard verified.active==current.active,verified.localStorage==current.localStorage else{throw CocoaError(.fileWriteUnknown)};archive=verified
     }
 }
