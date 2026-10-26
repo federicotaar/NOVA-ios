@@ -2034,6 +2034,8 @@ struct NOVALessonDraft: Identifiable {
 @MainActor struct NOVASwiftOverview: View {
     @ObservedObject var store: NOVASwiftStore
     @State private var timetable = false
+    @State private var taskEditor = false
+    @State private var actionError = ""
     var root: [String:NOVAJSON] { store.archive?.active.object ?? [:] }
     var body: some View {
         NavigationStack {
@@ -2043,19 +2045,21 @@ struct NOVALessonDraft: Identifiable {
                     Text("Anteprima Swift: dati locali importati. Servizi e altre schermate ancora in verifica.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Compiti") {
+                    Button("Nuovo compito"){taskEditor=true}
                     let tasks=root["tasks"]?.array ?? []
                     if tasks.isEmpty {Text("Nessun compito")}
                     ForEach(Array(tasks.enumerated()),id:\.offset){_,task in
                         let o=task.object ?? [:]
-                        VStack(alignment:.leading){Text(o["title"]?.string ?? "Compito");Text(o["due"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}
+                        HStack{Button{do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "")}catch{actionError="Modifica non salvata"}}label:{Image(systemName:o["done"]?.flag == true ? "checkmark.circle.fill":"circle")}.buttonStyle(.plain);VStack(alignment:.leading){Text(o["title"]?.string ?? "Compito");Text(o["due"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}}
                     }
                 }
                 Section("Orario") {
                     Button("Modifica orario"){timetable=true}
                     Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) lezioni salvate")
                 }
+            if !actionError.isEmpty{Text(actionError).foregroundStyle(.red)}
             }.navigationTitle("NOVA")
-        }.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}
+        }.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}.sheet(isPresented:$taskEditor){NOVASwiftTaskEditor(store:store)}
     }
 }
 // Swift transport preserves backend permissions; no privileged endpoints or invented defaults.
@@ -2153,5 +2157,56 @@ struct NOVAAccountService {
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
             Button(busy ? "Copia in corso…":"Importa una volta"){busy=true;reader.read{result in busy=false;do{try store.importOnce(result.get())}catch{self.error="Importazione non completata. I dati precedenti non sono stati modificati."}}}.disabled(busy)
         }.padding(24)
+    }
+}
+extension NOVAJSON {
+    var double: Double { if case .number(let n)=self{return n};return 0 }
+}
+@MainActor enum NOVASwiftTaskActions {
+    static func mutate(_ store:NOVASwiftStore,owner:String,id:String,remove:Bool=false) throws {
+        try store.update(owner:owner){root in
+            var items=root["tasks"]?.array ?? []
+            guard let index=items.firstIndex(where:{$0.object?["id"]?.string==id}) else{throw CocoaError(.fileNoSuchFile)}
+            if remove{items.remove(at:index)}else{var task=items[index].object!;task["done"] = .number(task["done"]?.flag == true ? 0:1);items[index] = .object(task)}
+            root["tasks"] = .array(items)
+        }
+    }
+    static func add(_ store:NOVASwiftStore,owner:String,title:String,note:String,due:Date,priority:String,reminder:Int) throws {
+        let title=title.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard !title.isEmpty,title.count<=120,note.count<=400 else{throw CocoaError(.validationMissingMandatoryProperty)}
+        let f=DateFormatter();f.locale=Locale(identifier:"en_US_POSIX");f.dateFormat="yyyy-MM-dd'T'HH:mm"
+        let date=f.string(from:due)
+        try store.update(owner:owner){root in
+            var items=root["tasks"]?.array ?? []
+            guard !items.contains(where:{let o=$0.object ?? [:];return o["done"]?.flag != true && o["due"]?.string==date && o["title"]?.string?.lowercased()==title.lowercased()}) else{throw CocoaError(.validationMultipleErrors)}
+            items.append(.object(["id":.string(UUID().uuidString),"title":.string(title),"note":.string(note.trimmingCharacters(in:.whitespacesAndNewlines)),"due":.string(date),"pr":.string(priority),"rem":.number(Double(reminder)),"done":.number(0),"fired":.number(0),"src":.string("manuale"),"kind":.string("man")]))
+            root["tasks"] = .array(items)
+        }
+    }
+}
+@MainActor struct NOVASwiftTaskEditor:View {
+    @ObservedObject var store:NOVASwiftStore
+    @Environment(\.dismiss) var dismiss
+    @State private var title=""
+    @State private var note=""
+    @State private var due=Calendar.current.date(bySettingHour:18,minute:0,second:0,of:Date().addingTimeInterval(86400)) ?? Date()
+    @State private var priority="media"
+    @State private var reminder=60
+    @State private var owner=""
+    @State private var error=""
+    var body:some View {
+        NavigationStack{Form{
+            Section("Compito"){TextField("Cosa devi fare?",text:$title)}
+            Section("Descrizione (facoltativa)"){TextEditor(text:$note).frame(minHeight:90)}
+            Section("Scadenza"){DatePicker("Scadenza",selection:$due)}
+            Section("Opzioni"){
+                Picker("Priorità",selection:$priority){Text("Alta").tag("alta");Text("Media").tag("media");Text("Bassa").tag("bassa")}
+                Picker("Promemoria",selection:$reminder){Text("Nessuno").tag(0);Text("10 minuti prima").tag(10);Text("1 ora prima").tag(60);Text("1 giorno prima").tag(1440)}
+            }
+            if !error.isEmpty{Text(error).foregroundStyle(.red)}
+        }.navigationTitle("Nuovo compito").toolbar{
+            ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}}
+            ToolbarItem(placement:.confirmationAction){Button("Aggiungi"){do{try NOVASwiftTaskActions.add(store,owner:owner,title:title,note:note,due:due,priority:priority,reminder:reminder);dismiss()}catch{self.error="Controlla titolo, descrizione e duplicati. Nessun dato precedente è stato modificato."}}}
+        }}.onAppear{owner=store.archive?.owner ?? ""}
     }
 }
