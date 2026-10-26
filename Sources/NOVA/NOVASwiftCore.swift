@@ -621,3 +621,27 @@ extension NOVAJSON {
         }.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT"))
     }
 }
+
+// Explicit account transactions preserve the complete prior state and account cache.
+extension NOVASwiftStore {
+    func changeAccount(email:String,token:String) throws {
+        guard var current=archive,!email.isEmpty,!token.isEmpty else{throw CocoaError(.userCancelled)}
+        let target=email.lowercased(),oldOwner=current.owner
+        let encoder=JSONEncoder();encoder.outputFormatting = [.sortedKeys]
+        let old=try encoder.encode(current.active)
+        current.localStorage["nova.swift.account."+oldOwner] = String(data:old,encoding:.utf8)
+        current.localStorage["nova.swift.recovery."+UUID().uuidString] = String(data:old,encoding:.utf8)
+        var next:[String:NOVAJSON]
+        if target==oldOwner {next=current.active.object ?? [:]}
+        else if let saved=current.localStorage["nova.swift.account."+target],let bytes=saved.data(using:.utf8),let state=try? JSONDecoder().decode(NOVAJSON.self,from:bytes).object {next=state}
+        else {next=["name":.string(""),"theme":.string("auto"),"sb":.string("off"),"tasks":.array([]),"chat":.array([]),"gr":.array([]),"tt":.object(["lessons":.array([])]),"prof":.object([:]),"w":.object([:]),"done":.number(0),"ob":.number(0),"aiAct":.string("ask")]}
+        next["acct"] = .object(["email":.string(target),"token":.string(token)])
+        next["locShare"] = .number(0);next["bgLoc"] = .number(0);next["locSession"] = .string("");next["locSessionToken"] = .string("")
+        current.active = .object(next)
+        let data=try encoder.encode(current),url=directory.appendingPathComponent("state-v1.json")
+        try data.write(to:url,options:[.atomic,.completeFileProtection])
+        let verified=try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:url))
+        guard verified.active==current.active,verified.localStorage==current.localStorage else{throw CocoaError(.fileWriteUnknown)}
+        archive=verified
+    }
+}
