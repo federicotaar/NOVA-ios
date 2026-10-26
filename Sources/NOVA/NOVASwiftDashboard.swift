@@ -84,7 +84,7 @@ import UIKit
                         calendar
                     }}
                     card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")").foregroundStyle(.secondary)}
-                    if visible("sp"){card("Spotify"){Text("Collegamento e controlli Spotify in verifica. Nessun accesso viene modificato da questa anteprima.").font(.footnote).foregroundStyle(.secondary)}}
+                    
                     if !status.isEmpty{Text(status).foregroundStyle(.red)}
                 }.padding(20)
             }.background(Color(uiColor:.systemGroupedBackground)).navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
@@ -130,7 +130,7 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
             ForEach(grouped.keys.sorted(),id:\.self){subject in
                 let values=(grouped[subject] ?? []).compactMap{value -> Double? in if case .number(let n)?=value.object?["v"]{return n};return nil}
                 if !values.isEmpty{let average=values.reduce(0,+)/Double(values.count),need=6*Double(values.count+1)-values.reduce(0,+)
-                    Section(subject){Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) voti").font(.title2);Text(average>=6 ? (need<=1 ? "Sei al sicuro":"Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al 6"):(need>10 ? "Servono più voti per arrivare al 6":"Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al 6")).font(.footnote).foregroundStyle(.secondary)}
+                    Section(subject){Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) voti").font(.title2);Text(average>=6 ? (need<=1 ? "Sei al sicuro":"Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al 6"):(need>10 ? "Servono più voti per arrivare al 6":"Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al 6")).font(.footnote).foregroundStyle(.secondary);ForEach(Array((grouped[subject] ?? []).sorted{($0.object?["date"]?.string ?? "")>($1.object?["date"]?.string ?? "")}.enumerated()),id:\.offset){_,grade in VStack(alignment:.leading,spacing:4){HStack{Text(grade.object?["d"]?.string ?? String(grade.object?["v"]?.double ?? 0)).font(.headline);Spacer();Text(grade.object?["date"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};if let kind=grade.object?["k"]?.string,!kind.isEmpty{Text(kind).font(.caption)};if let note=grade.object?["n"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}}}
                 }
             }
         }.navigationTitle("Voti")}.environment(\.locale,Locale(identifier:"it_IT"))
