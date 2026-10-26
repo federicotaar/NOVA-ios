@@ -20,7 +20,7 @@ import UserNotifications
               store.archive?.active==snapshot,let result=NOVASwiftServicesModel.json(raw),result.object?["ok"]?.flag==true else{return false}
         do{try NOVASwiftSchoolImport.apply(result,store,owner:owner);last=Date();let synced=await NOVASwiftTaskSync.apply(store);guard store.archive?.owner==owner,store.archive.flatMap({NOVASession($0.active)})==session else{return false}
             UserDefaults.standard.set(store.archive?.active.object?["hwn"]?.flag ?? true,forKey:"nova.hwn")
-            if let events=raw["events"] as? [[String:Any]]{await HomeNotifs.process(events,background:background)}
+            if let events=raw["events"] as? [[String:Any]]{await HomeNotifs.process(events,background:background,valid:{store.archive?.owner==owner && store.archive.flatMap({NOVASession($0.active)})==session && store.archive?.active.object?["hwn"]?.flag != false})}
             return synced
         }catch{return false}
     }
