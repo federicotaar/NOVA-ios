@@ -169,3 +169,7 @@ Transizioni dei moduli nativi serializzate: una riapertura rapida non viene pers
 ### 2026.10.25.42
 
 Home nativa UIKit con scorrimento e schede per ora, meteo, batteria, verifiche, compiti, calendario e Spotify. Dati e azioni restano negli handler esistenti; controlli nativi senza coordinate ricavate dal layout HTML. StandBy continua nel percorso originale. Azioni protette da account, sessione, pagina e modali aperti.
+
+### 2026.10.25.43
+
+Home nativa: intestazione con comandi a icone, testo compiti con spazio dedicato, giorni del calendario non spezzati su due righe. Epoch rinnovato anche uscendo e rientrando nella Home.
