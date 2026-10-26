@@ -239,3 +239,5 @@ Elenco chat e conversazione testuale hanno ora percorsi Swift autonomi in verifi
 Impostazioni e navigazione Swift autonome sono ora in verifica. Nome, tema, selezione schede e preferenza delle azioni si scrivono nel modello Swift senza DOM. Non vengono attivati permessi, posizione o servizi e il percorso resta inattivo fino alla parità completa.
 
 Corrette tre assegnazioni allo stato degli errori delle impostazioni Swift. Il trasferimento del sorgente grande è stato verificato byte per byte dopo la sostituzione; nessun cambio ai dati salvati o alla versione distribuita. Il controllo di compilazione e le immagini delle nuove schermate restano parte della verifica, non un rilascio finale.
+
+La mappa Swift autonoma è in verifica: MapKit, lettura posizione solo su richiesta, sessione di condivisione con guardie account, Fantasma locale immediato e conferma server separata. Le posizioni vecchie degli amici non vengono mostrate. La comparsa della schermata non chiede permessi né attiva la condivisione. Gli aggiornamenti in background e le prove dei servizi reali restano da completare prima dell'attivazione.
