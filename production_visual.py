@@ -337,6 +337,12 @@ s+=r'''
   let own=social.messages.first!;await social.action(own,operation:"react",value:"👍",store);checks["reactionUsesEstablishedEndpoint"]=paths.contains("POST:messages/2/react")
   paths=[];let uploaded=await social.media(Data(repeating:1,count:1000),mime:"image/jpeg",kind:"image",store);checks["mediaUploadThenMessage"]=uploaded && paths.first=="POST:media" && paths.contains("POST:chats/1/messages")
   social.close();paths=[];let closed=await social.send("Blocked",store);checks["closedConversationCannotSend"] = !closed && paths.isEmpty
+  var stale:NOVASwiftSocial!
+  var stalePaths:[String]=[]
+  stale=NOVASwiftSocial{_,path,method,_,_ in stalePaths.append(method+":"+path);if path=="media"{stale.close();return .object(["url":.string("/media/stale")])};return .object(["ok":.bool(true)])}
+  await stale.open("stale",store);stalePaths=[];let staleSent=await stale.media(Data(repeating:1,count:1000),mime:"image/jpeg",kind:"image",store);checks["closeDuringUploadBlocksMessage"] = !staleSent && !stalePaths.contains("POST:chats/stale/messages")
+  let refused=NOVASwiftSocial{_,_,method,_,_ in .object(["ok":.bool(method != "POST")])};await refused.open("refused",store);let refusedSent=await refused.send("Keep draft",store);checks["serverRefusalPreservesDraft"] = !refusedSent
+
  }catch{checks["exception"]=true}
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-social-checks.txt"))
 }
