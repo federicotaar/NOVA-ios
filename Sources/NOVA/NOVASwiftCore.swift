@@ -57,12 +57,18 @@ struct NOVASwiftArchive: Codable {
     // Called only after the user reviews the one-time migration offer.
     func importOnce(_ values: [String:String]) throws {
         guard archive == nil else { throw CocoaError(.fileWriteFileExists) }
-        let imported = try NOVASwiftArchive.imported(values)
+        var imported = try NOVASwiftArchive.imported(values)
+        let original=imported
+        // Copy personal data, never re-enable visibility or device services from a cached runtime flag.
+        var active=imported.active.object ?? [:]
+        for key in ["locShare","bgLoc"]{active[key] = .number(0)}
+        for key in ["locSession","locSessionToken"]{active[key] = .string("")}
+        imported.active = .object(active)
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(imported)
         // Keep an immutable recovery copy before activating the new state.
-        try data.write(to:directory.appendingPathComponent("legacy-import-v1.json"),options:[.atomic,.completeFileProtection])
+        try encoder.encode(original).write(to:directory.appendingPathComponent("legacy-import-v1.json"),options:[.atomic,.completeFileProtection])
         try data.write(to:directory.appendingPathComponent("state-v1.json"),options:[.atomic,.completeFileProtection])
         let readBack = try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:directory.appendingPathComponent("state-v1.json")))
         guard readBack.active == imported.active, readBack.localStorage == imported.localStorage else { throw CocoaError(.fileWriteUnknown) }
