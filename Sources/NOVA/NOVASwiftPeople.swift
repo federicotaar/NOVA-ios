@@ -121,7 +121,6 @@ struct NOVASwiftAvatar:View {
         let width=cg.width,bytes=width*width*4
         var pixels=[UInt8](repeating:0,count:bytes)
         guard let context=CGContext(data:&pixels,width:width,height:width,bitsPerComponent:8,bytesPerRow:width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue) else{return nil}
-        context.translateBy(x:0,y:CGFloat(width));context.scaleBy(x:1,y:-1)
         context.draw(cg,in:CGRect(x:0,y:0,width:width,height:width))
         let scale:CGFloat=12,quiet:CGFloat=4,total=CGFloat(width)+quiet*2,size=total*scale
         let image=UIGraphicsImageRenderer(size:CGSize(width:size,height:size)).image{renderer in
