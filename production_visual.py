@@ -401,3 +401,27 @@ s=p.read_text()+r'''
 }
 '''
 p.write_text(s)
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('await visualSwiftPeopleChecks(dir);try? Data()', 'await visualSwiftPeopleChecks(dir);await visualSwiftAssistantChecks(dir);try? Data()',1)
+s+=r'''
+@MainActor func visualSwiftAssistantChecks(_ dir:URL) async {
+ var checks:[String:Bool]=[:]
+ let text="Proposta\n###AZIONI###[{\"a\":\"task\",\"title\":\"Ripasso\",\"due\":\"2026-11-03T18:00\",\"rem\":0},{\"a\":\"unknown\"}]"
+ let (visible,actions)=NOVASwiftAssistantActions.parse(text,permission:"ask")
+ checks["parseSeparatesTextAndValidActions"] = visible=="Proposta" && actions.count==1 && actions.first?.object?["st"]?.string=="wait"
+ checks["denyNeverQueuesExecution"] = NOVASwiftAssistantActions.parse(text,permission:"deny").1.first?.object?["st"]?.string=="off"
+ checks["unknownPageRejected"] = NOVASwiftAssistantActions.normalize(.object(["a":.string("open"),"page":.string("external")]))==nil
+ checks["badDateRejected"] = NOVASwiftAssistantActions.normalize(.object(["a":.string("task"),"title":.string("X"),"due":.string("not-a-date")]))==nil
+ do{
+  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try store.importOnce(["nova.v1":"{\"tasks\":[],\"chat\":[],\"aiAct\":\"ask\"}"])
+  try store.update(owner:"local"){$0["chat"] = .array([.object(["r":.string("assistant"),"c":.string(visible),"acts":.array(actions)])])}
+  checks["proposalDoesNotMutateTasks"] = store.archive?.active.object?["tasks"]?.array.isEmpty==true
+  await NOVASwiftAssistantActions.run(store,owner:"wrong",message:0,action:0);checks["wrongOwnerCannotExecute"] = store.archive?.active.object?["tasks"]?.array.isEmpty==true
+  await NOVASwiftAssistantActions.run(store,owner:"local",message:0,action:0);checks["confirmedTaskCreated"] = store.archive?.active.object?["tasks"]?.array.count==1 && store.archive?.active.object?["chat"]?.array.first?.object?["acts"]?.array.first?.object?["st"]?.string=="done"
+  await NOVASwiftAssistantActions.run(store,owner:"local",message:0,action:0);checks["completedActionNotReplayed"] = store.archive?.active.object?["tasks"]?.array.count==1
+  var old=actions[0].object!;old.removeValue(forKey:"swiftID");old["st"] = .string("wait");try store.update(owner:"local"){$0["chat"] = .array([.object(["r":.string("assistant"),"acts":.array([.object(old)])])])};await NOVASwiftAssistantActions.run(store,owner:"local",message:0,action:0);checks["legacyActionsNeverReplayed"] = store.archive?.active.object?["tasks"]?.array.count==1
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-assistant-checks.txt"))
+}
+'''
+p.write_text(s)
