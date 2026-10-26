@@ -368,3 +368,26 @@ s+=r'''
 }
 '''
 p.write_text(s)
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('await visualSwiftSocialChecks(dir);try? Data()', 'await visualSwiftSocialChecks(dir);await visualSwiftPeopleChecks(dir);try? Data()',1)
+s+=r'''
+@MainActor func visualSwiftPeopleChecks(_ dir:URL) async {
+ var checks:[String:Bool]=[:]
+ do{
+  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString));try store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"fixture@example.invalid\",\"token\":\"synthetic\"},\"prof\":{\"username\":\"fixture\"},\"profConfirmed\":\"fixture\"}"])
+  var paths:[String]=[]
+  let people=NOVASwiftPeople{_,path,method,_,_ in paths.append(method+":"+path);if path=="friends"{return .object(["ok":.bool(true),"friends":.array([.object(["username":.string("esempio")])]),"incoming":.array([]),"outgoing":.array([])])};if path=="users/profile"{return .object(["ok":.bool(true),"limited":.bool(true),"profile":.object([:])])};return .object(["ok":.bool(true)])}
+  await people.load(store);checks["readDoesNotMutateFriendships"] = paths==["GET:friends"] && people.friends.count==1
+  let request=await people.action("friends/request",username:"esempio",store);checks["explicitRequestEstablishedEndpoint"] = request && paths.contains("POST:friends/request")
+  await people.open("esempio",store);checks["limitedProfilePreserved"] = people.profile?.object?["limited"]?.flag==true
+  paths=[];let rejected=await people.action("unrelated/write",username:"x",store);checks["unknownActionRejected"] = !rejected && paths.isEmpty
+  checks["qrOnlyNOVAUsername"] = NOVASwiftQR.parse("nova:add:amico_test")=="amico_test" && NOVASwiftQR.parse("https://example.invalid/collect")==nil && NOVASwiftQR.parse("nova:add:bad/user")==nil
+  var stale:NOVASwiftPeople!
+  stale=NOVASwiftPeople{_,_,_,_,_ in stale.closeProfile();return .object(["ok":.bool(true),"profile":.object(["study":.string("STALE")])])}
+  await stale.open("old",store);checks["closedProfileIgnoresResponse"] = stale.profile==nil
+  people.reset();checks["resetClearsAllAccountLists"] = people.friends.isEmpty && people.results.isEmpty && people.profile==nil
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-people-checks.txt"))
+}
+'''
+p.write_text(s)
