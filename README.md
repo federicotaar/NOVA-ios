@@ -352,3 +352,6 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Interazione4 ha verificato contenuto fermo durante pressione, ma ha rilevato che il rilascio non cambiava pagina. Corretto il commit dalla posizione reale di rilascio, test5 richiesto. Tastiera e navigazione finale non ancora accettate.
 - Importazione iniziale conserva la copia originale immutabile e tutti i dati personali, ma azzera nel nuovo stato soltanto i flag di visibilita/sessione posizione. Non riattiva la condivisione da vecchi flag locali. Controllo dedicato aggiunto; compilazione e checkpoint ancora necessari.
+
+- Interazione5 supera trascinamento avanti/indietro e gate pressione/rilascio, con bozza conservata. Tastiera visibile e poi chiusa controllate in immagini; annullamento e iPhone fisico restano separati. Nessuna pubblicazione.
+- Aggiunta verifica integrata delle cinque schede Swift reali, con ricaricamento archivio e recupero originale, oltre alle schermate isolate. Non usa account reali; stato ancora inattivo.
