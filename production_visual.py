@@ -570,3 +570,19 @@ if os.environ.get('NOVA_INTERACTION')=='1':
     s=p.read_text().replace('visualNativeProfileReady(web,0)','visualSwiftInteractionReady(web,0)',1)
     s+='\n'+Path('NOVAInteractionFixture.swift').read_text()
     p.write_text(s)
+
+p=Path('/tmp/NOVAProductionVisual.swift')
+s=p.read_text().replace('await visualSwiftPrivacyServiceChecks(dir);try? Data()', 'await visualSwiftPrivacyServiceChecks(dir);visualSwiftTimetablePhotoChecks(dir);try? Data()',1)
+s+=r"""
+@MainActor func visualSwiftTimetablePhotoChecks(_ dir:URL){
+ var checks:[String:Bool]=[:]
+ do{
+ let result=try NOVASwiftTimetablePhoto.parse("Risposta ```json {\"lessons\":[{\"d\":1,\"h\":1,\"s\":\"08:10\",\"e\":\"09:00\",\"n\":\"MAT\"},{\"d\":2,\"h\":3,\"n\":\"ITA\"}]} ```")
+ checks["weekdaysAndTimesPreserved"]=result.lessons[0].day==2 && result.lessons[0].start==490 && result.lessons[0].end==540
+ checks["missingTimeExplicitlyEstimated"]=result.estimated && result.lessons[1].day==3 && result.lessons[1].start==600
+ var rejected=false;do{_ = try NOVASwiftTimetablePhoto.parse("{\"lessons\":[{\"d\":9,\"n\":\"BAD\"}]}")}catch{rejected=true};checks["emptyInvalidProposalRejected"]=rejected
+ }catch{checks["exception"]=true}
+ try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-timetable-photo-checks.txt"))
+}
+"""
+p.write_text(s)
