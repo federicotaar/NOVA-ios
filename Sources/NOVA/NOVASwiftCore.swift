@@ -616,13 +616,14 @@ extension NOVAJSON {
 }
 @MainActor struct NOVASwiftShell:View {
     @ObservedObject var store:NOVASwiftStore
+    @StateObject private var sync=NOVASwiftSync()
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
     var body:some View {
         TabView {
             NOVASwiftOverview(store:store).tabItem{Label("Home",systemImage:"house")}
             NOVASwiftChatList(store:store).tabItem{Label("Chat",systemImage:"bubble.left.and.bubble.right")}
             NOVASwiftSettings(store:store).tabItem{Label("Profilo",systemImage:"person.crop.circle")}
-        }.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT"))
+        }.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{sync.bind(store)}.onDisappear{sync.stop()}
     }
 }
 
