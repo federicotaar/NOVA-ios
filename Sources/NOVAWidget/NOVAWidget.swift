@@ -1,7 +1,7 @@
 import WidgetKit
 import SwiftUI
 
-// Orario 3X ITI - definitivo dal 19 ottobre 2026 (foto bacheca ClasseViva)
+// Orario personale letto dal contenitore condiviso dell'app.
 // weekday: 2 = lunedi ... 6 = venerdi (Calendar: 1 = domenica)
 
 struct Lesson {
@@ -43,56 +43,33 @@ enum Orario {
         return ids.filter { seen.insert($0).inserted }
     }
 
-    // Orario incorporato, come prima del ponte app-widget: i widget funzionano sempre,
-    // anche quando l'App Group non e' accessibile (sideload con ID gratuito).
-    // Stesso orario di TTSEED in nova.html.
-    static let builtin: [Lesson] = [
-        Lesson(weekday: 2, start: 490, end: 590, subject: "INFO"),
-        Lesson(weekday: 2, start: 590, end: 640, subject: "IRC"),
-        Lesson(weekday: 2, start: 640, end: 690, subject: "SR"),
-        Lesson(weekday: 2, start: 690, end: 740, subject: "ING"),
-        Lesson(weekday: 2, start: 740, end: 840, subject: "TELECOM"),
-        Lesson(weekday: 3, start: 490, end: 590, subject: "ING"),
-        Lesson(weekday: 3, start: 590, end: 640, subject: "TPSIT"),
-        Lesson(weekday: 3, start: 640, end: 740, subject: "ITA"),
-        Lesson(weekday: 3, start: 740, end: 790, subject: "MAT"),
-        Lesson(weekday: 4, start: 490, end: 540, subject: "STO"),
-        Lesson(weekday: 4, start: 540, end: 590, subject: "ITA"),
-        Lesson(weekday: 4, start: 590, end: 690, subject: "MAT"),
-        Lesson(weekday: 4, start: 690, end: 740, subject: "SR"),
-        Lesson(weekday: 4, start: 740, end: 840, subject: "INFO"),
-        Lesson(weekday: 5, start: 490, end: 540, subject: "TELECOM"),
-        Lesson(weekday: 5, start: 540, end: 640, subject: "TPSIT"),
-        Lesson(weekday: 5, start: 640, end: 740, subject: "SMS"),
-        Lesson(weekday: 5, start: 740, end: 840, subject: "AG"),
-        Lesson(weekday: 6, start: 490, end: 590, subject: "INFO"),
-        Lesson(weekday: 6, start: 590, end: 640, subject: "STO"),
-        Lesson(weekday: 6, start: 640, end: 690, subject: "ITA"),
-        Lesson(weekday: 6, start: 690, end: 740, subject: "MAT"),
-        Lesson(weekday: 6, start: 740, end: 840, subject: "SR"),
-    ]
+    // Nessun orario di riserva: un file vuoto resta vuoto, un file assente resta non disponibile.
+    static func decode(_ data: Data) -> [Lesson]? {
+        guard let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let arr = j["lessons"] as? [[String: Any]] else { return nil }
+        var out: [Lesson] = []
+        for o in arr {
+            guard let d = o["d"] as? Int, let start = o["s"] as? Int, let end = o["e"] as? Int,
+                  let name = o["n"] as? String, (2...7).contains(d), start >= 0, end <= 1440,
+                  end > start, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            out.append(Lesson(weekday: d, start: start, end: end, subject: name,
+                              room: (o["r"] as? String ?? "").trimmingCharacters(in: .whitespaces)))
+        }
+        return out
+    }
 
-    // linked = l'app ha condiviso un orario via App Group; false = solo orario incorporato.
-    // Se la condivisione funziona, l'orario modificato nell'app vince; altrimenti vale builtin.
     static func load() -> (lessons: [Lesson], linked: Bool) {
         for id in groupIDs() {
             guard let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id)?
                 .appendingPathComponent("timetable.json"),
-                  let data = try? Data(contentsOf: u),
-                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let arr = j["lessons"] as? [[String: Any]] else { continue }
-            let lessons = arr.compactMap { o -> Lesson? in
-                guard let d = o["d"] as? Int, let s = o["s"] as? Int, let e = o["e"] as? Int,
-                      let n = o["n"] as? String, e > s else { return nil }
-                return Lesson(weekday: d, start: s, end: e, subject: n, room: (o["r"] as? String ?? "").trimmingCharacters(in: .whitespaces))
-            }
+                  let data = try? Data(contentsOf: u), let lessons = decode(data) else { continue }
             // Risponde all'app: il widget ha letto davvero da questo contenitore.
             if let base = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) {
                 try? "{\"t\":\(Date().timeIntervalSince1970)}".write(to: base.appendingPathComponent("widgetping.json"), atomically: true, encoding: .utf8)
             }
-            return (lessons.isEmpty ? builtin : lessons, true)
+            return (lessons, true)
         }
-        return (builtin, false)
+        return ([], false)
     }
 
     static var lessons: [Lesson] { load().lessons }
@@ -161,23 +138,25 @@ struct OrarioEntry: TimelineEntry {
     let showTimer: Bool
     let range: String
     var room: String = ""
+    var linked: Bool = true
     var roomSuffix: String { room.isEmpty ? "" : " · " + room }
 }
 
 enum OrarioLogic {
     static func entry(at now: Date, slots: [Slot]) -> OrarioEntry {
+        let linked = Orario.load().linked
         if let cur = slots.first(where: { $0.start <= now && now < $0.end }) {
             return OrarioEntry(date: now, subject: cur.subject, target: cur.end, barStart: cur.start,
-                               isCurrent: true, showTimer: true, range: Orario.range(cur), room: cur.room)
+                               isCurrent: true, showTimer: true, range: Orario.range(cur), room: cur.room, linked: linked)
         }
         if let nxt = slots.first(where: { $0.start > now }) {
             let far = nxt.start.timeIntervalSince(now) > 6 * 3600
             let prevEnd = slots.last(where: { $0.end <= now })?.end ?? nxt.start.addingTimeInterval(-3600)
             return OrarioEntry(date: now, subject: nxt.subject, target: nxt.start, barStart: prevEnd,
-                               isCurrent: false, showTimer: !far, range: Orario.range(nxt), room: nxt.room)
+                               isCurrent: false, showTimer: !far, range: Orario.range(nxt), room: nxt.room, linked: linked)
         }
         return OrarioEntry(date: now, subject: "ORARIO", target: now, barStart: now,
-                           isCurrent: false, showTimer: false, range: Orario.lessons.isEmpty ? "Aggiungilo in NOVA" : "")
+                           isCurrent: false, showTimer: false, range: Orario.lessons.isEmpty ? "Aggiungilo in NOVA" : "", linked: linked)
     }
 }
 
@@ -200,11 +179,31 @@ struct OrarioProvider: TimelineProvider {
     }
 }
 
+
+struct TimetableUnavailableView: View {
+    @Environment(\.widgetFamily) var family
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(family == .accessoryCircular || family == .accessoryInline ? "NOVA: dati assenti" : "Orario non disponibile")
+                .font(.headline).minimumScaleFactor(0.5)
+            if family != .accessoryCircular && family != .accessoryInline {
+                Text("Apri NOVA. La condivisione con il widget non è verificata.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .containerBackground(Color.black, for: .widget)
+        .foregroundStyle(.white)
+    }
+}
+
 struct NOVAOrarioView: View {
     @Environment(\.widgetFamily) var family
     var entry: OrarioEntry
 
     var body: some View {
+        Group { if !entry.linked { TimetableUnavailableView() } else {
+
         if family == .accessoryInline {
             Group {
                 if entry.subject == "ORARIO" && !entry.isCurrent {
@@ -243,6 +242,8 @@ struct NOVAOrarioView: View {
         } else {
             orarioHome
         }
+    
+        }}
     }
 
     @ViewBuilder var orarioHome: some View {
@@ -330,6 +331,8 @@ struct NOVAOggiView: View {
     var entry: DayEntry
 
     var body: some View {
+        Group { if !entry.linked { TimetableUnavailableView() } else {
+
         if family == .accessoryRectangular {
             VStack(alignment: .leading, spacing: 2) {
                 if entry.slots.isEmpty {
@@ -360,6 +363,8 @@ struct NOVAOggiView: View {
         } else {
             oggiHome
         }
+    
+        }}
     }
 
     @ViewBuilder var oggiHome: some View {
@@ -443,17 +448,19 @@ struct FineEntry: TimelineEntry {
     let target: Date?
     let isToday: Bool
     var barStart: Date? = nil
+    var linked: Bool = true
 }
 
 enum FineLogic {
     static func entry(at now: Date) -> FineEntry {
+        let linked = Orario.load().linked
         let slots = Orario.slots(from: now, days: 5)
         guard let target = slots.last(where: { $0.end > now })?.end else {
-            return FineEntry(date: now, target: nil, isToday: false)
+            return FineEntry(date: now, target: nil, isToday: false, linked: linked)
         }
         let sameDay = Orario.calendar.isDate(target, inSameDayAs: now)
         let barStart = sameDay ? slots.first(where: { Orario.calendar.isDate($0.start, inSameDayAs: now) })?.start : nil
-        return FineEntry(date: now, target: target, isToday: sameDay, barStart: barStart)
+        return FineEntry(date: now, target: target, isToday: sameDay, barStart: barStart, linked: linked)
     }
 }
 
@@ -480,6 +487,8 @@ struct NOVAFineView: View {
     var entry: FineEntry
 
     var body: some View {
+        Group { if !entry.linked { TimetableUnavailableView() } else {
+
         if family == .accessoryCircular {
             Group {
             if let target = entry.target, entry.isToday, let start = entry.barStart, start < target {
@@ -494,7 +503,7 @@ struct NOVAFineView: View {
                 }
                 .gaugeStyle(.accessoryCircular)
             } else {
-                Text(entry.target == nil ? "Finito!" : "–")
+                Text(entry.target == nil ? "Nessuna lezione" : "–")
                     .font(.headline)
             }
             }
@@ -519,7 +528,7 @@ struct NOVAFineView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 } else {
-                    Text("Finito!")
+                    Text("Nessuna lezione")
                         .font(.headline)
                 }
             }
@@ -528,6 +537,8 @@ struct NOVAFineView: View {
         } else {
             fineHome
         }
+    
+        }}
     }
 
     @ViewBuilder var fineHome: some View {
@@ -556,7 +567,7 @@ struct NOVAFineView: View {
                         .foregroundStyle(.secondary)
                 }
             } else {
-                Text("Finito!")
+                Text("Nessuna lezione")
                     .font(.title3)
             }
         }
