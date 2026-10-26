@@ -1767,7 +1767,7 @@ final class NativeSettingsPage:UITableViewController,UITextFieldDelegate,PHPicke
  weak var web:WKWebView?;var groups:[[String:Any]]=[];var owner="";var epoch=0;var last="";var editingField=false;var mode="settings";var canClose=true;var photoOwner="";var photoEpoch=0
  init(){super.init(style:.insetGrouped)}
  required init?(coder:NSCoder){fatalError("init(coder:) is not used")}
- override func viewDidLoad(){super.viewDidLoad();title="Impostazioni";navigationController?.navigationBar.prefersLargeTitles=true;navigationItem.rightBarButtonItem=UIBarButtonItem(title:"Fatto",style:.done,target:self,action:#selector(done));tableView.keyboardDismissMode = .interactive;tableView.accessibilityIdentifier="nativeSettingsTable"}
+ override func viewDidLoad(){super.viewDidLoad();title=mode=="profile" ? "Il tuo profilo":"Impostazioni";navigationController?.navigationBar.prefersLargeTitles=true;navigationItem.rightBarButtonItem=UIBarButtonItem(title:mode=="profile" ? "Annulla":"Fatto",style:.done,target:self,action:#selector(done));navigationItem.rightBarButtonItem?.isEnabled=canClose;tableView.keyboardDismissMode = .interactive;tableView.accessibilityIdentifier="nativeSettingsTable"}
  func quote(_ s:String)->String{String(String(data:try! JSONSerialization.data(withJSONObject:[s]),encoding:.utf8)!.dropFirst().dropLast())}
  func call(_ id:String,_ value:String?=nil){guard let web=web else{return};let v=value.map(quote) ?? "null";web.evaluateJavaScript("window.__nativeSettingsPageAction&&__nativeSettingsPageAction("+quote(id)+","+v+","+quote(owner)+","+String(epoch)+")",completionHandler:nil)}
  @objc func done(){guard canClose else{return};view.endEditing(true);call("__close")}
