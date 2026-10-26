@@ -117,7 +117,7 @@ struct NOVASwiftAvatar:View {
     static func render(_ username:String)->UIImage? {
         guard !username.isEmpty else{return nil}
         let value="nova:add:"+username.lowercased(),filter=CIFilter.qrCodeGenerator();filter.message=Data(value.utf8);filter.correctionLevel="H"
-        guard let output=filter.outputImage,let cg=CIContext().createCGImage(output,from:output.extent) else{return nil}
+        guard let output=filter.outputImage,let cg=CIContext().createCGImage(output,from:output.extent.insetBy(dx:1,dy:1)) else{return nil}
         let width=cg.width,bytes=width*width*4
         var pixels=[UInt8](repeating:0,count:bytes)
         guard let context=CGContext(data:&pixels,width:width,height:width,bitsPerComponent:8,bytesPerRow:width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue) else{return nil}
