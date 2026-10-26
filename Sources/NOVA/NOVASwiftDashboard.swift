@@ -75,7 +75,7 @@ import UIKit
                         HStack{Button{changeMonth(-1)}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Mese precedente");Spacer();Button{changeMonth(1)}label:{Image(systemName:"chevron.right")}.accessibilityLabel("Mese successivo")}
                         calendar
                     }}
-                    card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) lezioni salvate").foregroundStyle(.secondary)}
+                    card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")").foregroundStyle(.secondary)}
                     if visible("sp"){card("Spotify"){Text("Collegamento e controlli Spotify in verifica. Nessun accesso viene modificato da questa anteprima.").font(.footnote).foregroundStyle(.secondary)}}
                     if !status.isEmpty{Text(status).foregroundStyle(.red)}
                 }.padding(20)
