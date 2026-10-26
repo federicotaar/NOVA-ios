@@ -338,3 +338,6 @@ Chat Swift in verifica: creazione chat con amici e gruppi con data esame, foto e
 
 - Checkpoint229: tutti i 61 controlli sintetici e le due verifiche importazione/origine sono veri; controllate immagini dei 16 passi iniziali, intro e composer. Audio completo, gesti e comportamento fisico non ancora accettati.
 - Dettaglio compito/verifica e pulsante AI ripristinati in Swift: il contesto apre una bozza, non invia in automatico. Al cambio sessione le vecchie proposte restano leggibili ma non eseguibili; promemoria locali del vecchio account rimossi. Ulteriori controlli durante le attese delle notifiche scolastiche. Lotto successivo ancora in compilazione; percorso resta inattivo.
+
+- Compilazione superata fino al checkpoint267, compresi controlli sessione/notifiche e blocco chiuso se la verifica iOS non e disponibile. Intro ogni avvio non viene ripetuta ad ogni semplice rientro in primo piano. Checkpoint manuale268 e interazione2 avviati, risultati ancora da esaminare.
+- Liste follower/seguiti aperte direttamente dal profilo; parser foto protegge la conversione numerica; preferenza diagnostica conservata nelle impostazioni. Questo ultimo lotto richiede compilazione. Nessuna attivazione o nuova release.
