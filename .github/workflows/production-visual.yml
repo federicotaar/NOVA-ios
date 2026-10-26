@@ -18,6 +18,8 @@ jobs:
           ARCH=$(uname -m)
           xcrun swiftc -parse-as-library -typecheck -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" Sources/NOVAWidget/NOVAWidget.swift
           python3 production_visual.py
+          swiftc -parse-as-library /tmp/SwiftStateTests.swift -o /tmp/nova-state-tests
+          /tmp/nova-state-tests
           xcrun swiftc -parse-as-library -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" /tmp/NOVAProductionVisual.swift -o /tmp/ChatTest.app/ChatTest
           cp Sources/NOVA/nova.html /tmp/ChatTest.app/nova.html
           cat > /tmp/ChatTest.app/Info.plist <<'PLIST'
