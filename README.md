@@ -201,3 +201,7 @@ Correzioni da video e schermate reali: rimossi i duplicati nativi posizionati so
 ### 2026.10.25.50
 
 L'editor dell'orario usa una pagina UIKit: giorni, lezioni, materie/aula, selettori dell'ora e azioni Salva/Annulla. I dati restano in bozza fino al salvataggio e mantengono lo stesso invio ai widget. L'importazione usa il selettore foto di sistema senza ritagliare la griglia dell'orario, poi lo stesso servizio Groq con la chiave locale. La lettura della foto resta da verificare sul dispositivo e non salva automaticamente il risultato.
+
+### 2026.10.25.51
+
+L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia account o si avvia una lettura più recente. Il risultato resta da controllare e salvare esplicitamente.
