@@ -605,6 +605,10 @@ s+=r"""
  checks["cachedProposalsNeverReplayAcrossSessions"]=store.archive?.active.object?["chat"]?.array.first?.object?["acts"]?.array.first?.object?["st"]?.string=="off"
  checks["legacyEnvelopeRestored"]=store.archive?.active.object?["name"]?.string=="Returning" && store.archive?.active.object?["tasks"]?.array.first?.object?["id"]?.string=="old-task"
  checks["unknownFieldsAndOriginalCachePreserved"]=store.archive?.active.object?["future"]?.string=="keep" && store.archive?.localStorage["nova.account.v3.return@example.invalid"]==cached
+ let privacyStore=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+ let privacyLegacy="{\"locShare\":1,\"bgLoc\":1,\"locSession\":\"old-location-session\",\"locSessionToken\":\"old-token\",\"tasks\":[{\"title\":\"Keep me\"}]}"
+ try privacyStore.importOnce(["nova.v1":privacyLegacy])
+ checks["initialImportNeverEnablesSharing"]=privacyStore.archive?.active.object?["locShare"]?.flag==false && privacyStore.archive?.active.object?["bgLoc"]?.flag==false && privacyStore.archive?.active.object?["locSession"]?.string=="" && privacyStore.archive?.localStorage["nova.v1"]==privacyLegacy && privacyStore.archive?.active.object?["tasks"]?.array.count==1
  checks["cacheNeverEnablesSharingOrServices"]=store.archive?.active.object?["locShare"]?.flag==false && store.archive?.active.object?["bgLoc"]?.flag==false && store.archive?.active.object?["cv"]?.object?["on"]?.flag==false
  }catch{checks["exception"]=true}
  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-account-cache-checks.txt"))
