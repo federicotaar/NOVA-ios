@@ -89,7 +89,7 @@ struct NOVASwiftMapFriend:Identifiable {
                 guard generation==expected,store.archive.flatMap({NOVASession($0.active)})==owner else{return}
                 let result=try await service.request("location/session",method:"POST",body:.object(["rev":revision.object?["rev"] ?? .null]))
                 guard generation==expected,store.archive.flatMap({NOVASession($0.active)})==owner,let session=result.object?["session"]?.string,!session.isEmpty else{return}
-                try store.update(owner:archive.owner){$0["locSession"] = .string(session);$0["locSessionToken"] = .string(owner.token);$0["locShare"] = .number(1)}
+                try store.update(owner:archive.owner){$0["locSession"] = .string(session);$0["locSessionToken"] = .string(owner.token);$0["locConsentV2"] = .string(session);$0["locShare"] = .number(1)}
                 status="Condivisione attiva. Leggi la posizione per inviare un aggiornamento."
             }else{
                 let response=try await service.request("location",method:"PUT",body:.object(["sharing":.bool(false)]));guard response.object?["ok"]?.flag==true else{throw NOVAServiceError.invalidResponse}
@@ -101,7 +101,7 @@ struct NOVASwiftMapFriend:Identifiable {
     }
     func upload(_ coordinate:CLLocationCoordinate2D,_ store:NOVASwiftStore) async {
         guard let archive=store.archive,let owner=NOVASession(archive.active),let root=archive.active.object,
-              root["locShare"]?.flag==true,root["locSessionToken"]?.string==owner.token,let session=root["locSession"]?.string,!session.isEmpty else{return}
+              NOVASwiftLocationConsent.sharing(root),root["locSessionToken"]?.string==owner.token,let session=root["locSession"]?.string,!session.isEmpty else{return}
         let expected=generation
         do {
             let response=try await NOVAAccountService(session:owner).request("location",method:"PUT",body:.object(["lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude),"sharing":.bool(true),"session":.string(session)]));guard response.object?["ok"]?.flag==true else{throw NOVAServiceError.invalidResponse}
@@ -110,38 +110,61 @@ struct NOVASwiftMapFriend:Identifiable {
         }catch{if generation==expected{status="Posizione non inviata. Riprova."}}
     }
 }
+
+enum NOVASwiftLocationConsent {
+    static func sharing(_ root:[String:NOVAJSON])->Bool {root["locShare"]?.flag==true && !(root["locSession"]?.string ?? "").isEmpty && root["locConsentV2"]?.string==root["locSession"]?.string}
+    static func background(_ root:[String:NOVAJSON])->Bool {sharing(root) && root["bgLoc"]?.flag==true && root["bgConsentV2"]?.string==root["locSession"]?.string}
+}
 @MainActor struct NOVASwiftMap:View {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var model=NOVASwiftMapModel()
     @StateObject private var position=NOVASwiftPosition()
     @ObservedObject private var background=NOVASwiftBackgroundLocation.shared
-    @State private var camera:MapCameraPosition = .region(MKCoordinateRegion(center:CLLocationCoordinate2D(latitude:20,longitude:0),span:MKCoordinateSpan(latitudeDelta:140,longitudeDelta:300)))
-    var sharing:Bool {store.archive?.active.object?["locShare"]?.flag==true}
+    @State private var camera:MapCameraPosition = .automatic
+    @State private var expanded=false
+    @State private var satellite=false
+    @State private var confirmShare=false
+    @State private var confirmBackground=false
+    var root:[String:NOVAJSON]{store.archive?.active.object ?? [:]}
+    var sharing:Bool {NOVASwiftLocationConsent.sharing(root)}
+    var unconfirmed:Bool {root["locShare"]?.flag==true && !sharing}
     var body:some View {
-        NavigationStack {
-            VStack(spacing:12) {
+        GeometryReader{geometry in
+            ZStack(alignment:.bottom){
                 Map(position:$camera){
                     if let coordinate=position.coordinate{Annotation("Tu",coordinate:coordinate){Image(systemName:"person.circle.fill").font(.largeTitle).foregroundStyle(.blue).background(.background,in:Circle())}}
                     ForEach(model.friends){friend in Annotation("@"+friend.id,coordinate:friend.coordinate){VStack(spacing:3){Image(systemName:"person.circle.fill").font(.title);Text("@"+friend.id).font(.caption.bold());Text(friend.timestamp,style:.relative).font(.caption2)}.padding(6).background(.regularMaterial,in:RoundedRectangle(cornerRadius:12))}}
-                }.mapControls{MapCompass();MapScaleView()}.frame(minHeight:240)
-                VStack(alignment:.leading,spacing:12){
-                    Text(sharing ? "Posizione condivisa con gli amici. Aggiornamenti quando leggi la posizione.":"Fantasma: nessuna nuova posizione viene condivisa.").font(.footnote)
-                    if !model.status.isEmpty{Text(model.status).font(.footnote).foregroundStyle(.secondary)}
-                    if !position.status.isEmpty{Text(position.status).font(.footnote).foregroundStyle(.secondary)}
-                    HStack {
-                        Button{Task{await model.sharing(!sharing,store)}}label:{Label(sharing ? "Attiva Fantasma":"Condividi",systemImage:"eye.slash")}
-                        Spacer()
+                }.mapStyle(satellite ? .hybrid:.standard).mapControls{MapCompass();MapScaleView()}.ignoresSafeArea()
+                VStack{
+                    HStack{Spacer();VStack(spacing:18){
+                        Button{satellite.toggle()}label:{Image(systemName:"map.fill")}.accessibilityLabel("Cambia stile mappa")
                         Button{position.read()}label:{Image(systemName:"location.fill")}.accessibilityLabel("Leggi la mia posizione")
                         Button{Task{await model.refresh(store)}}label:{Image(systemName:"arrow.clockwise")}.accessibilityLabel("Aggiorna amici")
-                    }.buttonStyle(.bordered)
-                    Toggle("Anche a app chiusa",isOn:Binding(get:{store.archive?.active.object?["bgLoc"]?.flag==true},set:{background.enabled($0,store)})).disabled(!sharing)
-                    if !background.status.isEmpty{Text(background.status).font(.caption).foregroundStyle(.secondary)}
-                    Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Lo spegnimento offline richiede conferma del server. Gli aggiornamenti a app chiusa sono ai grandi spostamenti: iOS può ritardarli o sospenderli.").font(.caption).foregroundStyle(.secondary)
-                }.padding(.horizontal).padding(.bottom)
-            }.navigationTitle("Mappa").task{await model.refresh(store)}
-            .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
-            .onChange(of:store.archive?.owner){_,_ in position.stop();model.cancel()}
-            .onDisappear{position.stop();model.cancel()}
-        }
+                    }.font(.title3).padding(15).background(.regularMaterial,in:Capsule()).padding(.trailing,18)}.padding(.top,14)
+                    Spacer()
+                }
+                VStack(spacing:10){
+                    Button{withAnimation(.snappy){expanded.toggle()}}label:{VStack(spacing:8){Capsule().fill(.secondary).frame(width:36,height:5);HStack{Image(systemName:sharing ? "person.2.fill":"eye.slash.fill");Text("Persone").font(.headline);Spacer();Text(sharing ? "Condivisione attiva":"Fantasma").font(.caption);Image(systemName:expanded ? "chevron.down":"chevron.up").font(.caption.bold())}}}.buttonStyle(.plain).accessibilityIdentifier("swiftMapExpand")
+                    if unconfirmed{Text("Condivisione precedente non confermata. Nuovi invii sospesi su questo telefono; usa Fantasma per confermare lo spegnimento sul server.").font(.caption).foregroundStyle(.orange)}
+                    if !position.status.isEmpty{Text(position.status).font(.caption).foregroundStyle(.secondary)}
+                    if expanded{
+                        ScrollView{VStack(alignment:.leading,spacing:14){
+                            Text(sharing ? "Condivisione attiva: gli amici vedono l'ultima lettura recente.":"Nessuna nuova posizione viene inviata da questo telefono.").font(.footnote)
+                            if !model.status.isEmpty{Text(model.status).font(.footnote).foregroundStyle(.secondary)}
+                            ForEach(model.friends){friend in HStack{Label("@"+friend.id,systemImage:"person.circle.fill");Spacer();Text(friend.timestamp,style:.relative).font(.caption)}.onTapGesture{camera = .region(MKCoordinateRegion(center:friend.coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)))}}
+                            Button{if sharing || unconfirmed{Task{await model.sharing(false,store)}}else{confirmShare=true}}label:{Label(sharing || unconfirmed ? "Attiva Fantasma":"Condividi posizione",systemImage:"eye.slash")}.buttonStyle(.bordered)
+                            Toggle("Anche a app chiusa",isOn:Binding(get:{NOVASwiftLocationConsent.background(root)},set:{on in if on{confirmBackground=true}else{background.enabled(false,store)}})).disabled(!sharing)
+                            if !background.status.isEmpty{Text(background.status).font(.caption).foregroundStyle(.secondary)}
+                            Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Lo spegnimento offline richiede conferma del server. A app chiusa gli aggiornamenti avvengono ai grandi spostamenti: iOS può ritardarli o sospenderli.").font(.caption).foregroundStyle(.secondary)
+                        }.frame(maxWidth:.infinity,alignment:.leading)}.frame(maxHeight:min(260,geometry.size.height*0.35))
+                    }
+                }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,86).accessibilityIdentifier("swiftMapPanel")
+            }
+        }.task{await model.refresh(store)}
+        .confirmationDialog("Condividere la tua posizione con gli amici NOVA?",isPresented:$confirmShare,titleVisibility:.visible){Button("Condividi"){Task{await model.sharing(true,store)}};Button("Annulla",role:.cancel){}}message:{Text("Verrà inviata solo quando richiedi una lettura. Gli aggiornamenti a app chiusa richiedono una scelta separata.")}
+        .confirmationDialog("Aggiornare anche a app chiusa?",isPresented:$confirmBackground,titleVisibility:.visible){Button("Attiva aggiornamenti"){background.enabled(true,store)};Button("Annulla",role:.cancel){}}message:{Text("iOS usa i grandi spostamenti con il permesso Sempre. Puoi disattivare questa scelta o attivare Fantasma in qualsiasi momento.")}
+        .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
+        .onChange(of:store.archive?.owner){_,_ in position.stop();model.cancel()}
+        .onDisappear{position.stop();model.cancel()}
     }
 }
