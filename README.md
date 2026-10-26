@@ -125,3 +125,7 @@ Il selettore del file di personalità dell’assistente usa lo stesso pulsante g
 ### 2026.10.25.31
 
 Aprendo agent.md, il focus iniziale va al titolo invece di aprire subito l’editor. Altezza del testo limitata alla finestra: selettore e conferme restano nel dialogo. Lettura locale e salvataggio esplicito invariati.
+
+### 2026.10.25.32
+
+Il dialogo agent.md segue la finestra visibile durante la modifica, con titolo e conferme nel pannello scorrevole. Nessuna modifica ai file, ai permessi o al salvataggio.
