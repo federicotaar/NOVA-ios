@@ -810,7 +810,8 @@ extension NOVASwiftStore {
 
 // Held inactive until integrated simulator acceptance. Never renders the legacy app as a screen.
 @MainActor struct NOVASwiftLaunchRoot:View {
-    @StateObject private var store=NOVASwiftStore()
+    @StateObject private var store:NOVASwiftStore
+    init(store:NOVASwiftStore?=nil){_store=StateObject(wrappedValue:store ?? NOVASwiftStore())}
     @State private var reader=NOVALegacyReader()
     @State private var legacy:[String:String]?
     @State private var busy=false
