@@ -115,7 +115,32 @@ struct NOVASwiftAvatar:View {
     var code:UIImage? {Self.render(username)}
 
     static func render(_ username:String)->UIImage? {
-        guard !username.isEmpty else{return nil};let filter=CIFilter.qrCodeGenerator();filter.message=Data(("nova:add:"+username.lowercased()).utf8);filter.correctionLevel="M";guard let output=filter.outputImage,let cg=CIContext().createCGImage(output.transformed(by:CGAffineTransform(scaleX:10,y:10)),from:output.extent.applying(CGAffineTransform(scaleX:10,y:10))) else{return nil};return UIImage(cgImage:cg)
+        guard !username.isEmpty else{return nil}
+        let value="nova:add:"+username.lowercased(),filter=CIFilter.qrCodeGenerator();filter.message=Data(value.utf8);filter.correctionLevel="H"
+        guard let output=filter.outputImage,let cg=CIContext().createCGImage(output,from:output.extent.insetBy(dx:1,dy:1)) else{return nil}
+        let width=cg.width,bytes=width*width*4
+        var pixels=[UInt8](repeating:0,count:bytes)
+        guard let context=CGContext(data:&pixels,width:width,height:width,bitsPerComponent:8,bytesPerRow:width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue) else{return nil}
+        context.translateBy(x:0,y:CGFloat(width));context.scaleBy(x:1,y:-1)
+        context.draw(cg,in:CGRect(x:0,y:0,width:width,height:width))
+        let scale:CGFloat=12,quiet:CGFloat=4,total=CGFloat(width)+quiet*2,size=total*scale
+        let image=UIGraphicsImageRenderer(size:CGSize(width:size,height:size)).image{renderer in
+            UIColor.white.setFill();renderer.fill(CGRect(x:0,y:0,width:size,height:size));UIColor.black.setFill()
+            for y in 0..<width{for x in 0..<width{
+                let finder=(x<7 && y<7)||(x>=width-7 && y<7)||(x<7 && y>=width-7)
+                if pixels[(y*width+x)*4]<128 && !finder{let rect=CGRect(x:(CGFloat(x)+quiet)*scale,y:(CGFloat(y)+quiet)*scale,width:scale,height:scale).insetBy(dx:0.8,dy:0.8);UIBezierPath(roundedRect:rect,cornerRadius:scale/2).fill()}
+            }}
+            for (x,y) in [(0,0),(width-7,0),(0,width-7)]{
+                let rect=CGRect(x:(CGFloat(x)+quiet)*scale,y:(CGFloat(y)+quiet)*scale,width:7*scale,height:7*scale)
+                UIColor.black.setFill();UIBezierPath(roundedRect:rect,cornerRadius:scale*0.55).fill();UIColor.white.setFill();UIBezierPath(roundedRect:rect.insetBy(dx:scale,dy:scale),cornerRadius:scale*0.4).fill();UIColor.black.setFill();UIBezierPath(roundedRect:rect.insetBy(dx:2*scale,dy:2*scale),cornerRadius:scale*0.3).fill()
+            }
+            let side=5*scale,box=CGRect(x:(size-side)/2,y:(size-side)/2,width:side,height:side)
+            UIColor.white.setFill();UIBezierPath(roundedRect:box.insetBy(dx:-scale*0.4,dy:-scale*0.4),cornerRadius:scale).fill()
+            UIColor.black.setFill();UIBezierPath(roundedRect:box,cornerRadius:scale).fill()
+            let attributes:[NSAttributedString.Key:Any]=[.font:UIFont.systemFont(ofSize:side*0.75,weight:.bold),.foregroundColor:UIColor.white]
+            let text=NSAttributedString(string:"N",attributes:attributes),textSize=text.size();text.draw(at:CGPoint(x:(size-textSize.width)/2,y:(size-textSize.height)/2))
+        }
+        return image
     }
     static func parse(_ text:String)->String? {guard text.hasPrefix("nova:add:") else{return nil};let value=String(text.dropFirst(9)).lowercased();guard (3...20).contains(value.count),value.allSatisfy({$0.isASCII && ($0.isLetter || $0.isNumber || $0=="_" || $0==".")}) else{return nil};return value}
     var body:some View {NavigationStack{List{Section("Il mio QR"){if let code=code{VStack(spacing:20){Image(uiImage:code).interpolation(.none).resizable().scaledToFit().frame(maxWidth:260).clipShape(RoundedRectangle(cornerRadius:18));Text("@"+username).font(.title3.bold());Text("Fai scansionare il tuo codice per trovarti su NOVA. La richiesta di amicizia richiede conferma.").font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)}.frame(maxWidth:.infinity).padding(.vertical,20)}else{Text("Scegli prima il tuo username da Modifica profilo.")}};Section("Aggiungi da un QR"){Button{camera=true}label:{Label("Scansiona con la fotocamera",systemImage:"camera")};PhotosPicker(selection:$photo,matching:.images){Label("Leggi QR da una foto",systemImage:"qrcode.viewfinder")};Text("La lettura propone lo username. La richiesta parte solo dopo la tua conferma.").font(.footnote).foregroundStyle(.secondary)};if !status.isEmpty{Text(status)};if !people.status.isEmpty{Text(people.status)}}.navigationTitle("QR amici").toolbar{Button("Chiudi"){dismiss()}}}
