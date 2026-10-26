@@ -15,14 +15,25 @@ import LocalAuthentication
 
 @main
 struct NOVAApp: App {
-    init() { BGHandler.register() }
+    init() {
+        #if NOVA_SWIFT_TEST
+        // Explicit test build route. Prevent the legacy background handler from running.
+        UserDefaults.standard.set(true,forKey:"nova.swift.active")
+        #endif
+        BGHandler.register()
+    }
 
     var body: some Scene {
         WindowGroup {
+            #if NOVA_SWIFT_TEST
+            NOVASwiftLaunchRoot()
+                .persistentSystemOverlays(.hidden)
+            #else
             WebContainer()
                 .ignoresSafeArea()
                 .background(Color.black.ignoresSafeArea())
                 .persistentSystemOverlays(.hidden)
+            #endif
         }
     }
 }
