@@ -263,3 +263,5 @@ Verificate le immagini della Home inferiore, del calendario italiano, dei voti s
 Separato il modulo Swift autonomo dal contenitore precedente senza cambiare il comportamento attivo. Entrambe le parti sono state confrontate byte per byte con l'originale; la compilazione include tutti i moduli e le verifiche di persistenza leggono il sorgente attuale. Nessun dato, account o permesso viene cambiato dalla separazione.
 
 Separato il modulo Swift autonomo dal contenitore precedente senza cambiare il comportamento attivo. Entrambe le parti sono state confrontate byte per byte con l'originale; la compilazione include tutti i moduli e le verifiche di persistenza leggono il sorgente attuale. Nessun dato, account o permesso viene cambiato dalla separazione.
+
+L'accesso Swift via codice email o password e la creazione account sono in verifica. Il cambio account conserva la copia completa precedente e una cache separata, non importa la copia online senza una scelta e disarma i vecchi invii posizione. Le verifiche usano account sintetici senza chiamare l'autenticazione reale. Uscita protetta e sincronizzazione automatica restano da completare.
