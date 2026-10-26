@@ -29,6 +29,7 @@ import Combine
     }
     private func activate(){guard let store=store,let state=store.archive?.active,let owner=NOVASession(state),consentSession==owner,state.object?["locShare"]?.flag==true,manager.authorizationStatus == .authorizedAlways else{stop(clear:false);return};do{try store.update(owner:store.archive!.owner){$0["bgLoc"] = .number(1)};requesting=false;reconcile();status="Aggiornamenti ai grandi spostamenti attivi. Non sono un tracciamento continuo."}catch{stop(clear:false);status="Scelta non salvata. Riprova."}}
     private func reconcile(){
+        if requesting,let store=store,store.archive.flatMap({NOVASession($0.active)})==consentSession,store.archive?.active.object?["locShare"]?.flag==true{return}
         guard let store=store,let root=store.archive?.active.object,let owner=store.archive.flatMap({NOVASession($0.active)}),root["bgLoc"]?.flag==true,root["locShare"]?.flag==true,root["locSessionToken"]?.string==owner.token,!(root["locSession"]?.string ?? "").isEmpty,manager.authorizationStatus == .authorizedAlways else{stop(clear:false);return}
         consentSession=owner;manager.allowsBackgroundLocationUpdates=true;manager.pausesLocationUpdatesAutomatically=true;manager.startMonitoringSignificantLocationChanges()
     }
