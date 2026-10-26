@@ -1,5 +1,5 @@
 from pathlib import Path
-s=Path('Sources/NOVA/NOVAApp.swift').read_text()+chr(10)+Path('Sources/NOVA/NOVASwiftMap.swift').read_text()+chr(10)+Path('Sources/NOVA/NOVASwiftBackup.swift').read_text()
+s=Path('Sources/NOVA/NOVAApp.swift').read_text()+chr(10)+chr(10).join(p.read_text() for p in sorted(Path('Sources/NOVA').glob('*.swift')) if p.name!='NOVAApp.swift')
 h=Path('Sources/NOVA/nova.html');html=h.read_text();html=html.replace(' const syncNative=()=>{syncDashboard();syncGlassButtons();', ' window.__settingsTestKeys=()=>({fields:nativeFields,epoch:settingsEpoch,sync:syncNative,dashboardFields,dashboardEpoch});const syncNative=()=>{syncDashboard();syncGlassButtons();');h.write_text(html)
 r=Path('ChatRegression.swift').read_text();fixture=r.split(' let fixture="""',1)[1].split('"""',1)[0]
 fixture += '''
@@ -213,4 +213,17 @@ state.write_text("import Foundation\nimport Combine\n// Swift-owned state founda
 
 p=Path("/tmp/NOVAProductionVisual.swift")
 s=p.read_text().replace('guard let root=web.window?.rootViewController else{return}', 'guard let root=(web.window ?? UIApplication.shared.connectedScenes.compactMap{$0 as? UIWindowScene}.flatMap{$0.windows}.first{$0.isKeyWindow})?.rootViewController else{return}')
+p.write_text(s)
+
+p=Path("/tmp/NOVAProductionVisual.swift")
+s=p.read_text().replace('visualSwiftImportOrigin(web,dir)','visualSwiftDashboardReview(web,store,dir)',1)
+s+=r'''
+@MainActor func visualSwiftDashboardReview(_ web:WKWebView,_ store:NOVASwiftStore,_ dir:URL){
+ guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
+ root.presentedViewController?.dismiss(animated:false){
+  let host=UIHostingController(rootView:NOVASwiftDashboard(store:store));host.modalPresentationStyle = .fullScreen
+  root.present(host,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+3){visualProductionSave(web,"production-swift-owned-dashboard.png");visualSwiftImportOrigin(web,dir)}}
+ }
+}
+'''
 p.write_text(s)
