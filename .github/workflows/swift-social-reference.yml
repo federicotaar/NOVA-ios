@@ -59,6 +59,10 @@ jobs:
           - assertVisible: "Ci vediamo dopo?"
           - assertNotVisible:
               id: "swiftOwnedNavigation"
+          - swipe:
+              start: "50%,70%"
+              end: "50%,25%"
+              duration: 600
           - takeScreenshot: evidence/swift-chat-rest
           - tapOn:
               id: "swiftConversationComposer"
