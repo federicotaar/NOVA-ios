@@ -66,6 +66,7 @@ jobs:
           - takeScreenshot: evidence/swift-chat-rest
           - tapOn:
               id: "swiftConversationComposer"
+          - takeScreenshot: evidence/swift-chat-lens-empty
           - inputText: "Bozza sintetica molto lunga per controllare che il campo resti compatto con piu righe e possa scorrere senza diventare una capsula gigante. Un altro periodo abbastanza lungo per superare quattro righe e mettere alla prova la dimensione massima. Nessun messaggio inviato."
           - assertVisible: "Bozza sintetica molto lunga per controllare che il campo resti compatto con piu righe e possa scorrere senza diventare una capsula gigante. Un altro periodo abbastanza lungo per superare quattro righe e mettere alla prova la dimensione massima. Nessun messaggio inviato."
           - assertNotVisible:
