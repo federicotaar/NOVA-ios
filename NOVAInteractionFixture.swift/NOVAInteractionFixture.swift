@@ -215,6 +215,6 @@ import UIKit
  kind="group";id=15;await alerts.check(store);id=16;delay=true;let pending=Task{@MainActor in await alerts.check(store)};try? await Task.sleep(for:.milliseconds(20));alerts.reset();await pending.value;checks["resetRejectsOldReply"] = !alerts.notice
  delay=false;await alerts.check(store);id=17;await alerts.check(store)
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:["checks":checks]).write(to:dir.appendingPathComponent("performance-checks.json"))
- let page=UIHostingController(rootView:VStack{Label("Nuovo messaggio nel gruppo",systemImage:"bubble.left.and.bubble.right.fill").padding(12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:16));Text("Anteprima sintetica. Solo con NOVA attiva.").font(.footnote);Spacer()}.padding().preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:2,chatSocial:NOVASwiftSocial{_,_,_,_,_ in .object(["ok":.bool(true),"chats":.array([])])},deviceServices:false,groupAlertModel:alerts).preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
  }
 }
