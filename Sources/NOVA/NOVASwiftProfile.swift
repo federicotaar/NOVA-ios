@@ -17,7 +17,7 @@ import SwiftUI
         if !songs.status.isEmpty{Text(songs.status).font(.footnote)}
         if !people.status.isEmpty{Text(people.status).font(.footnote)}
         Section{Button("Impostazioni"){settings=true}}
-    }.navigationTitle("Profilo").toolbar{Button{settings=true}label:{Image(systemName:"gearshape")}.accessibilityLabel("Impostazioni")}.task{await people.load(store);await people.lists(store)}.refreshable{await people.load(store);await people.lists(store)}}
+    }.navigationTitle("Profilo").toolbar{Button{settings=true}label:{Image(systemName:"gearshape")}.accessibilityLabel("Impostazioni")}.task{await people.loadOverview(store)}.refreshable{await people.loadOverview(store)}}
     .sheet(isPresented:$edit){NOVASwiftProfileEditor(store:store)}
     .sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
     .sheet(isPresented:$qr){NOVASwiftQR(store:store,people:people)}
