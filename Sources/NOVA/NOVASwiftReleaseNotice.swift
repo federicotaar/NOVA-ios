@@ -5,6 +5,7 @@ struct NOVASwiftRelease:Identifiable,Equatable {
     let page:URL
     var important=false
     var dismissedKey:String{"nova.dismissed-release."+version}
+    func shouldShow(dismissed:Bool)->Bool{important || !dismissed}
     var id:String{version}
     static func parts(_ value:String)->[Int]?{let raw=value.hasPrefix("v") ? String(value.dropFirst()):value;let pieces=raw.split(separator:".");guard pieces.count==4 else{return nil};let nums=pieces.compactMap{Int($0)};return nums.count==4 ? nums:nil}
     static func newer(_ a:String,than b:String)->Bool{guard let aa=parts(a),let bb=parts(b) else{return false};return bb.lexicographicallyPrecedes(aa)}
@@ -29,7 +30,7 @@ struct NOVASwiftRelease:Identifiable,Equatable {
 struct NOVASwiftReleaseBanner:View {
     let release:NOVASwiftRelease
     @State private var dismissed=false
-    var body:some View{Group{if release.important || (!dismissed && !UserDefaults.standard.bool(forKey:release.dismissedKey)){VStack(alignment:.leading,spacing:6){
+    var body:some View{Group{if release.shouldShow(dismissed:dismissed || UserDefaults.standard.bool(forKey:release.dismissedKey)){VStack(alignment:.leading,spacing:6){
         HStack{Text(release.important ? "Aggiornamento importante":"Nuova versione disponibile").font(.headline);Spacer();if !release.important{Button("Chiudi",systemImage:"xmark"){UserDefaults.standard.set(true,forKey:release.dismissedKey);dismissed=true}.labelStyle(.iconOnly).accessibilityLabel("Nascondi suggerimento aggiornamento")}}
         Text(release.important ? "Aggiorna a Nova \(release.version) per le correzioni importanti e la protezione di foto e vocali. Questo avviso resta finché aggiorni.":"È disponibile Nova \(release.version). Puoi aggiornare quando vuoi.").font(.footnote)
         Link("Apri la nuova release",destination:release.page).font(.callout.bold());Text("Usa il tuo metodo di installazione. Non eliminare l'app.").font(.caption).foregroundStyle(.secondary)
