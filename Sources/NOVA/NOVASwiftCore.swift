@@ -454,7 +454,7 @@ extension NOVAJSON {
             }.safeAreaInset(edge:.bottom,spacing:0){
                 HStack(alignment:.bottom){
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
-                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.plain)
+                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").lineLimit(1...6).textFieldStyle(.plain)
                     Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                 }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
             }.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
