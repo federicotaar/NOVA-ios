@@ -50,11 +50,12 @@ jobs:
           cat > /tmp/nav.yaml <<'FLOW'
           appId: site.federicotaranu.nova.chattest
           ---
-          # The fixture is already launched and ready. Do not relaunch via the driver.
+          - launchApp
           - assertVisible: "@nova.demo"
           - takeScreenshot: evidence/swift-qr-friends
           - tapOn: "Scansiona con la fotocamera"
           - waitForAnimationToEnd
+          - assertVisible: "Scansiona QR"
           - takeScreenshot: evidence/swift-qr-half
           - tapOn:
               point: "84%,53%"
