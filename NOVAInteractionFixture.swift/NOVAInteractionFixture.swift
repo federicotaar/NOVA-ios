@@ -229,7 +229,7 @@ import UIKit
  let playback=NOVASwiftVoicePlayback{_,_ in wave};playback.play(url,store);try? await Task.sleep(for:.milliseconds(200));var checks=["validAudioStarts":playback.status=="Riproduzione vocale." && !playback.loading];playback.stop();checks["stopClearsState"]=playback.status.isEmpty
  let failing=NOVASwiftVoicePlayback{_,_ in throw NOVAServiceError.invalidResponse};failing.play(url,store);try? await Task.sleep(for:.milliseconds(100));checks["failureVisible"]=failing.status.contains("non riprodotto") && !failing.loading
  let delayed=NOVASwiftVoicePlayback{_,_ in try await Task.sleep(for:.milliseconds(200));return wave};delayed.play(url,store);delayed.stop();try? await Task.sleep(for:.milliseconds(300));checks["cancelRejectsReply"]=delayed.status.isEmpty
- delayed.play(url,store);try? store.update(owner:store.archive!.owner){$0["acct"] = .object(["email":.string("other@test.invalid"),"token":.string("other")])};try? await Task.sleep(for:.milliseconds(300));checks["oldAccountNeverPlays"]=delayed.status != "Riproduzione vocale."
+ delayed.play(url,store);try? store.changeAccount(email:"other@test.invalid",token:"other");assert(store.archive?.owner=="other@test.invalid");try? await Task.sleep(for:.milliseconds(300));checks["oldAccountNeverPlays"]=delayed.status != "Riproduzione vocale."
  try? JSONSerialization.data(withJSONObject:["checks":checks]).write(to:dir.appendingPathComponent("performance-checks.json"));try? Data().write(to:dir.appendingPathComponent("interaction-ready"))
  }
 }
