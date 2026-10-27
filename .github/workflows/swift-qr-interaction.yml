@@ -57,7 +57,9 @@ jobs:
           - waitForAnimationToEnd
           - takeScreenshot: evidence/swift-qr-half
           - tapOn:
-              id: "swiftScannerClose"
+              text: "Chiudi"
+              index: 1
+          - waitForAnimationToEnd
           - assertVisible: "@nova.demo"
           - takeScreenshot: evidence/swift-qr-closed
           FLOW
