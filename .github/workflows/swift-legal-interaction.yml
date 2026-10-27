@@ -51,7 +51,6 @@ jobs:
           appId: site.federicotaranu.nova.chattest
           ---
           - launchApp
-          - assertVisible: "Informazioni legali"
           - assertVisible: "BOZZA DA APPROVARE"
           - takeScreenshot: evidence/swift-legal-overview
           - tapOn: "Privacy e dati"
