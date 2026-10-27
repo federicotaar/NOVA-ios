@@ -584,6 +584,17 @@ extension NOVAJSON {
         session=owner;let epoch=generation
         do{let result=try await transport(owner,"chats","GET",nil,[]);guard current(store,owner,epoch) else{return};chats=result.object?["chats"]?.array ?? [];status=""}catch{if current(store,owner,epoch){status="Elenco non aggiornato. Riprova."}}
     }
+    // Account-scoped server clear: never call the shared-message delete endpoint.
+    func clearChat(_ id:String,_ store:NOVASwiftStore) async -> Bool {
+        guard let active=store.archive?.active,let owner=NOVASession(active) else{return false};let epoch=generation
+        do{
+            _ = try await transport(owner,"chats/"+id+"/clear","POST",.object([:]),[])
+            guard current(store,owner,epoch) else{return false}
+            chats.removeAll{$0.object?["id"].map{$0.string ?? String($0.integer)}==id}
+            if activeChat==id{close()}
+            await loadChats(store);return true
+        }catch{if current(store,owner,epoch){status="Chat non eliminata. Riprova."};return false}
+    }
     func loadFriends(_ store:NOVASwiftStore) async {
         guard let active=store.archive?.active,let owner=NOVASession(active) else{return};let epoch=generation
         do{let result=try await transport(owner,"friends","GET",nil,[]);guard current(store,owner,epoch) else{return};friends=result.object?["friends"]?.array ?? []}catch{if current(store,owner,epoch){status="Amici non aggiornati."}}
@@ -600,6 +611,8 @@ extension NOVAJSON {
         do{
             let result=try await transport(owner,"chats/"+id+"/messages","GET",nil,messages.last?.object?["id"].map{[URLQueryItem(name:"since",value:$0.string ?? String($0.integer))]} ?? [URLQueryItem(name:"limit",value:"50")])
             guard current(store,owner,epoch,id) else{return}
+            // Another device may have cleared this account's copy while this screen was open.
+            if let boundary=result.object?["cleared_through"]?.integer,boundary>0{messages.removeAll{($0.object?["id"]?.integer ?? 0)<=boundary}}
             for message in result.object?["messages"]?.array ?? []{if let index=messages.firstIndex(where:{$0.object?["id"]==message.object?["id"]}){messages[index]=message}else{messages.append(message)}};if let updated=result.object?["reactions"]?.object{reactions=updated};if let updated=result.object?["senders"]?.object{senders.merge(updated){_,new in new}};status=""
             // Opening a visible conversation has the same receipt semantics as the existing app.
             if let last=messages.last?.object?["id"]{_ = try? await transport(owner,"chats/"+id+"/read","POST",.object(["last_msg_id":last]),[])}
@@ -639,15 +652,20 @@ extension NOVAJSON {
     @StateObject private var social:NOVASwiftSocial
     init(store:NOVASwiftStore,social:NOVASwiftSocial?=nil){self.store=store;_social=StateObject(wrappedValue:social ?? NOVASwiftSocial())}
     @State private var create=false
+    @State private var clearCandidate:NOVAJSON?
+    @State private var clearConfirm=false
+    @State private var clearing=false
     var body:some View {
         NavigationStack{List{
             NavigationLink("Assistente AI"){NOVASwiftAssistant(store:store,embedded:true)}
             ForEach(Array(social.chats.enumerated()),id:\.offset){_,chat in
                 let o=chat.object ?? [:],id=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                 NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)};if let exam=o["exam_at"],exam.integer>0{Text(Date(timeIntervalSince1970:Double(exam.integer)/1000),style:.date).font(.caption).foregroundStyle(.secondary)}}}
+                .swipeActions(edge:.trailing,allowsFullSwipe:false){Button(role:.destructive){clearCandidate=chat;clearConfirm=true}label:{Label("Elimina",systemImage:"trash")}.accessibilityIdentifier("swiftDeleteChat")}
+                .disabled(clearing)
             }
             if !social.status.isEmpty{Text(social.status).foregroundStyle(.secondary)}
-        }.navigationTitle("Chat").toolbar{Button{create=true}label:{Image(systemName:"plus")}.accessibilityLabel("Nuova chat")}.sheet(isPresented:$create){NOVASwiftChatCreation(store:store,social:social)}.refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}.onChange(of:store.archive?.owner){_,_ in social.reset();Task{await social.loadChats(store)}}}
+        }.confirmationDialog("Eliminare questa chat solo per te?",isPresented:$clearConfirm,titleVisibility:.visible){Button("Elimina per me",role:.destructive){guard let candidate=clearCandidate,let raw=candidate.object?["id"] else{return};let id=raw.string ?? String(raw.integer);clearing=true;Task{_ = await social.clearChat(id,store);clearing=false}};Button("Annulla",role:.cancel){clearCandidate=nil}}message:{Text("La cronologia verra rimossa dal tuo account, non da quello degli altri. Un nuovo messaggio fara riapparire la chat senza la vecchia cronologia.")}.navigationTitle("Chat").toolbar{Button{create=true}label:{Image(systemName:"plus")}.accessibilityLabel("Nuova chat")}.sheet(isPresented:$create){NOVASwiftChatCreation(store:store,social:social)}.refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}.onChange(of:store.archive?.owner){_,_ in social.reset();Task{await social.loadChats(store)}}}
     }
 }
 @MainActor struct NOVASwiftConversation:View {
@@ -682,7 +700,7 @@ extension NOVAJSON {
                         if !own{Text(social.senders[o["sender"]?.string ?? ""]?.string ?? "Amico").font(.caption).foregroundStyle(.secondary)}
                         if let key=o["media_key"]?.string,let url=mediaURL(key){
                             if o["kind"]?.string=="image"{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}.frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
-                            if o["kind"]?.string=="voice"{HStack{Button{playback.play(url)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
+                            if o["kind"]?.string=="voice"{HStack{Button{playback.play(url,store)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
                         }
                         if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled).fixedSize(horizontal:false,vertical:true)}
                         if o["edited"]?.flag==true{Text("modificato").font(.caption2).foregroundStyle(.secondary)}
@@ -703,6 +721,7 @@ extension NOVAJSON {
             if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store){photoDraft=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
             if let data=voice.draft{HStack{Text("Vocale in bozza");Button("Invia"){Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store){voice.cancel()}}}.disabled(social.sending);Button("Elimina",role:.destructive){voice.cancel()}}.padding()}
             if !voice.status.isEmpty{Text(voice.status).font(.caption).foregroundStyle(.secondary)}
+            if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
         }.frame(maxWidth:.infinity,maxHeight:.infinity)
         .overlay(alignment:.bottom){HStack(alignment:.bottom,spacing:10){
                 PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
