@@ -10,6 +10,14 @@
 
 ---
 
+## Composer e avvisi gruppo in verifica - 27 ottobre, 19:00
+
+- Forma compatta approvata in anteprima: campo vuoto44pt, + separato, angoli22pt, massimo quattro righe visibili con scorrimento; foto, vocali social e invio conservati.
+- Campo con Liquid Glass nativo su iOS26 e materiale di sistema sulle versioni precedenti. Variante con tinta chiara in revisione visiva: non ancora accettata su iPhone, nessuna nuova IPA pubblicata.
+- Anteprime effettive dei percorsi Chat > Assistente e Chat > Gruppo con dati sintetici: invio libero da sovrapposizioni, chiusura tastiera in alto e screenshot dopo l'animazione. [Gruppo](https://github.com/federicotaranudev/NOVA-ios/actions/runs/40553852137), [Assistente](https://github.com/federicotaranudev/NOVA-ios/actions/runs/40553977657).
+- Avviso generico dentro NOVA solo mentre l'app è attiva, controllo ogni10secondi: prima lettura silenziosa, niente doppioni, propri messaggi o messaggi già letti; risultati di sessioni precedenti scartati. [Sette controlli e schermata integrata](https://github.com/federicotaranudev/NOVA-ios/actions/runs/40553875074). Non è APNs né una notifica di sistema a app chiusa. Nessun servizio a pagamento o app aggiuntiva introdotti.
+- Restano da verificare ricezione e uso sul dispositivo con servizi reali. Le schermate sintetiche non dimostrano velocità o consegna reali. Il TEST27.3 pubblicato resta invariato.
+
 ## La tua giornata, a colpo d'occhio
 
 NOVA riunisce il lavoro scolastico e gli strumenti per organizzarlo: compiti e verifiche, calendario, voti, orario e promemoria. L'assistente AI è una chat a cui chiedere aiuto; amici e gruppi hanno conversazioni separate.
