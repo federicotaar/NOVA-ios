@@ -782,16 +782,16 @@ struct NOVASwiftHideTabsKey:PreferenceKey{static var defaultValue:Bool{false};st
     let chatSocial:NOVASwiftSocial?
     let mapModel:NOVASwiftMapModel?
     let deviceServices:Bool
-    init(store:NOVASwiftStore,initialTab:Int=0,chatSocial:NOVASwiftSocial?=nil,mapModel:NOVASwiftMapModel?=nil,deviceServices:Bool=true){self.store=store;self.chatSocial=chatSocial;self.mapModel=mapModel;self.deviceServices=deviceServices;_selectedTab=State(initialValue:max(0,min(4,initialTab)))}
+    init(store:NOVASwiftStore,initialTab:Int=0,chatSocial:NOVASwiftSocial?=nil,mapModel:NOVASwiftMapModel?=nil,deviceServices:Bool=true,groupAlertModel:NOVASwiftGroupAlerts?=nil){self.store=store;self.chatSocial=chatSocial;self.mapModel=mapModel;self.deviceServices=deviceServices;_groupAlerts=StateObject(wrappedValue:groupAlertModel ?? NOVASwiftGroupAlerts());_selectedTab=State(initialValue:max(0,min(4,initialTab)))}
     @StateObject private var sync=NOVASwiftSync()
-    @StateObject private var groupAlerts=NOVASwiftGroupAlerts()
+    @StateObject private var groupAlerts:NOVASwiftGroupAlerts
     @State private var selectedTab=0
     @State private var hideTabs=false
     @Environment(\.scenePhase) private var scenePhase
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
     var body:some View {
         Group{switch selectedTab{case 1:NOVASwiftGrades(store:store);case 2:NOVASwiftChatList(store:store,social:chatSocial);case 3:NOVASwiftMap(store:store,model:mapModel);case 4:NOVASwiftProfile(store:store);default:NOVASwiftDashboard(store:store)}}
-        .safeAreaInset(edge:.top){if deviceServices,groupAlerts.notice{HStack{Button{selectedTab=2;groupAlerts.dismiss()}label:{Label("Nuovo messaggio nel gruppo",systemImage:"bubble.left.and.bubble.right.fill").font(.subheadline)};Spacer();Button{groupAlerts.dismiss()}label:{Image(systemName:"xmark")}.accessibilityLabel("Chiudi avviso")}.padding(12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:16)).padding(.horizontal,12).accessibilityIdentifier("swiftGroupIncomingBanner")}}
+        .safeAreaInset(edge:.top){if groupAlerts.notice{HStack{Button{selectedTab=2;groupAlerts.dismiss()}label:{Label("Nuovo messaggio nel gruppo",systemImage:"bubble.left.and.bubble.right.fill").font(.subheadline)};Spacer();Button{groupAlerts.dismiss()}label:{Image(systemName:"xmark")}.accessibilityLabel("Chiudi avviso")}.padding(12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:16)).padding(.horizontal,12).accessibilityIdentifier("swiftGroupIncomingBanner")}}
         .task(id:"\(scenePhase)-\(store.archive?.owner ?? "")-\(store.archive?.active.object?["acct"]?.object?["token"]?.string ?? "")"){guard deviceServices else{return};groupAlerts.reset();guard scenePhase == .active else{return};while !Task.isCancelled{await groupAlerts.check(store);try? await Task.sleep(for:.seconds(10));if Task.isCancelled{return}}}
         .onPreferenceChange(NOVASwiftHideTabsKey.self){hideTabs=$0}
         .safeAreaInset(edge:.bottom){if !hideTabs{NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}}
