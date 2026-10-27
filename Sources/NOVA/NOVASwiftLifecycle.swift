@@ -53,13 +53,15 @@ import UserNotifications
     @ObservedObject var store:NOVASwiftStore
     @Environment(\.scenePhase) var phase
     @StateObject private var lock=NOVASwiftDeviceLock()
+    @StateObject private var releaseCheck=NOVASwiftReleaseCheck()
     @State private var intro=false
     var body:some View{ZStack{
         if store.archive?.active.object?["done"]?.flag==true{NOVASwiftShell(store:store)}else{NOVASwiftWelcome(store:store)}
         if intro{NOVASwiftCinematicIntro{endIntro()}.transition(.opacity).allowsHitTesting(true)}
         if lock.locked{ZStack{Color.black.ignoresSafeArea();VStack(spacing:20){Image(systemName:"lock.fill").font(.largeTitle);Text("NOVA è bloccata").font(.title.bold());Button("Sblocca con Face ID o codice"){Task{await lock.unlock()}}.buttonStyle(.borderedProminent);if !lock.status.isEmpty{Text(lock.status).font(.footnote)}}.foregroundStyle(.white).padding()}.zIndex(10)}
-    }.modifier(NOVABugReportHost(enabled:!lock.locked)).task{lock.cover();if lock.locked{await lock.unlock()};let root=store.archive?.active.object ?? [:];intro=root["introOff"]?.flag != true && (root["introEvery"]?.flag==true || (root["introSeen"]?.flag != true && root["done"]?.flag != true))}
-    .onChange(of:phase){_,value in if value == .active{Task{await lock.unlock()}}else{endIntro();lock.invalidate();lock.cover()}}
+    }.safeAreaInset(edge:.top){if !lock.locked,!intro,let release=releaseCheck.newer{NOVASwiftReleaseBanner(release:release)}}
+    .task{await releaseCheck.check()}.modifier(NOVABugReportHost(enabled:!lock.locked)).task{lock.cover();if lock.locked{await lock.unlock()};let root=store.archive?.active.object ?? [:];intro=root["introOff"]?.flag != true && (root["introEvery"]?.flag==true || (root["introSeen"]?.flag != true && root["done"]?.flag != true))}
+    .onChange(of:phase){_,value in if value == .active{Task{await lock.unlock();await releaseCheck.check()}}else{endIntro();lock.invalidate();lock.cover()}}
     }
     private func endIntro(){intro=false;if let owner=store.archive?.owner{try? store.update(owner:owner){$0["introSeen"] = .number(1)}}}
 
