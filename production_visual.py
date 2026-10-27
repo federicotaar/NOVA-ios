@@ -742,7 +742,7 @@ if os.environ.get("NOVA_GROUP_ALERT")=="1":
 if os.environ.get("NOVA_CHAT_INTERACTION")=="1":
     p=Path("/tmp/NOVAProductionVisual.swift")
     s=p.read_text().replace('NOVASwiftPrivateImage(url:url,store:store)', 'Group{if url.absoluteString.contains("synthetic-color-grid"){Image(uiImage:novaSyntheticGlassImage()).resizable().scaledToFit()}else{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}}}')
-    s+="\nfunc novaSyntheticGlassImage()->UIImage{UIGraphicsImageRenderer(size:CGSize(width:320,height:260)).image{c in for y in 0..<5{for x in 0..<6{[UIColor.systemBlue,UIColor.systemPink,UIColor.systemYellow,UIColor.systemGreen,UIColor.systemOrange,UIColor.systemPurple][(x+y)%6].setFill();c.fill(CGRect(x:x*54,y:y*52,width:54,height:52))}}}}\n"
+    s+="\nfunc novaSyntheticGlassImage()->UIImage{UIGraphicsImageRenderer(size:CGSize(width:320,height:260)).image{c in for y in 0..<5{for x in 0..<6{[UIColor.systemBlue,UIColor.systemPink,UIColor.systemYellow,UIColor.systemGreen,UIColor.systemOrange,UIColor.systemPurple][(x+y)%6].setFill();c.fill(CGRect(x:x*54,y:y*52,width:54,height:52))}};UIColor.black.setStroke();c.cgContext.setLineWidth(1);for x in stride(from:0,through:320,by:10){c.cgContext.move(to:CGPoint(x:x,y:0));c.cgContext.addLine(to:CGPoint(x:x,y:260))};for y in stride(from:0,through:260,by:10){c.cgContext.move(to:CGPoint(x:0,y:y));c.cgContext.addLine(to:CGPoint(x:320,y:y))};c.cgContext.strokePath();for y in stride(from:10,through:240,by:30){("LENS 0123456789" as NSString).draw(at:CGPoint(x:4,y:y),withAttributes:[.font:UIFont.boldSystemFont(ofSize:15),.foregroundColor:UIColor.white,.strokeColor:UIColor.black,.strokeWidth:-3])}}}\n"
     p.write_text(s)
 
 if os.environ.get("NOVA_PLAYBACK")=="1":
