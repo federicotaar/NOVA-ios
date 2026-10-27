@@ -91,7 +91,7 @@ import UIKit
             }.background(Color(uiColor:.systemGroupedBackground)).navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented:Binding(get:{assistantTask != nil},set:{if !$0{assistantTask=nil}})){if let task=assistantTask{NOVASwiftTaskHelp(store:store,task:task)}}
             .sheet(isPresented:$createTask){NOVASwiftTaskEditor(store:store)}.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}.sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
-            .sheet(item:Binding(get:{selectedDay.map{NOVASwiftSelectedDay(date:$0)}},set:{selectedDay=$0?.date})){day in NavigationStack{List{ForEach(Array((root["tasks"]?.array ?? []).filter{task in guard let due=task.object?["due"]?.string else{return false};return due.hasPrefix(day.date.formatted(.iso8601.year().month().day().dateSeparator(.dash)))}.enumerated()),id:\.offset){_,task in taskRow(task)}}.navigationTitle(day.date.formatted(.dateTime.day().month(.wide).locale(Locale(identifier:"it_IT")))).toolbar{Button("Fatto"){selectedDay=nil}}}}
+            .sheet(item:Binding(get:{selectedDay.map{NOVASwiftSelectedDay(date:$0)}},set:{selectedDay=$0?.date})){day in NavigationStack{List{if NOVASwiftTaskDay.tasks(root["tasks"]?.array ?? [],on:day.date).isEmpty{ContentUnavailableView("Nessun compito per questo giorno",systemImage:"calendar",description:Text("I compiti degli altri giorni restano nella Home."))};ForEach(Array(NOVASwiftTaskDay.tasks(root["tasks"]?.array ?? [],on:day.date).enumerated()),id:\.offset){_,task in taskRow(task)}}.navigationTitle(day.date.formatted(.dateTime.day().month(.wide).locale(Locale(identifier:"it_IT")))).toolbar{Button("Fatto"){selectedDay=nil}}}}
             .task(id:root["city"]?.object?["name"]?.string){UIDevice.current.isBatteryMonitoringEnabled=true;if let city=root["city"]{await weather.load(city:city)}}
             .onChange(of:position.fixVersion){_,_ in useWeatherPosition()}
             .onChange(of:store.archive?.owner){_,_ in position.stop();weather.cancel();cityGeneration+=1;searching=false;cityQuery=""}
@@ -112,7 +112,7 @@ import UIKit
             ForEach(0..<(offset+count),id:\.self){index in if index<offset{Color.clear.frame(height:36)}else{let number=index-offset+1,date=cal.date(byAdding:.day,value:number-1,to:month)!;Button{selectedDay=date}label:{VStack(spacing:1){Text(String(number));if hasTasks(date){Circle().frame(width:4,height:4)}}.frame(maxWidth:.infinity,minHeight:36).background(cal.isDateInToday(date) ? Color.blue.opacity(0.15):Color.clear,in:Capsule())}.buttonStyle(.plain)}}
         }
     }
-    func hasTasks(_ date:Date)->Bool{let f=DateFormatter();f.dateFormat="yyyy-MM-dd";let day=f.string(from:date);return(root["tasks"]?.array ?? []).contains{($0.object?["due"]?.string ?? "").hasPrefix(day)}}
+    func hasTasks(_ date:Date)->Bool{!NOVASwiftTaskDay.tasks(root["tasks"]?.array ?? [],on:date).isEmpty}
     func changeMonth(_ direction:Int){month=Calendar.current.date(byAdding:.month,value:direction,to:month) ?? month}
     func useWeatherPosition(){guard locationOwner==store.archive?.owner,let coordinate=position.coordinate else{return};let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude)]);Task{await weather.load(city:city)}}
     func findCity(){
@@ -146,4 +146,10 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
     }
     func target(_ average:Double,_ need:Double)->String{if average>=6{return need<=1 ? "Sei al sicuro":"Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al 6"};return need>10 ? "Servono piu voti per arrivare al 6":"Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al 6"}
     func gradeRow(_ grade:NOVAJSON)->some View{VStack(alignment:.leading,spacing:4){HStack{Text(grade.object?["d"]?.string ?? String(grade.object?["v"]?.double ?? 0)).font(.headline);Spacer();Text(grade.object?["date"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};if let kind=grade.object?["k"]?.string,!kind.isEmpty{Text(kind).font(.caption)};if let note=grade.object?["n"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}}}
+}
+
+// A due date without a timezone belongs to the local calendar day, never UTC.
+enum NOVASwiftTaskDay {
+ static func key(_ date:Date,timeZone:TimeZone = .current)->String{var calendar=Calendar(identifier:.gregorian);calendar.timeZone=timeZone;let c=calendar.dateComponents([.year,.month,.day],from:date);return String(format:"%04d-%02d-%02d",c.year ?? 0,c.month ?? 0,c.day ?? 0)}
+ static func tasks(_ values:[NOVAJSON],on date:Date,timeZone:TimeZone = .current)->[NOVAJSON]{let day=key(date,timeZone:timeZone);return values.filter{guard let due=$0.object?["due"]?.string else{return false};return due==day || due.hasPrefix(day+"T") || due.hasPrefix(day+" ")}}
 }
