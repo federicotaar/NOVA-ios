@@ -197,7 +197,10 @@ import UIKit
  var checks=["newerIPAFound":candidate.version=="2026.10.27.3","sameVersionNoNotice":NOVASwiftRelease.select(sample,current:"2026.10.27.3")==nil,"noAssetNoNotice":NOVASwiftRelease.select(invalid,current:"2026.10.27.2")==nil,"draftNoNotice":NOVASwiftRelease.select(draft,current:"2026.10.27.2")==nil,"numericNotLexical":NOVASwiftRelease.newer("2026.10.27.10",than:"2026.10.27.9")]
  var importantSample=sample;importantSample[0]["body"]="[NOVA_UPDATE:IMPORTANT] Protected media update";checks["importantMarkerPersistent"]=NOVASwiftRelease.select(importantSample,current:"2026.10.27.2")?.important==true;checks["minorDefaultDismissible"]=candidate.important==false
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("release-checks.json"))
- let page=UIHostingController(rootView:VStack{NOVASwiftReleaseBanner(release:candidate);Spacer();Text("Home dimostrativa: nessun blocco dell'app");Spacer()}.preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ let major=NOVASwiftRelease.select(importantSample,current:"2026.10.27.2")!
+ checks["minorDismissalHides"]=candidate.shouldShow(dismissed:true)==false;checks["majorIgnoresDismissal"]=major.shouldShow(dismissed:true);checks["majorGoneAfterUpdate"]=NOVASwiftRelease.select(importantSample,current:"2026.10.27.3")==nil
+ try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("release-checks.json"))
+ let page=UIHostingController(rootView:VStack(spacing:20){NOVASwiftReleaseBanner(release:candidate);NOVASwiftReleaseBanner(release:major);Spacer();Text("Home dimostrativa: nessun blocco dell'app");Spacer()}.preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
 
 @MainActor func visualSwiftGroupAlertReady(_ web:WKWebView,_ attempt:Int){
