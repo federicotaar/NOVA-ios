@@ -420,7 +420,8 @@ extension NOVAJSON {
 }
 @MainActor struct NOVASwiftAssistant:View {
     @ObservedObject var store:NOVASwiftStore
-    init(store:NOVASwiftStore,initialDraft:String=""){self.store=store;_draft=State(initialValue:initialDraft)}
+    let embedded:Bool
+    init(store:NOVASwiftStore,initialDraft:String="",embedded:Bool=false){self.store=store;self.embedded=embedded;_draft=State(initialValue:initialDraft)}
     @State private var draft=""
     @State private var sending=false
     @State private var status=""
@@ -431,7 +432,12 @@ extension NOVAJSON {
     @State private var photoEpoch=0
     var messages:[NOVAJSON]{store.archive?.active.object?["chat"]?.array ?? []}
     var body:some View {
-        NavigationStack {
+        Group {if embedded {assistantContent}else{NavigationStack{assistantContent}}}
+        .onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1;photoEpoch+=1;sending=false}
+        .onChange(of:store.archive?.owner){_,_ in generation+=1;photoEpoch+=1;owner=store.archive?.owner ?? "";draft="";photoDraft=nil;sending=false}
+        .onChange(of:photo){_,item in loadPhoto(item)}
+    }
+    private var assistantContent:some View {
             VStack(spacing:0){
                 ScrollViewReader{proxy in ScrollView{LazyVStack(alignment:.leading,spacing:14){
                     if messages.isEmpty{Text("Chiedimi aiuto con lo studio. Serve la tua chiave Groq già salvata nelle impostazioni.").foregroundStyle(.secondary)}
@@ -451,18 +457,18 @@ extension NOVAJSON {
                 if !status.isEmpty{Text(status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
                 if let photoDraft=photoDraft,let data=Data(base64Encoded:photoDraft.components(separatedBy:",").last ?? ""),let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Rimuovi foto",role:.destructive){self.photoDraft=nil}}}
 
-            }.safeAreaInset(edge:.bottom,spacing:0){
+            }.frame(maxWidth:.infinity,maxHeight:.infinity)
+            .safeAreaInset(edge:.bottom,spacing:0){
                 HStack(alignment:.bottom){
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
                     TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").lineLimit(1...6).textFieldStyle(.plain)
                     Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
-                }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
+                }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.vertical,8)
+                .frame(maxWidth:.infinity).background(Color(uiColor:.systemBackground))
             }.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
-        }.onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1;photoEpoch+=1;sending=false}
-        .onChange(of:store.archive?.owner){_,_ in generation+=1;photoEpoch+=1;owner=store.archive?.owner ?? "";draft="";photoDraft=nil;sending=false}
-        .onChange(of:photo){_,item in photoEpoch+=1;let epoch=photoEpoch,expectedOwner=owner;Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),epoch==photoEpoch,owner==expectedOwner,owner==store.archive?.owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};photoDraft="data:image/jpeg;base64,"+jpeg.base64EncodedString()}}
-
     }
+    private func loadPhoto(_ item:PhotosPickerItem?){photoEpoch+=1;let epoch=photoEpoch,expectedOwner=owner;Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),epoch==photoEpoch,owner==expectedOwner,owner==store.archive?.owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};photoDraft="data:image/jpeg;base64,"+jpeg.base64EncodedString()}}
+
     func send(){
         let text=draft.trimmingCharacters(in:.whitespacesAndNewlines)
         let image=photoDraft
@@ -632,7 +638,7 @@ extension NOVAJSON {
     @State private var create=false
     var body:some View {
         NavigationStack{List{
-            NavigationLink("Assistente AI"){NOVASwiftAssistant(store:store)}
+            NavigationLink("Assistente AI"){NOVASwiftAssistant(store:store,embedded:true)}
             ForEach(Array(social.chats.enumerated()),id:\.offset){_,chat in
                 let o=chat.object ?? [:],id=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                 NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)};if let exam=o["exam_at"],exam.integer>0{Text(Date(timeIntervalSince1970:Double(exam.integer)/1000),style:.date).font(.caption).foregroundStyle(.secondary)}}}
