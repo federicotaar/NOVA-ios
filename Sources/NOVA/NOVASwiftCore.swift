@@ -658,6 +658,7 @@ extension NOVAJSON {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) var phase
     @State private var draft=""
+    @FocusState private var composerFocused:Bool
     @State private var photo:PhotosPickerItem?
     @State private var photoDraft:Data?
     @State private var mediaEpoch=0
@@ -702,13 +703,18 @@ extension NOVAJSON {
             if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store){photoDraft=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
             if let data=voice.draft{HStack{Text("Vocale in bozza");Button("Invia"){Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store){voice.cancel()}}}.disabled(social.sending);Button("Elimina",role:.destructive){voice.cancel()}}.padding()}
             if !voice.status.isEmpty{Text(voice.status).font(.caption).foregroundStyle(.secondary)}
-            HStack(alignment:.bottom){
-                PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
-                Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"mic")}.accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
-                TextField("Messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftConversationComposer").lineLimit(1...6).textFieldStyle(.plain).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
-                Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up")}.buttonStyle(.borderedProminent).disabled(social.sending||draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
-            }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.bottom,8)
-        }.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
+            HStack(alignment:.bottom,spacing:10){
+                PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
+                HStack(alignment:.bottom,spacing:8){
+                    TextField("Messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftConversationComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).frame(minHeight:28).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
+                    if draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty{
+                        Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"waveform").font(.system(size:19)).frame(width:28,height:28)}.buttonStyle(.plain).accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
+                    }else{
+                        Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending)
+                    }
+                }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
+            }.padding(.horizontal,12).padding(.vertical,8).background(Color(uiColor:.systemBackground))
+        }.frame(maxWidth:.infinity,maxHeight:.infinity).navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItemGroup(placement:.keyboard){Spacer();Button("Fine tastiera"){composerFocused=false}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .task{await social.open(id,store)}
