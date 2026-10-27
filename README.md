@@ -289,3 +289,8 @@ L'importazione dell'orario scarta i risultati se si chiude la bozza, si cambia a
 - Backend27ottobre: letture liste social in batch, senza migrazioni o cache tra account.16 confronti SQLite sintetici con output/status equivalenti: inclusi blocchi nei due versi, avatar pubblici/amicizie, assenze e richieste senza autenticazione. Caso chat sintetico19->5viaggi DB, follower7->3, amici8->4; non e' un tempo reale misurato. Binding/servizi gratuiti e dati esistenti conservati.
 - Avviso non bloccante di nuova IPA pubblicata in verifica. Solo i client che ricevono questa funzione potranno mostrare l'avviso:27.2 e build precedenti gia' installate non la acquisiscono dal server. Nessun download/installazione automatica o blocco d'uso.
 -27.3 non ancora distribuita: restano verifica finale tastiera/avviso e ispezione IPA.27.2 e precedenti conservate, testi legali ancora BOZZA.
+
+###27.3: controlli completati, pacchetto in preparazione
+- Percorso reale Chat > Assistente, bozza vuota/multilinea/tastiera chiusa: https://github.com/federicotaranudev/NOVA-ios/actions/runs/40543760565 riuscito; pixel sintetici ispezionati.
+- Avviso nuova release: https://github.com/federicotaranudev/NOVA-ios/actions/runs/40543603063 riuscito; cinque controlli filtro versione/IPA/bozza e layout ispezionato. Avviso non bloccante, solo dopo una nuova IPA pubblicata; nessuna installazione automatica. I vecchi client senza questa funzione richiedono un primo aggiornamento manuale.
+- Il miglioramento delle letture backend e' gia' attivo, versione09adbfc9-6590-46da-bcf6-f125079fe9de; nessuna modifica di schema/dati. I risultati sintetici non garantiscono i tempi reali sul telefono.
