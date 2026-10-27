@@ -60,6 +60,12 @@ jobs:
               id: "bugDescription"
           - inputText: "Bug sintetico: controllo della bozza, nessun invio."
           - takeScreenshot: evidence/swift-bug-description
+          - tapOn: "Fine tastiera"
+          - scrollUntilVisible:
+              element:
+                text: "Condividi report…"
+              direction: DOWN
+          - takeScreenshot: evidence/swift-bug-send-review
           - tapOn: "Chiudi"
           - assertVisible: "NOVA demo sintetica"
           - takeScreenshot: evidence/swift-bug-closed
