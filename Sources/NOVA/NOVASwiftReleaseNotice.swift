@@ -3,13 +3,16 @@ import SwiftUI
 struct NOVASwiftRelease:Identifiable,Equatable {
     let version:String
     let page:URL
+    var important=false
+    var dismissedKey:String{"nova.dismissed-release."+version}
     var id:String{version}
     static func parts(_ value:String)->[Int]?{let raw=value.hasPrefix("v") ? String(value.dropFirst()):value;let pieces=raw.split(separator:".");guard pieces.count==4 else{return nil};let nums=pieces.compactMap{Int($0)};return nums.count==4 ? nums:nil}
     static func newer(_ a:String,than b:String)->Bool{guard let aa=parts(a),let bb=parts(b) else{return false};return bb.lexicographicallyPrecedes(aa)}
     static func select(_ rows:[[String:Any]],current:String)->Self?{
         rows.compactMap{row->Self? in
             guard row["draft"] as? Bool != true,let tag=row["tag_name"] as? String,parts(tag) != nil,newer(tag,than:current),let link=row["html_url"] as? String,let page=URL(string:link),page.scheme=="https",page.host=="github.com",page.path.hasPrefix("/federicotaranudev/NOVA-ios/releases/tag/"),let assets=row["assets"] as? [[String:Any]],assets.contains(where:{asset in guard let name=asset["name"] as? String,let source=asset["browser_download_url"] as? String,let url=URL(string:source) else{return false};return name=="NOVA-\((tag.hasPrefix("v") ? String(tag.dropFirst()):tag)).ipa" && url.scheme=="https" && url.host=="github.com" && url.path.hasPrefix("/federicotaranudev/NOVA-ios/releases/download/") && (asset["size"] as? Int ?? 0)>0}) else{return nil}
-            return Self(version:tag.hasPrefix("v") ? (tag.hasPrefix("v") ? String(tag.dropFirst()):tag):tag,page:page)
+            let important=(row["body"] as? String ?? "").contains("[NOVA_UPDATE:IMPORTANT]")
+            return Self(version:tag.hasPrefix("v") ? (tag.hasPrefix("v") ? String(tag.dropFirst()):tag):tag,page:page,important:important)
         }.max{newer($1.version,than:$0.version)}
     }
 }
@@ -25,5 +28,10 @@ struct NOVASwiftRelease:Identifiable,Equatable {
 }
 struct NOVASwiftReleaseBanner:View {
     let release:NOVASwiftRelease
-    var body:some View{VStack(alignment:.leading,spacing:6){Text("Versione non aggiornata").font(.headline);Text("Disponibile NOVA \(release.version). Questa versione continua a funzionare.").font(.footnote);Link("Apri la nuova release",destination:release.page).font(.callout.bold());Text("L'aggiornamento richiede ancora il tuo metodo di installazione. Non eliminare l'app.").font(.caption).foregroundStyle(.secondary)}.padding().frame(maxWidth:.infinity,alignment:.leading).background(.regularMaterial,in:RoundedRectangle(cornerRadius:18)).padding(.horizontal).accessibilityIdentifier("novaReleaseNotice")}
+    @State private var dismissed=false
+    var body:some View{Group{if release.important || (!dismissed && !UserDefaults.standard.bool(forKey:release.dismissedKey)){VStack(alignment:.leading,spacing:6){
+        HStack{Text(release.important ? "Aggiornamento importante":"Nuova versione disponibile").font(.headline);Spacer();if !release.important{Button("Chiudi",systemImage:"xmark"){UserDefaults.standard.set(true,forKey:release.dismissedKey);dismissed=true}.labelStyle(.iconOnly).accessibilityLabel("Nascondi suggerimento aggiornamento")}}
+        Text(release.important ? "Aggiorna a Nova \(release.version) per le correzioni importanti e la protezione di foto e vocali. Questo avviso resta finché aggiorni.":"È disponibile Nova \(release.version). Puoi aggiornare quando vuoi.").font(.footnote)
+        Link("Apri la nuova release",destination:release.page).font(.callout.bold());Text("Usa il tuo metodo di installazione. Non eliminare l'app.").font(.caption).foregroundStyle(.secondary)
+    }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.regularMaterial,in:RoundedRectangle(cornerRadius:18)).padding(.horizontal).accessibilityIdentifier("novaReleaseNotice")}}.onChange(of:release.version){_,_ in dismissed=false}}
 }
