@@ -454,7 +454,7 @@ extension NOVAJSON {
                             }
                         }.padding(14).frame(maxWidth:.infinity,alignment:.leading).background(o["r"]?.string=="user" ? Color.blue.opacity(0.1):Color.secondary.opacity(0.08),in:RoundedRectangle(cornerRadius:20)).id(index)
                     }
-                }.padding()}.scrollClipDisabled().onChange(of:messages.count){_,_ in if !messages.isEmpty{proxy.scrollTo(messages.count-1,anchor:.bottom)}}}
+                }.padding().padding(.bottom,80)}.scrollClipDisabled().onChange(of:messages.count){_,_ in if !messages.isEmpty{proxy.scrollTo(messages.count-1,anchor:.bottom)}}}
                 if !status.isEmpty{Text(status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
                 if let photoDraft=photoDraft,let data=Data(base64Encoded:photoDraft.components(separatedBy:",").last ?? ""),let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Rimuovi foto",role:.destructive){self.photoDraft=nil}}}
 
@@ -647,6 +647,7 @@ extension NOVAJSON {
     }
     func signalTyping(_ store:NOVASwiftStore) async {guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return};_ = try? await transport(owner,"chats/"+id+"/typing","POST",.object([:]),[])}
 }
+enum NOVASwiftServerCapabilities { static let selfClear=false } // Enable only after backend verification and rollout.
 @MainActor struct NOVASwiftChatList:View {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var social:NOVASwiftSocial
@@ -661,7 +662,7 @@ extension NOVAJSON {
             ForEach(Array(social.chats.enumerated()),id:\.offset){_,chat in
                 let o=chat.object ?? [:],id=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                 NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)};if let exam=o["exam_at"],exam.integer>0{Text(Date(timeIntervalSince1970:Double(exam.integer)/1000),style:.date).font(.caption).foregroundStyle(.secondary)}}}
-                .swipeActions(edge:.trailing,allowsFullSwipe:false){Button(role:.destructive){clearCandidate=chat;clearConfirm=true}label:{Label("Elimina",systemImage:"trash")}.accessibilityIdentifier("swiftDeleteChat")}
+                .swipeActions(edge:.trailing,allowsFullSwipe:false){if NOVASwiftServerCapabilities.selfClear{Button(role:.destructive){clearCandidate=chat;clearConfirm=true}label:{Label("Elimina",systemImage:"trash")}.accessibilityIdentifier("swiftDeleteChat")}}
                 .disabled(clearing)
             }
             if !social.status.isEmpty{Text(social.status).foregroundStyle(.secondary)}
