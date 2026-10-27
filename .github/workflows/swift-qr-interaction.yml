@@ -57,7 +57,7 @@ jobs:
           - waitForAnimationToEnd
           - takeScreenshot: evidence/swift-qr-half
           - tapOn:
-              id: "swiftScannerClose"
+              point: "84%,53%"
           - waitForAnimationToEnd
           - assertVisible: "@nova.demo"
           - takeScreenshot: evidence/swift-qr-closed
