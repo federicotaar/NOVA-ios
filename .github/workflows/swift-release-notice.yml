@@ -39,7 +39,7 @@ jobs:
           test -f "$CONTAINER/Documents/interaction-ready" || { xcrun simctl io "$UDID" screenshot evidence/incomplete.png; echo "Swift fixture did not appear"; exit 1; }
           xcrun simctl io "$UDID" screenshot evidence/native-segment-rest.png
           cp "$CONTAINER/Documents/release-checks.json" evidence/
-          python3 -c 'import json;d=json.load(open("evidence/release-checks.json"));print(d);assert len(d)==5 and all(d.values()),d'
+          python3 -c 'import json;d=json.load(open("evidence/release-checks.json"));print(d);assert len(d)==7 and all(d.values()),d'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
