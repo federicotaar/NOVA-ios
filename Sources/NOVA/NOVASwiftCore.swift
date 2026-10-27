@@ -466,7 +466,7 @@ extension NOVAJSON {
                         TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).shadow(color:.black.opacity(0.85),radius:2,x:0,y:1).frame(minHeight:28)
                         Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.secondary:Color.white).frame(width:28,height:28).background(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.clear:Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                     }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
-                }.padding(.horizontal,12).padding(.vertical,8)
+                }.modifier(NOVASwiftComposerGlassGroup()).padding(.horizontal,12).padding(.vertical,8)
                 .frame(maxWidth:.infinity)
             }.toolbar{ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}}}.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
     }
@@ -709,7 +709,7 @@ enum NOVASwiftServerCapabilities { static let selfClear=false } // Enable only a
                         let reactions=social.reactions[key]?.array ?? []
                         if !reactions.isEmpty{Text(reactions.compactMap{$0.object?["emoji"]?.string}.joined(separator:" ")).font(.caption)}
                     }
-                }.padding(.horizontal,12).padding(.vertical,8).fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).background(own ? Color.blue:Color(uiColor:.secondarySystemBackground),in:RoundedRectangle(cornerRadius:20))
+                }.modifier(NOVASwiftComposerGlassGroup()).padding(.horizontal,12).padding(.vertical,8).fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).background(own ? Color.blue:Color(uiColor:.secondarySystemBackground),in:RoundedRectangle(cornerRadius:20))
                 if !own{Spacer(minLength:48)}
                 }.frame(maxWidth:.infinity,alignment:own ? .trailing:.leading)
                 .contextMenu{
@@ -734,7 +734,7 @@ enum NOVASwiftServerCapabilities { static let selfClear=false } // Enable only a
                         Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending)
                     }
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
-            }.padding(.horizontal,12).padding(.vertical,8)
+            }.modifier(NOVASwiftComposerGlassGroup()).padding(.horizontal,12).padding(.vertical,8)
         }.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
