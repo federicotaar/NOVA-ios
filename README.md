@@ -136,3 +136,8 @@ La migrazione include il pulsante Nuova chat, giorni del calendario, azioni dei 
 - Native downloaded voice playback and visible retry/error handling; synthetic native5checks pass. Actual device voice-note playback remains for user acceptance. Half-height QR scanner and close-return verified in simulator; real camera not available there, synthetic QRdecode6checks pass.
 - Gates: social40569520607, voice40564743545, scanner40565442287; assistant production keyboard40564753018 and neutral diagnostic40569530442. No private screenshots/data embedded.
 - Self-clear hidden behind false capability guard. Group policy/media server authorization changes remain private and undeployed, no migration/data/account changes. Legal documents remain BOZZA. Free unsigned TEST IPA, existing free sideload/signing route, no paid signing or closed-app push claim.
+
+### 27.5 exact artifact inspection, October27 21:17 CET
+Build40574951246 succeeded. Exact published NOVA-2026.10.27.5.ipa is1,894,761bytes, SHA25686d579d24565c30637424042e6341e38dcddf39af7d6e6ed16ad794ebfb953dc. Actual arm64 Mach-O SDK26.5/min17, Info TESTtrue/build2705/label2026.10.27.5/bundlefedericotaranu.site; widget present, no fixture/account/cache/screenshot archive entries.27.4 preserved. This is an unsigned TEST package using the existing free sideload route, not AppStore distribution or physical-device acceptance.
+- Release: https://github.com/federicotaranudev/NOVA-ios/releases/tag/v2026.10.27.5
+- IPA: https://github.com/federicotaranudev/NOVA-ios/releases/download/v2026.10.27.5/NOVA-2026.10.27.5.ipa
