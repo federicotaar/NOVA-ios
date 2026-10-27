@@ -62,7 +62,7 @@ jobs:
               id: "swiftAssistantComposer"
           - inputText: "Bozza sintetica leggibile senza invio. Un testo piu lungo per verificare le righe multiple."
           - takeScreenshot: evidence/composer-push-typing
-          - hideKeyboard
+          - tapOn: "Fine tastiera"
           - takeScreenshot: evidence/composer-push-dismissed
           FLOW
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
