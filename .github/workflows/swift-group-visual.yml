@@ -56,7 +56,9 @@ jobs:
           - tapOn: "Impostazioni"
           - assertVisible: "Autorizzazioni gruppo"
           - takeScreenshot: evidence/group-settings
-          - back
+          - tapOn:
+              id: "BackButton"
+          - assertVisible: "Aggiungi membri"
           - tapOn: "Aggiungi membri"
           - tapOn: "@nuovo.demo"
           - assertVisible: "Condividi tutta la cronologia"
