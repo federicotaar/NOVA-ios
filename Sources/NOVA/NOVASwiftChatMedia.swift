@@ -28,6 +28,33 @@ import AVFoundation
 final class NOVAMediaRedirectGuard:NSObject,URLSessionTaskDelegate {
     func urlSession(_ session:URLSession,task:URLSessionTask,willPerformHTTPRedirection response:HTTPURLResponse,newRequest request:URLRequest,completionHandler:@escaping(URLRequest?)->Void){guard let url=request.url,url.scheme=="https",url.host=="api.federicotaranu.site",url.path.hasPrefix("/media/") else{completionHandler(nil);return};completionHandler(request)}
 }
+enum NOVASwiftPrivateMedia {
+    static func load(_ url:URL,session:NOVASession,audio:Bool) async throws -> Data {
+        guard url.scheme=="https",url.host=="api.federicotaranu.site",url.path.hasPrefix("/media/") else{throw NOVAServiceError.invalidResponse}
+        var request=URLRequest(url:url);request.timeoutInterval=25;request.cachePolicy = .reloadIgnoringLocalCacheData;request.setValue("Bearer "+session.token,forHTTPHeaderField:"Authorization")
+        let config=URLSessionConfiguration.ephemeral;let source=URLSession(configuration:config,delegate:NOVAMediaRedirectGuard(),delegateQueue:nil);defer{source.invalidateAndCancel()}
+        let (stream,response)=try await source.bytes(for:request)
+        guard let http=response as? HTTPURLResponse else{throw NOVAServiceError.invalidResponse}
+        guard (200..<300).contains(http.statusCode) else{throw NOVAServiceError.http(http.statusCode,"Media non disponibile")}
+        let mime=(http.mimeType ?? "").lowercased();guard audio ? ["audio/mp4","audio/mpeg","audio/wav","audio/x-wav","audio/aac","audio/webm","audio/ogg"].contains(mime):["image/jpeg","image/png","image/webp","image/heic","image/gif"].contains(mime) else{throw NOVAServiceError.invalidResponse}
+        guard response.expectedContentLength<=1_050_000 else{throw NOVAServiceError.invalidResponse}
+        var data=Data();for try await byte in stream{try Task.checkCancellation();guard data.count<1_050_000 else{throw NOVAServiceError.invalidResponse};data.append(byte)}
+        guard data.count>=100 else{throw NOVAServiceError.invalidResponse};return data
+    }
+}
+@MainActor struct NOVASwiftPrivateImage:View {
+    let url:URL
+    @ObservedObject var store:NOVASwiftStore
+    @State private var image:UIImage?
+    @State private var failed=false
+    @State private var retry=0
+    var body:some View {Group{if let image=image{Image(uiImage:image).resizable().scaledToFit()}else if failed{Button("Foto non caricata. Riprova"){retry+=1}.font(.caption)}else{ProgressView()}}
+        .task(id:"\(url)-\(store.archive?.owner ?? "")-\(store.archive?.active.object?["acct"]?.object?["token"]?.string ?? "")-\(retry)"){
+            image=nil;failed=false;guard let owner=store.archive.flatMap({NOVASession($0.active)}) else{failed=true;return}
+            do{let data=try await NOVASwiftPrivateMedia.load(url,session:owner,audio:false);guard !Task.isCancelled,store.archive.flatMap({NOVASession($0.active)})==owner else{return};guard let decoded=UIImage(data:data) else{failed=true;return};image=decoded}catch{if !Task.isCancelled{failed=true}}
+        }
+    }
+}
 @MainActor final class NOVASwiftVoicePlayback:ObservableObject {
     @Published private(set) var status=""
     @Published private(set) var loading=false
@@ -36,14 +63,8 @@ final class NOVAMediaRedirectGuard:NSObject,URLSessionTaskDelegate {
     private var generation=0
     typealias Loader=(URL,NOVASession) async throws -> Data
     private let loader:Loader
-    init(loader:Loader?=nil){self.loader=loader ?? {url,session in
-        guard url.scheme=="https",url.host=="api.federicotaranu.site",url.path.hasPrefix("/media/") else{throw NOVAServiceError.invalidResponse}
-        var request=URLRequest(url:url);request.timeoutInterval=25;request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.setValue("Bearer "+session.token,forHTTPHeaderField:"Authorization")
-        let config=URLSessionConfiguration.ephemeral;let source=URLSession(configuration:config,delegate:NOVAMediaRedirectGuard(),delegateQueue:nil);defer{source.invalidateAndCancel()}
-        let (data,response)=try await source.data(for:request)
-        guard let http=response as? HTTPURLResponse,(200..<300).contains(http.statusCode),data.count>=100,data.count<=1_050_000 else{throw NOVAServiceError.invalidResponse};return data
-    }}
+    init(loader:Loader?=nil){self.loader=loader ?? {url,session in try await NOVASwiftPrivateMedia.load(url,session:session,audio:true)}}
+
     func play(_ url:URL,_ store:NOVASwiftStore){
         stop();guard let owner=store.archive.flatMap({NOVASession($0.active)}) else{status="Accedi per ascoltare il vocale.";return}
         let expected=generation;loading=true;status="Caricamento vocale…"
