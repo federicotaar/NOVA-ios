@@ -460,11 +460,13 @@ extension NOVAJSON {
 
             }.frame(maxWidth:.infinity,maxHeight:.infinity)
             .safeAreaInset(edge:.bottom,spacing:0){
-                HStack(alignment:.bottom){
-                    PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
-                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...6).textFieldStyle(.plain)
-                    Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
-                }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.vertical,8)
+                HStack(alignment:.bottom,spacing:10){
+                    PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
+                    HStack(alignment:.bottom,spacing:8){
+                        TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).frame(minHeight:28)
+                        Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.secondary:Color.white).frame(width:28,height:28).background(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.clear:Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
+                    }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
+                }.padding(.horizontal,12).padding(.vertical,8)
                 .frame(maxWidth:.infinity).background(Color(uiColor:.systemBackground))
             }.toolbar{ToolbarItemGroup(placement:.keyboard){Spacer();Button("Fine tastiera"){composerFocused=false}}}.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
     }
