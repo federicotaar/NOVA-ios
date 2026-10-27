@@ -647,7 +647,7 @@ extension NOVAJSON {
     }
     func signalTyping(_ store:NOVASwiftStore) async {guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return};_ = try? await transport(owner,"chats/"+id+"/typing","POST",.object([:]),[])}
 }
-enum NOVASwiftServerCapabilities { static let selfClear=false } // Enable only after backend verification and rollout.
+enum NOVASwiftServerCapabilities { static let groupManagement=false; static let selfClear=false } // Enable only after backend verification and rollout.
 @MainActor struct NOVASwiftChatList:View {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var social:NOVASwiftSocial
@@ -676,6 +676,7 @@ enum NOVASwiftServerCapabilities { static let selfClear=false } // Enable only a
     let title:String
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) var phase
+    @State private var groupInfo=false
     @State private var draft=""
     @FocusState private var composerFocused:Bool
     @State private var photo:PhotosPickerItem?
@@ -735,7 +736,7 @@ enum NOVASwiftServerCapabilities { static let selfClear=false } // Enable only a
                     }
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
             }.modifier(NOVASwiftComposerGlassGroup()).padding(.horizontal,12).padding(.vertical,8)
-        }.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
+        }.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .task{await social.open(id,store)}
