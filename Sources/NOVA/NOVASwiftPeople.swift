@@ -31,9 +31,18 @@ import CoreImage.CIFilterBuiltins
         guard value.count>=2,let state=store.archive?.active,let owner=NOVASession(state) else{results=[];return};let expected=epoch
         do{let result=try await transport(owner,"users/search","GET",nil,[URLQueryItem(name:"q",value:String(value.prefix(20)))]);guard valid(store,owner,expected),search==searchEpoch else{return};guard result.object?["ok"]?.flag != false else{throw NOVAServiceError.invalidResponse};results=result.object?["users"]?.array ?? [];status=results.isEmpty ? "Nessun utente trovato.":""}catch{if valid(store,owner,expected),search==searchEpoch{status="Ricerca non disponibile."}}
     }
+    func loadOverview(_ store:NOVASwiftStore) async {
+        async let friendsLoad:Void = load(store)
+        async let listsLoad:Void = lists(store)
+        _ = await (friendsLoad,listsLoad)
+    }
     func lists(_ store:NOVASwiftStore) async {
         guard let state=store.archive?.active,let owner=NOVASession(state) else{return};let expected=epoch
-        do{for kind in ["followers","following"]{let result=try await transport(owner,"follows","GET",nil,[URLQueryItem(name:"kind",value:kind)]);guard valid(store,owner,expected) else{return};guard result.object?["ok"]?.flag != false else{throw NOVAServiceError.invalidResponse};if kind=="followers"{followers=result.object?["users"]?.array ?? []}else{following=result.object?["users"]?.array ?? []}}}catch{if valid(store,owner,expected){status="Liste non aggiornate."}}
+        await withTaskGroup(of:Void.self){group in
+            for kind in ["followers","following"]{group.addTask{@MainActor in
+                do{let result=try await self.transport(owner,"follows","GET",nil,[URLQueryItem(name:"kind",value:kind)]);guard self.valid(store,owner,expected) else{return};guard result.object?["ok"]?.flag != false else{throw NOVAServiceError.invalidResponse};if kind=="followers"{self.followers=result.object?["users"]?.array ?? []}else{self.following=result.object?["users"]?.array ?? []}}catch{if self.valid(store,owner,expected){self.status="Liste non aggiornate."}}
+            }}
+        }
     }
     func open(_ username:String,_ store:NOVASwiftStore) async {
         profileEpoch+=1;let page=profileEpoch;profile=nil
@@ -73,9 +82,9 @@ struct NOVASwiftAvatar:View {
             if !people.outgoing.isEmpty{Section("In attesa"){ForEach(Array(people.outgoing.enumerated()),id:\.offset){_,item in row(item).swipeActions{Button("Annulla richiesta",role:.destructive){removal=user(item);confirmRemove=true}}}}}
             Section{NavigationLink("Follower (\(people.followers.count))"){List{ForEach(Array(people.followers.enumerated()),id:\.offset){_,item in row(item)}}.navigationTitle("Follower")};NavigationLink("Seguiti (\(people.following.count))"){List{ForEach(Array(people.following.enumerated()),id:\.offset){_,item in row(item)}}.navigationTitle("Seguiti")};Button("Il mio QR / Scansiona"){qr=true}}
             if !people.status.isEmpty{Text(people.status).font(.footnote).foregroundStyle(.secondary)}
-        }.navigationTitle("Amici").task{await people.load(store);await people.lists(store)}.refreshable{await people.load(store);await people.lists(store)}
+        }.navigationTitle("Amici").task{await people.loadOverview(store)}.refreshable{await people.loadOverview(store)}
         .task(id:query){try? await Task.sleep(for:.milliseconds(400));guard !Task.isCancelled else{return};await people.search(query,store)}
-        .onChange(of:store.archive?.owner){_,_ in people.reset();query="";showProfile=false;qr=false;Task{await people.load(store);await people.lists(store)}}
+        .onChange(of:store.archive?.owner){_,_ in people.reset();query="";showProfile=false;qr=false;Task{await people.loadOverview(store)}}
         .sheet(isPresented:$showProfile){if let selected=selected{NavigationStack{NOVASwiftPublicProfile(store:store,people:people,username:selected)}}}
         .sheet(isPresented:$qr){NOVASwiftQR(store:store,people:people)}
         .confirmationDialog("Rimuovere l'amicizia o annullare la richiesta?",isPresented:$confirmRemove,titleVisibility:.visible){Button("Conferma",role:.destructive){if let removal=removal{Task{_ = await people.action("friends/remove",username:removal,store)}}};Button("Annulla",role:.cancel){}}
