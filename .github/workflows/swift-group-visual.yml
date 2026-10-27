@@ -50,7 +50,7 @@ jobs:
           cat > /tmp/nav.yaml <<'FLOW'
           appId: site.federicotaranu.nova.chattest
           ---
-          - launchApp
+          # The fixture is already launched and ready. Do not relaunch via the driver.
           - assertVisible: "Info gruppo"
           - takeScreenshot: evidence/group-info
           - tapOn: "Impostazioni"
@@ -62,6 +62,9 @@ jobs:
           - assertVisible: "Condividi tutta la cronologia"
           - assertVisible: "Solo nuovi messaggi"
           - takeScreenshot: evidence/group-history-choice
+          - tapOn: "Solo nuovi messaggi"
+          - assertVisible: "Aggiungi"
+          - takeScreenshot: evidence/group-add-confirmation
           - tapOn: "Annulla"
           FLOW
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
