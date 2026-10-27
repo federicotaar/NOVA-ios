@@ -58,7 +58,7 @@ import SwiftUI
     @State private var confirm=false
     @State private var history=""
     @State private var confirmAdd=false
-    func historyOption(_ title:String,_ detail:String,_ icon:String,_ value:String)->some View{Button{history=value;confirm=false}label:{HStack(spacing:14){Image(systemName:icon).font(.title2).frame(width:32);VStack(alignment:.leading,spacing:5){Text(title).font(.headline);Text(detail).font(.subheadline).foregroundStyle(.secondary)};Spacer();Image(systemName:"chevron.right").font(.caption.bold()).foregroundStyle(.secondary)}.padding(18).frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:20))}.buttonStyle(.plain).accessibilityLabel(title).accessibilityHint(detail)}
+    func historyOption(_ title:String,_ detail:String,_ icon:String,_ value:String)->some View{Button{history=value;confirm=false}label:{HStack(spacing:14){Image(systemName:icon).font(.title2).frame(width:32);VStack(alignment:.leading,spacing:5){Text(title).font(.headline);Text(detail).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)};Spacer();Image(systemName:"chevron.right").font(.caption.bold()).foregroundStyle(.secondary)}.padding(18).frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:20))}.buttonStyle(.plain).accessibilityLabel(title).accessibilityHint(detail)}
     var members:Set<String>{Set((group.info?.object?["members"]?.array ?? []).compactMap{$0.object?["username"]?.string?.lowercased()})}
     var body:some View{NavigationStack{List{
         Section("Amici non ancora nel gruppo"){
@@ -66,7 +66,7 @@ import SwiftUI
         }
         if !group.status.isEmpty{Text(group.status).font(.footnote).foregroundStyle(.secondary)}
     }.navigationTitle("Aggiungi membri").toolbar{ToolbarItem(placement:.cancellationAction){Button("Chiudi"){dismiss()}}}.sheet(isPresented:$confirm,onDismiss:{if !history.isEmpty{confirmAdd=true}}){NavigationStack{VStack(alignment:.leading,spacing:18){Text("Cronologia per @"+candidate).font(.title2.bold());Text("Scegli cosa potrà vedere nel gruppo.").foregroundStyle(.secondary)
-            historyOption("Tutta la cronologia","Messaggi e allegati, anche precedenti.","clock.arrow.circlepath","all")
+            historyOption("Tutta la cronologia","Anche messaggi e allegati precedenti.","clock.arrow.circlepath","all")
             historyOption("Solo nuovi messaggi","Messaggi e allegati dal suo ingresso.","text.bubble","from_join")
             Text("Nessuno viene aggiunto prima della conferma.").font(.footnote).foregroundStyle(.secondary);Spacer(minLength:0)
         }.padding(24).navigationTitle("Aggiungi membro").navigationBarTitleDisplayMode(.inline).toolbar{ToolbarItem(placement:.cancellationAction){Button("Annulla"){history="";confirm=false}}}}.presentationDetents([.medium]).presentationDragIndicator(.visible)}.alert("Aggiungere @"+candidate+"?",isPresented:$confirmAdd){Button("Aggiungi"){guard ["all","from_join"].contains(history) else{return};Task{if await group.change(id,"members",["username":.string(candidate),"history":.string(history)],store){await social.loadChats(store)}}};Button("Annulla",role:.cancel){history=""}}message:{Text(history=="all" ? "Condividerai anche tutti i messaggi e gli allegati precedenti.":"Vedrà solo i messaggi e gli allegati dal suo ingresso.")}.task{await social.loadFriends(store)}}}
