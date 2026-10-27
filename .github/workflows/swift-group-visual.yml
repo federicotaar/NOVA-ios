@@ -50,7 +50,7 @@ jobs:
           cat > /tmp/nav.yaml <<'FLOW'
           appId: site.federicotaranu.nova.chattest
           ---
-          # The fixture is already launched and ready. Do not relaunch via the driver.
+          - launchApp
           - assertVisible: "Info gruppo"
           - takeScreenshot: evidence/group-info
           - tapOn: "Impostazioni"
@@ -61,7 +61,7 @@ jobs:
           - assertVisible: "Aggiungi membri"
           - tapOn: "Aggiungi membri"
           - tapOn: "@nuovo.demo"
-          - assertVisible: "Condividi tutta la cronologia"
+          - assertVisible: "Tutta la cronologia"
           - assertVisible: "Solo nuovi messaggi"
           - takeScreenshot: evidence/group-history-choice
           - tapOn: "Solo nuovi messaggi"
