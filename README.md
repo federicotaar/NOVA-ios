@@ -119,3 +119,9 @@ La migrazione include il pulsante Nuova chat, giorni del calendario, azioni dei 
 - Authenticated private-image client added with retry/error state. Server media authentication is NOT rolled out: compatibility and authorization hardening remain open.
 - Self-clear client exists but is disabled behind a false server-capability gate until backend rollout. Group settings and backend changes are not deployed. Exact live D1 schema read27October confirmed chat_members composite PK and messages(chat_id,id) index, with zero rows written. No private chat/media rows retrieved.
 - 27.4 remains immutable. No new IPA or version until preview review and remaining acceptance checks. No private screenshots or messages committed.
+
+### Candidate acceptance update, October27 20:29 CET
+- Native voice gate40564743545 passes all five synthetic checks: AVAudioPlayer starts WAV, stop clears, failure is visible, cancelled load rejected, real reviewed account transition rejects old-session bytes. This does not verify an actual user voice note/device and injected loader tests do not test the HTTP transport.
+- Assistant gate40564753018 and social40565355886 pass native keyboard/return interaction. Actual assistant pixels show underlying text refraction near rounded edge. Social fine-detail and clear attachment-circle verification remain pending, not user-approved.
+- Scanner40565442287 actual before/after pixels verify medium sheet opens and foreground Chiudi returns to QR amici. Six rendered synthetic QR cases decode. Simulator camera unavailable; real device camera not verified.
+- New attachment circle now matches clear native field material. Neutral-underlay diagnostic changes synthetic fixture only, leaving production message bubbles unchanged. Generator quote error blocked latest diagnostic runs before app compile; corrected with Python syntax validation. Replacement gates social40569520607 and neutral assistant40569530442 underway. No IPA or backend rollout.
