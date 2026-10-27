@@ -423,6 +423,7 @@ extension NOVAJSON {
     let embedded:Bool
     init(store:NOVASwiftStore,initialDraft:String="",embedded:Bool=false){self.store=store;self.embedded=embedded;_draft=State(initialValue:initialDraft)}
     @State private var draft=""
+    @FocusState private var composerFocused:Bool
     @State private var sending=false
     @State private var status=""
     @State private var generation=0
@@ -461,11 +462,11 @@ extension NOVAJSON {
             .safeAreaInset(edge:.bottom,spacing:0){
                 HStack(alignment:.bottom){
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
-                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").lineLimit(1...6).textFieldStyle(.plain)
+                    TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...6).textFieldStyle(.plain)
                     Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.headline).frame(width:36,height:36)}.buttonStyle(.borderedProminent).buttonBorderShape(.circle).disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                 }.modifier(NOVASwiftComposerSurface()).padding(.horizontal,12).padding(.vertical,8)
                 .frame(maxWidth:.infinity).background(Color(uiColor:.systemBackground))
-            }.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
+            }.toolbar{ToolbarItemGroup(placement:.keyboard){Spacer();Button("Fine tastiera"){composerFocused=false}}}.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
     }
     private func loadPhoto(_ item:PhotosPickerItem?){photoEpoch+=1;let epoch=photoEpoch,expectedOwner=owner;Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),epoch==photoEpoch,owner==expectedOwner,owner==store.archive?.owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};photoDraft="data:image/jpeg;base64,"+jpeg.base64EncodedString()}}
 
