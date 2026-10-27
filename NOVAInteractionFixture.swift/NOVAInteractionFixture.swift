@@ -144,3 +144,15 @@ import UIKit
  try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("bug-checks.json"))
  let page=UIHostingController(rootView:NOVABugFixture());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor func visualSwiftReportedBugsReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftReportedBugsReady(web,attempt+1)}};return}
+ let tz=TimeZone(identifier:"Europe/Rome")!;var cal=Calendar(identifier:.gregorian);cal.timeZone=tz
+ let date=cal.date(from:DateComponents(year:2026,month:10,day:30,hour:0))!
+ let tasks:[NOVAJSON]=[.object(["id":.string("a"),"title":.string("Compito del 30"),"due":.string("2026-10-30T08:00"),"done":.number(0)]),.object(["id":.string("b"),"title":.string("Altro giorno"),"due":.string("2026-10-29T08:00")])]
+ let oldKey=date.formatted(.iso8601.year().month().day().dateSeparator(.dash))
+ let checks:[String:Bool]=["localRomeKey":NOVASwiftTaskDay.key(date,timeZone:tz)=="2026-10-30","oldUTCFilterLosesTask":oldKey != "2026-10-30","romeGetsCorrectTask":NOVASwiftTaskDay.tasks(tasks,on:date,timeZone:tz).map{$0.object?["id"]?.string ?? ""}==["a"],"emptyDayIsEmpty":NOVASwiftTaskDay.tasks(tasks,on:cal.date(byAdding:.day,value:1,to:date)!,timeZone:tz).isEmpty]
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("reported-bug-checks.json"))
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("reported-bug-fixture"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"w\":{\"wx\":0,\"sp\":0,\"task\":0,\"nx\":0},\"tasks\":[{\"id\":\"a\",\"title\":\"Compito del 30\",\"due\":\"2026-10-30T08:00\",\"done\":0},{\"id\":\"b\",\"title\":\"Altro giorno\",\"due\":\"2026-10-29T08:00\",\"done\":0}]}"])}
+ let page=UIHostingController(rootView:NOVASwiftDashboard(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
