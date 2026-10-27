@@ -122,5 +122,5 @@ jobs:
             exit 0
           fi
           cp "$IPA" "NOVA-$BUILD_TAG.ipa"
-          gh release create "$REL" --latest --title "NOVA $BUILD_TAG TEST Swift (unsigned ipa)" --notes "Versione di prova Swift, non versione definitiva. Importa i dati solo dopo conferma, senza cancellare memoria precedente e con copia di recupero. Installa sopra la stessa app senza eliminarla. Verifiche iPhone fisico, servizi reali, Face ID e background ancora richieste."
+          gh release create "$REL" --latest --title "NOVA $BUILD_TAG TEST Swift (unsigned ipa)" --notes "[NOVA_UPDATE:IMPORTANT] Versione di prova Swift, non versione definitiva. Aggiornamento importante: le vecchie build senza richieste media autenticate devono aggiornare per foto e vocali. La protezione cronologia include gli allegati; le copie già scaricate non possono essere revocate. Importa i dati solo dopo conferma, senza cancellare memoria precedente e con copia di recupero. Installa sopra la stessa app senza eliminarla. Verifiche iPhone fisico, servizi reali, Face ID e background ancora richieste."
           gh release upload "$REL" "$IPA" "NOVA-$BUILD_TAG.ipa"
