@@ -25,10 +25,36 @@ import AVFoundation
     func finish(){recorder?.stop();recording=false;timer?.cancel();timer=nil;if let file=file,let data=try? Data(contentsOf:file),data.count>=500,data.count<=900000{draft=data;status="Vocale in bozza: invia o elimina."}else{draft=nil;status="Registrazione troppo corta o troppo grande."};if let file=file{try? FileManager.default.removeItem(at:file)};file=nil;recorder=nil}
     func cancel(){generation += 1;recorder?.stop();recorder=nil;recording=false;timer?.cancel();timer=nil;draft=nil;if let file=file{try? FileManager.default.removeItem(at:file)};file=nil}
 }
+final class NOVAMediaRedirectGuard:NSObject,URLSessionTaskDelegate {
+    func urlSession(_ session:URLSession,task:URLSessionTask,willPerformHTTPRedirection response:HTTPURLResponse,newRequest request:URLRequest,completionHandler:@escaping(URLRequest?)->Void){guard let url=request.url,url.scheme=="https",url.host=="api.federicotaranu.site",url.path.hasPrefix("/media/") else{completionHandler(nil);return};completionHandler(request)}
+}
 @MainActor final class NOVASwiftVoicePlayback:ObservableObject {
-    private var player:AVPlayer?
-    func play(_ url:URL){player?.pause();try? AVAudioSession.sharedInstance().setCategory(.playback,mode:.default);player=AVPlayer(url:url);player?.play()}
-    func stop(){player?.pause();player=nil}
+    @Published private(set) var status=""
+    @Published private(set) var loading=false
+    private var player:AVAudioPlayer?
+    private var task:Task<Void,Never>?
+    private var generation=0
+    typealias Loader=(URL,NOVASession) async throws -> Data
+    private let loader:Loader
+    init(loader:Loader?=nil){self.loader=loader ?? {url,session in
+        guard url.scheme=="https",url.host=="api.federicotaranu.site",url.path.hasPrefix("/media/") else{throw NOVAServiceError.invalidResponse}
+        var request=URLRequest(url:url);request.timeoutInterval=25;request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("Bearer "+session.token,forHTTPHeaderField:"Authorization")
+        let config=URLSessionConfiguration.ephemeral;let source=URLSession(configuration:config,delegate:NOVAMediaRedirectGuard(),delegateQueue:nil);defer{source.invalidateAndCancel()}
+        let (data,response)=try await source.data(for:request)
+        guard let http=response as? HTTPURLResponse,(200..<300).contains(http.statusCode),data.count>=100,data.count<=1_050_000 else{throw NOVAServiceError.invalidResponse};return data
+    }}
+    func play(_ url:URL,_ store:NOVASwiftStore){
+        stop();guard let owner=store.archive.flatMap({NOVASession($0.active)}) else{status="Accedi per ascoltare il vocale.";return}
+        let expected=generation;loading=true;status="Caricamento vocale…"
+        task=Task{do{
+            let bytes=try await loader(url,owner)
+            guard !Task.isCancelled,expected==generation,store.archive.flatMap({NOVASession($0.active)})==owner else{if expected==generation{loading=false;status=""};return}
+            let audio=AVAudioSession.sharedInstance();try audio.setCategory(.playback,mode:.default);try audio.setActive(true)
+            let candidate=try AVAudioPlayer(data:bytes);candidate.prepareToPlay();guard candidate.play() else{throw NOVAServiceError.invalidResponse};player=candidate;loading=false;status="Riproduzione vocale."
+        }catch{guard !Task.isCancelled,expected==generation else{return};loading=false;status="Vocale non riprodotto. Controlla la connessione e riprova."}}
+    }
+    func stop(){generation+=1;task?.cancel();task=nil;player?.stop();player=nil;loading=false;status=""}
 }
 @MainActor struct NOVASwiftChatCreation:View {
     @ObservedObject var store:NOVASwiftStore
