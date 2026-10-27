@@ -23,7 +23,7 @@ struct NOVASwiftAssistantGlass:ViewModifier {
     let circle:Bool
     @ViewBuilder func body(content:Content)->some View {
         if #available(iOS 26.0,*){
-            if circle{content.glassEffect(.regular.interactive(),in:.circle)}else{content.glassEffect(.regular.tint(Color.white.opacity(0.12)).interactive(),in:.rect(cornerRadius:22))}
+            if circle{content.glassEffect(.regular.interactive(),in:.circle)}else{content.glassEffect(.clear.interactive(),in:.rect(cornerRadius:22))}
         }else{
             if circle{content.background(.regularMaterial,in:Circle())}else{content.background(.regularMaterial,in:RoundedRectangle(cornerRadius:22))}
         }
