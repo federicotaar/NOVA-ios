@@ -767,5 +767,5 @@ if os.environ.get("NOVA_QR_INTERACTION")=="1":
 if os.environ.get("NOVA_GROUP_VISUAL")=="1":
     p=Path("/tmp/NOVAProductionVisual.swift")
     s=p.read_text().replace("visualSwiftOwnedReady(web,0)","visualSwiftGroupReady(web,0)",1)
-    s+="\n"+Path("NOVAGroupVisualFixture.swift").read_text()
+    s+="\n"+Path("NOVAGroupVisualFixture.swift/NOVAGroupVisualFixture.swift").read_text()
     p.write_text(s)
