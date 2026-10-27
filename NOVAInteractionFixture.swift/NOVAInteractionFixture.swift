@@ -131,3 +131,16 @@ import UIKit
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftLegalInteractionReady(web,attempt+1)}};return}
  let page=UIHostingController(rootView:NavigationStack{NOVASwiftLegal()});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor struct NOVABugFixture:View{
+ var body:some View{NavigationStack{VStack(spacing:20){Text("NOVA demo sintetica").font(.title);Text("Nessun dato personale nel fixture.");Button("Simula segnalazione"){NotificationCenter.default.post(name:.novaBugReport,object:nil)}}.navigationTitle("NOVA")}.modifier(NOVABugReportHost(enabled:true))}
+}
+@MainActor func visualSwiftBugInteractionReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftBugInteractionReady(web,attempt+1)}};return}
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+ var seen=false;let token=NotificationCenter.default.addObserver(forName:.novaBugReport,object:nil,queue:.main){_ in seen=true}
+ let control=NOVAShakeHostingController(rootView:Text("Synthetic"));control.motionEnded(.motionShake,with:nil);NotificationCenter.default.removeObserver(token)
+ let secure=UITextField();secure.isSecureTextEntry=true;let checks=["shakeHandlerPostsReport":seen,"secureInputSuppressed":NOVABugReportModel.hasSecureField(secure),"approvedRecipient":NOVABugReportModel.recipient=="novasupporthelp@gmail.com"]
+ try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("bug-checks.json"))
+ let page=UIHostingController(rootView:NOVABugFixture());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
