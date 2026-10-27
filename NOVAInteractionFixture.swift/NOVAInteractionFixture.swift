@@ -171,3 +171,19 @@ import UIKit
  let social=NOVASwiftSocial{_,_,_,_,_ in .object(["chats":.array([])])}
  let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:2,chatSocial:social,deviceServices:false));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor func visualSwiftPerformanceReady(_ web:WKWebView,_ attempt:Int){
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+ Task{@MainActor in
+  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("latency-fixture"))
+  try? store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"synthetic@test.invalid\",\"token\":\"synthetic-only\"}}"])
+  let people=NOVASwiftPeople{_,path,_,_,query in try await Task.sleep(for:.milliseconds(300));return .object(["ok":.bool(true),path=="friends" ? "friends":"users":.array([.object(["username":.string(query.first?.value ?? "friend")])])])}
+  let start=Date();await people.loadOverview(store);let elapsed=Date().timeIntervalSince(start)
+  var checks=["independentReadsOverlap":elapsed<0.75,"allListsLoaded":people.friends.count==1 && people.followers.count==1 && people.following.count==1]
+  let pending=Task{@MainActor in await people.loadOverview(store)}
+  try? await Task.sleep(for:.milliseconds(50));people.reset();try? store.update(owner:store.archive!.owner){$0["acct"] = .object(["email":.string("other@test.invalid"),"token":.string("other-synthetic")])};await pending.value
+  checks["oldAccountResultsRejected"]=people.friends.isEmpty && people.followers.isEmpty && people.following.isEmpty
+  try? JSONSerialization.data(withJSONObject:["checks":checks,"syntheticSeconds":elapsed]).write(to:dir.appendingPathComponent("performance-checks.json"))
+  try? Data().write(to:dir.appendingPathComponent("interaction-ready"))
+ }
+}
