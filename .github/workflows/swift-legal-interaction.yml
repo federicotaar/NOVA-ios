@@ -60,7 +60,8 @@ jobs:
           - swipe:
               direction: UP
           - takeScreenshot: evidence/swift-legal-privacy-scroll
-          - back
+          - tapOn:
+              point: "9%,10%"
           - tapOn: "Licenze e crediti"
           - assertVisible: "Codice NOVA"
           - takeScreenshot: evidence/swift-legal-licenses
