@@ -57,8 +57,7 @@ jobs:
           - waitForAnimationToEnd
           - takeScreenshot: evidence/swift-qr-half
           - tapOn:
-              text: "Chiudi"
-              index: 1
+              point: "86%,52%"
           - waitForAnimationToEnd
           - assertVisible: "@nova.demo"
           - takeScreenshot: evidence/swift-qr-closed
