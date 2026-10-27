@@ -463,7 +463,7 @@ extension NOVAJSON {
                 HStack(alignment:.bottom,spacing:10){
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
                     HStack(alignment:.bottom,spacing:8){
-                        TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).frame(minHeight:28)
+                        TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).shadow(color:.black.opacity(0.85),radius:2,x:0,y:1).frame(minHeight:28)
                         Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.secondary:Color.white).frame(width:28,height:28).background(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.clear:Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                     }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
                 }.padding(.horizontal,12).padding(.vertical,8)
@@ -699,7 +699,7 @@ extension NOVAJSON {
                     if o["deleted"]?.flag==true{Text("Messaggio eliminato").italic().foregroundStyle(own ? .white.opacity(0.8):.secondary)}else{
                         if !own{Text(social.senders[o["sender"]?.string ?? ""]?.string ?? "Amico").font(.caption).foregroundStyle(.secondary)}
                         if let key=o["media_key"]?.string,let url=mediaURL(key){
-                            if o["kind"]?.string=="image"{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}.frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
+                            if o["kind"]?.string=="image"{NOVASwiftPrivateImage(url:url,store:store).frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
                             if o["kind"]?.string=="voice"{HStack{Button{playback.play(url,store)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
                         }
                         if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled).fixedSize(horizontal:false,vertical:true)}
@@ -726,7 +726,7 @@ extension NOVAJSON {
         .overlay(alignment:.bottom){HStack(alignment:.bottom,spacing:10){
                 PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
                 HStack(alignment:.bottom,spacing:8){
-                    TextField("Messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftConversationComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).frame(minHeight:28).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
+                    TextField("Messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftConversationComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).shadow(color:.black.opacity(0.85),radius:2,x:0,y:1).frame(minHeight:28).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
                     if draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || voice.recording{
                         Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"waveform").font(.system(size:19)).frame(width:28,height:28)}.buttonStyle(.plain).accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
                     }else{
