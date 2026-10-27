@@ -756,3 +756,10 @@ if os.environ.get("NOVA_NEUTRAL_GLASS")=="1":
     p=Path("/tmp/NOVAProductionVisual.swift")
     s=p.read_text().replace('Color.blue.opacity(0.1):Color.secondary.opacity(0.08)', 'Color.secondary.opacity(0.08):Color.secondary.opacity(0.08)')
     p.write_text(s)
+
+if os.environ.get("NOVA_QR_INTERACTION")=="1":
+    p=Path("/tmp/NOVAProductionVisual.swift")
+    s=p.read_text().replace('layer.videoGravity = .resizeAspectFill;view.layer.insertSublayer(layer,at:0);preview=layer', 'layer.videoGravity = .resizeAspectFill;view.layer.insertSublayer(layer,at:0);preview=layer;let synthetic=CALayer();synthetic.contents=novaScannerGeometryImage().cgImage;synthetic.contentsGravity = .resizeAspectFill;synthetic.name="syntheticCameraGeometry";view.layer.insertSublayer(synthetic,at:1)')
+    s=s.replace('preview?.frame=view.bounds;CATransaction.commit()', 'preview?.frame=view.bounds;view.layer.sublayers?.first(where:{$0.name=="syntheticCameraGeometry"})?.frame=view.bounds;CATransaction.commit()')
+    s+='\nfunc novaScannerGeometryImage()->UIImage{UIGraphicsImageRenderer(size:CGSize(width:400,height:500)).image{c in UIColor.darkGray.setFill();c.fill(CGRect(x:0,y:0,width:400,height:500));for y in 0..<10{for x in 0..<8{((x+y)%2==0 ? UIColor.systemTeal:UIColor.systemIndigo).setFill();c.fill(CGRect(x:x*50,y:y*50,width:50,height:50))}};("TEST GEOMETRIA - NON CAMERA" as NSString).draw(at:CGPoint(x:14,y:250),withAttributes:[.font:UIFont.boldSystemFont(ofSize:17),.foregroundColor:UIColor.white])}}\n'
+    p.write_text(s)
