@@ -742,6 +742,7 @@ extension NOVAJSON {
                 TextEditor(text:text("agentMd")).frame(minHeight:100)
                 Text("Chiedi prima mostra la conferma per ogni azione. Sempre può aggiungere compiti e promemoria o aprire schermate senza chiedere; Mai disattiva le nuove azioni.").font(.footnote).foregroundStyle(.secondary)
             }
+            Section("Informazioni"){NavigationLink("Termini, privacy e licenze (bozza)"){NOVASwiftLegal()}}
             Section("Privacy"){
                 NavigationLink("Blocco app e notifiche"){NOVASwiftDeviceSettings()}
                 Toggle("Avvisi automatici compiti",isOn:Binding(get:{store.archive?.active.object?["hwn"]?.flag ?? true},set:{on in do{try store.update(owner:store.archive?.owner ?? ""){$0["hwn"] = .number(on ? 1:0)};UserDefaults.standard.set(on,forKey:"nova.hwn");if !on{Task{let center=UNUserNotificationCenter.current();let pending=await center.pendingNotificationRequests();center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("hw.")||$0.hasPrefix("plan.")})}}}catch{self.error="Scelta non salvata."}}))
