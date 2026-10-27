@@ -187,3 +187,14 @@ import UIKit
   try? Data().write(to:dir.appendingPathComponent("interaction-ready"))
  }
 }
+
+@MainActor func visualSwiftReleaseReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftReleaseReady(web,attempt+1)}};return}
+ let sample:[[String:Any]]=[["tag_name":"v2026.10.27.3","draft":false,"prerelease":true,"html_url":"https://github.com/federicotaranudev/NOVA-ios/releases/tag/v2026.10.27.3","assets":[["name":"NOVA-2026.10.27.3.ipa","size":100,"browser_download_url":"https://github.com/federicotaranudev/NOVA-ios/releases/download/v2026.10.27.3/NOVA-2026.10.27.3.ipa"]]]]
+ let candidate=NOVASwiftRelease.select(sample,current:"2026.10.27.2")!
+ var invalid=sample;invalid[0]["assets"]=[]
+ var draft=sample;draft[0]["draft"]=true
+ let checks=["newerIPAFound":candidate.version=="2026.10.27.3","sameVersionNoNotice":NOVASwiftRelease.select(sample,current:"2026.10.27.3")==nil,"noAssetNoNotice":NOVASwiftRelease.select(invalid,current:"2026.10.27.2")==nil,"draftNoNotice":NOVASwiftRelease.select(draft,current:"2026.10.27.2")==nil,"numericNotLexical":NOVASwiftRelease.newer("2026.10.27.10",than:"2026.10.27.9")]
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("release-checks.json"))
+ let page=UIHostingController(rootView:VStack{NOVASwiftReleaseBanner(release:candidate);Spacer();Text("Home dimostrativa: nessun blocco dell'app");Spacer()}.preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
