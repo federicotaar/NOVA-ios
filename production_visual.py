@@ -741,7 +741,7 @@ if os.environ.get("NOVA_GROUP_ALERT")=="1":
 
 if os.environ.get("NOVA_CHAT_INTERACTION")=="1":
     p=Path("/tmp/NOVAProductionVisual.swift")
-    s=p.read_text().replace('AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}', 'Group{if url.absoluteString.contains("synthetic-color-grid"){Image(uiImage:novaSyntheticGlassImage()).resizable().scaledToFit()}else{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}}}')
+    s=p.read_text().replace('NOVASwiftPrivateImage(url:url,store:store)', 'Group{if url.absoluteString.contains("synthetic-color-grid"){Image(uiImage:novaSyntheticGlassImage()).resizable().scaledToFit()}else{AsyncImage(url:url){image in image.resizable().scaledToFit()}placeholder:{ProgressView()}}}')
     s+="\nfunc novaSyntheticGlassImage()->UIImage{UIGraphicsImageRenderer(size:CGSize(width:320,height:260)).image{c in for y in 0..<5{for x in 0..<6{[UIColor.systemBlue,UIColor.systemPink,UIColor.systemYellow,UIColor.systemGreen,UIColor.systemOrange,UIColor.systemPurple][(x+y)%6].setFill();c.fill(CGRect(x:x*54,y:y*52,width:54,height:52))}}}}\n"
     p.write_text(s)
 
