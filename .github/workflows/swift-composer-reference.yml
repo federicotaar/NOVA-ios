@@ -56,10 +56,10 @@ jobs:
           - launchApp
           - tapOn: "Assistente AI"
           - assertVisible:
-              id: "swiftAssistantComposer"
+              text: "Scrivi un messaggio"
           - takeScreenshot: evidence/composer-push-empty
           - tapOn:
-              id: "swiftAssistantComposer"
+              text: "Scrivi un messaggio"
           - inputText: "Bozza sintetica leggibile senza invio. Un testo piu lungo per verificare le righe multiple."
           - takeScreenshot: evidence/composer-push-typing
           - tapOn: "Fine tastiera"
