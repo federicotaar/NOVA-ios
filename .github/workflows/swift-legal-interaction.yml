@@ -65,6 +65,13 @@ jobs:
           - tapOn: "Licenze e crediti"
           - assertVisible: "Codice NOVA"
           - takeScreenshot: evidence/swift-legal-licenses
+          - tapOn:
+              point: "9%,10%"
+          - scrollUntilVisible:
+              element:
+                text: "novasupporthelp@gmail.com"
+              direction: DOWN
+          - takeScreenshot: evidence/swift-legal-support
           FLOW
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
           xcrun simctl io "$UDID" recordVideo --codec=h264 evidence/nav-real-drag.mp4 >/tmp/nav-video.log 2>&1 &
