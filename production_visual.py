@@ -769,3 +769,15 @@ if os.environ.get("NOVA_GROUP_VISUAL")=="1":
     s=p.read_text().replace("visualSwiftOwnedReady(web,0)","visualSwiftGroupReady(web,0)",1)
     s+="\n"+Path("NOVAGroupVisualFixture.swift/NOVAGroupVisualFixture.swift").read_text()
     p.write_text(s)
+
+if os.environ.get("NOVA_SETUP_MOTION")=="1":
+    p=Path("/tmp/NOVAProductionVisual.swift")
+    s=p.read_text().replace("visualSwiftOwnedReady(web,0)","visualSwiftSetupMotionReady(web,0)",1)
+    s+=r'''
+@MainActor func visualSwiftSetupMotionReady(_ web:WKWebView,_ attempt:Int){
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("setup-motion-synthetic"));try? store.importOnce(["nova.v1":"{}"])
+ let page=UIHostingController(rootView:NOVASwiftWelcome(store:store).preferredColorScheme(.light));page.modalPresentationStyle = .fullScreen
+ guard let root=web.window?.rootViewController else{return};root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
+'''
+    p.write_text(s)
