@@ -25,6 +25,7 @@ struct NOVASwiftLegal:View {
  Section{Label("BOZZA DA APPROVARE",systemImage:"pencil.circle").font(.subheadline.bold()).foregroundStyle(.orange);Text("Questi testi sono in revisione. Non sono termini attivi né un’informativa definitiva; non raccolgono accettazioni e non cambiano permessi o dati.").font(.footnote)}
  Section("Documenti"){ForEach(NOVALegalDraft.documents){document in NavigationLink{NOVASwiftLegalDetail(document:document)}label:{Label(document.title,systemImage:document.symbol)}}}
  Section("Testi originali componenti"){ForEach(NOVALegalDraft.notices){document in NavigationLink{NOVASwiftLegalDetail(document:document)}label:{Text(document.title)}}}
+ Section("Supporto"){Link("novasupporthelp@gmail.com",destination:URL(string:"mailto:novasupporthelp@gmail.com")!);Text("Contatto di supporto indicato dal gestore. Il titolare e il contatto per esercitare i diritti privacy restano da confermare.").font(.footnote).foregroundStyle(.secondary)}
  Section("Prima della pubblicazione"){Text("Da confermare: gestore e contatto pubblico, destinatari ed età, licenza NOVA, basi giuridiche, backend e fornitori, conservazione e cancellazione, gestione abusi e richieste privacy.").font(.footnote);Text("Revisione del 27 ottobre 2026. Non è una data di entrata in vigore.").font(.caption).foregroundStyle(.secondary)}
  }.navigationTitle("Informazioni legali").environment(\.locale,Locale(identifier:"it_IT"))}
 }
