@@ -68,6 +68,7 @@ jobs:
               id: "swiftOwnedNavigation"
           - takeScreenshot: evidence/swift-chat-keyboard
           - tapOn: "Fine tastiera"
+          - waitForAnimationToEnd
           - takeScreenshot: evidence/swift-chat-dismiss
           - tapOn:
               id: "swiftChatBack"
