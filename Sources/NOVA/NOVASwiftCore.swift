@@ -468,7 +468,7 @@ extension NOVAJSON {
                     }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
                 }.padding(.horizontal,12).padding(.vertical,8)
                 .frame(maxWidth:.infinity).background(Color(uiColor:.systemBackground))
-            }.toolbar{ToolbarItemGroup(placement:.keyboard){Spacer();Button("Fine tastiera"){composerFocused=false}}}.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
+            }.toolbar{ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}}}.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
     }
     private func loadPhoto(_ item:PhotosPickerItem?){photoEpoch+=1;let epoch=photoEpoch,expectedOwner=owner;Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),epoch==photoEpoch,owner==expectedOwner,owner==store.archive?.owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};photoDraft="data:image/jpeg;base64,"+jpeg.base64EncodedString()}}
 
@@ -714,7 +714,7 @@ extension NOVAJSON {
                     }
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
             }.padding(.horizontal,12).padding(.vertical,8).background(Color(uiColor:.systemBackground))
-        }.frame(maxWidth:.infinity,maxHeight:.infinity).navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItemGroup(placement:.keyboard){Spacer();Button("Fine tastiera"){composerFocused=false}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
+        }.frame(maxWidth:.infinity,maxHeight:.infinity).navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .task{await social.open(id,store)}
