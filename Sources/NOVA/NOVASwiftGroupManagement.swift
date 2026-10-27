@@ -31,11 +31,12 @@ import SwiftUI
     @Environment(\.dismiss) private var dismiss
     @State private var add=false
     @State private var settings=false
+    @State private var section="Membri"
     init(id:String,store:NOVASwiftStore,social:NOVASwiftSocial,group:NOVASwiftGroupManagement?=nil){self.id=id;self.store=store;self.social=social;_group=StateObject(wrappedValue:group ?? NOVASwiftGroupManagement())}
     var body:some View {
         NavigationStack{List{
-            Section{VStack(spacing:12){Image(systemName:"person.3.fill").font(.system(size:38)).frame(width:88,height:88).background(.quaternary,in:Circle());Text(group.info?.object?["title"]?.string ?? "Gruppo").font(.title.bold());Text("\(group.info?.object?["members"]?.array.count ?? 0) membri").foregroundStyle(.secondary)}.frame(maxWidth:.infinity).padding(.vertical)}
-            Section{Button{settings=true}label:{Label("Impostazioni",systemImage:"gearshape")}.accessibilityIdentifier("swiftGroupSettings")}
+            Section{VStack(spacing:12){Image(systemName:"person.3.fill").font(.system(size:46)).frame(width:100,height:100).background(.quaternary,in:Circle());Text(group.info?.object?["title"]?.string ?? "Gruppo").font(.title.bold());Text("Gruppo · \(group.info?.object?["members"]?.array.count ?? 0) membri").foregroundStyle(.secondary)}.frame(maxWidth:.infinity).padding(.vertical)}
+            Section{HStack{Button("Membri"){section="Membri"}.buttonStyle(.bordered);Spacer();Button("Impostazioni"){settings=true}.buttonStyle(.bordered).accessibilityIdentifier("swiftGroupSettings")}}
             Section("Membri"){
                 if group.allowed("add_members"){Button{add=true}label:{Label("Aggiungi membri",systemImage:"person.badge.plus")}.accessibilityIdentifier("swiftGroupAddMembers")}
                 ForEach(Array((group.info?.object?["members"]?.array ?? []).enumerated()),id:\.offset){_,member in
