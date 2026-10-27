@@ -111,3 +111,11 @@ I pulsanti nativi rispettano la dimensione del testo del controllo originale e r
 La migrazione include il pulsante Nuova chat, giorni del calendario, azioni dei compiti, scelte a chip, reazioni e pulsanti testuali. Le righe chat con foto e anteprima conservano il contenuto originale: la loro presentazione resta da verificare separatamente. Nessun bersaglio di tocco, conferma o permesso viene sostituito.
 
 
+
+## Candidate after 2026.10.27.4 TEST, not yet packaged
+- Compact assistant/social composer keeps 44pt minimum, 22pt corners and four-line draft cap. Clear native glass replaces the isolating tray; real synthetic-photo pixels show transparency and text-shadow readability. Lens-like corner refraction remains under review, not user-approved. Native glass controls now share a GlassEffectContainer sampling region. iOS before26 uses a material fallback, not native Liquid Glass.
+- QR camera sheet is medium-height with visible close action. Simulator pixels confirm height; real camera access is unavailable there. Foreground close acceptance remains in progress.
+- Voice playback downloads validated same-origin media with Bearer session, ephemeral cache policy, MIME/status checks and streaming decoded-byte cap1,050,000, then activates AVAudioSession and AVAudioPlayer. Native synthetic WAV start/stop/error/cancel checks passed. Account-transition fixture corrected to use the real reviewed account transaction rather than a rejected ordinary update; rerun pending. No claim that the former playback mechanism was the proven root cause.
+- Authenticated private-image client added with retry/error state. Server media authentication is NOT rolled out: compatibility and authorization hardening remain open.
+- Self-clear client exists but is disabled behind a false server-capability gate until backend rollout. Group settings and backend changes are not deployed. Exact live D1 schema read27October confirmed chat_members composite PK and messages(chat_id,id) index, with zero rows written. No private chat/media rows retrieved.
+- 27.4 remains immutable. No new IPA or version until preview review and remaining acceptance checks. No private screenshots or messages committed.
