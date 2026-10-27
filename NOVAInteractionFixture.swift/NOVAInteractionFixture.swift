@@ -218,3 +218,18 @@ import UIKit
  let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:2,chatSocial:NOVASwiftSocial{_,_,_,_,_ in .object(["ok":.bool(true),"chats":.array([])])},deviceServices:false,groupAlertModel:alerts).preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
  }
 }
+
+@MainActor func visualSwiftPlaybackReady(_ web:WKWebView,_ attempt:Int){
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+ Task{@MainActor in
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("voice-play-fixture"));try? store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"synthetic@test.invalid\",\"token\":\"synthetic-only\"}}"])
+ var wave=Data();func text(_ s:String){wave.append(Data(s.utf8))};func num(_ x:UInt32,_ count:Int){for n in 0..<count{wave.append(UInt8((x >> (8*n))&255))}}
+ let samples=22050;text("RIFF");num(UInt32(36+samples*2),4);text("WAVEfmt ");num(16,4);num(1,2);num(1,2);num(22050,4);num(44100,4);num(2,2);num(16,2);text("data");num(UInt32(samples*2),4);for n in 0..<samples{let sample=Int16(sin(Double(n)*2*Double.pi*440/22050)*3000);num(UInt32(UInt16(bitPattern:sample)),2)}
+ let url=URL(string:"https://api.federicotaranu.site/media/synthetic")!
+ let playback=NOVASwiftVoicePlayback{_,_ in wave};playback.play(url,store);try? await Task.sleep(for:.milliseconds(200));var checks=["validAudioStarts":playback.status=="Riproduzione vocale." && !playback.loading];playback.stop();checks["stopClearsState"]=playback.status.isEmpty
+ let failing=NOVASwiftVoicePlayback{_,_ in throw NOVAServiceError.invalidResponse};failing.play(url,store);try? await Task.sleep(for:.milliseconds(100));checks["failureVisible"]=failing.status.contains("non riprodotto") && !failing.loading
+ let delayed=NOVASwiftVoicePlayback{_,_ in try await Task.sleep(for:.milliseconds(200));return wave};delayed.play(url,store);delayed.stop();try? await Task.sleep(for:.milliseconds(300));checks["cancelRejectsReply"]=delayed.status.isEmpty
+ delayed.play(url,store);try? store.update(owner:store.archive!.owner){$0["acct"] = .object(["email":.string("other@test.invalid"),"token":.string("other")])};try? await Task.sleep(for:.milliseconds(300));checks["oldAccountNeverPlays"]=delayed.status != "Riproduzione vocale."
+ try? JSONSerialization.data(withJSONObject:["checks":checks]).write(to:dir.appendingPathComponent("performance-checks.json"));try? Data().write(to:dir.appendingPathComponent("interaction-ready"))
+ }
+}
