@@ -50,7 +50,7 @@ jobs:
           cat > /tmp/nav.yaml <<'FLOW'
           appId: site.federicotaranu.nova.chattest
           ---
-          # The fixture is already launched and ready. Do not relaunch via the driver.
+          - launchApp
           - assertVisible: "Inserisci la tua email"
           - takeScreenshot: evidence/setup-email
           - tapOn: "Avanti / Salta"
