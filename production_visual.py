@@ -750,3 +750,9 @@ if os.environ.get("NOVA_PLAYBACK")=="1":
     s=p.read_text().replace("visualSwiftOwnedReady(web,0)","visualSwiftPlaybackReady(web,0)",1)
     s+="\n"+Path("NOVAInteractionFixture.swift/NOVAInteractionFixture.swift").read_text()
     p.write_text(s)
+
+# Diagnostic only: compare the same native clear glass over a neutral assistant bubble.
+if os.environ.get("NOVA_NEUTRAL_GLASS")=="1":
+    p=Path("/tmp/NOVAProductionVisual.swift")
+    s=p.read_text().replace('Color.blue.opacity(0.1):Color.secondary.opacity(0.08)', 'Color.secondary.opacity(0.08):Color.secondary.opacity(0.08)')
+    p.write_text(s)
