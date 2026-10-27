@@ -732,3 +732,9 @@ if os.environ.get("NOVA_RELEASE_NOTICE")=="1":
     s=p.read_text().replace("visualSwiftOwnedReady(web,0)","visualSwiftReleaseReady(web,0)",1)
     s+="\n"+Path("NOVAInteractionFixture.swift/NOVAInteractionFixture.swift").read_text()
     p.write_text(s)
+
+if os.environ.get("NOVA_GROUP_ALERT")=="1":
+    p=Path("/tmp/NOVAProductionVisual.swift")
+    s=p.read_text().replace("visualSwiftOwnedReady(web,0)","visualSwiftGroupAlertReady(web,0)",1)
+    s+="\n"+Path("NOVAInteractionFixture.swift/NOVAInteractionFixture.swift").read_text()
+    p.write_text(s)
