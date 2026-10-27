@@ -17,3 +17,15 @@ if phase=="start"{coordinator.start=coordinator.parent.selected;coordinator.trac
 struct NOVASwiftComposerSurface:ViewModifier {
     func body(content:Content)->some View{if #available(iOS 26.0,*){content.padding(12).glassEffect(.regular.interactive(),in:.capsule)}else{content.padding(12).background(.regularMaterial,in:Capsule())}}
 }
+
+// The assistant uses a slim field and a separate attachment control, not one large capsule.
+struct NOVASwiftAssistantGlass:ViewModifier {
+    let circle:Bool
+    @ViewBuilder func body(content:Content)->some View {
+        if #available(iOS 26.0,*){
+            if circle{content.glassEffect(.regular.interactive(),in:.circle)}else{content.glassEffect(.regular.interactive(),in:.rect(cornerRadius:22))}
+        }else{
+            if circle{content.background(.regularMaterial,in:Circle())}else{content.background(.regularMaterial,in:RoundedRectangle(cornerRadius:22))}
+        }
+    }
+}
