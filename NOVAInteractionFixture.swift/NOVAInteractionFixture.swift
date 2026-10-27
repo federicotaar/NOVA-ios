@@ -198,3 +198,23 @@ import UIKit
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("release-checks.json"))
  let page=UIHostingController(rootView:VStack{NOVASwiftReleaseBanner(release:candidate);Spacer();Text("Home dimostrativa: nessun blocco dell'app");Spacer()}.preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor func visualSwiftGroupAlertReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftGroupAlertReady(web,attempt+1)}};return}
+ Task{@MainActor in
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("group-alert-fixture"))
+ try? store.importOnce(["nova.v1":"{\"acct\":{\"email\":\"synthetic@test.invalid\",\"token\":\"synthetic-only\"}}"])
+ var id=10,sender="friend@test.invalid",unread=1,kind="group",delay=false
+ let alerts=NOVASwiftGroupAlerts{_,_,_,_,_ in if delay{try await Task.sleep(for:.milliseconds(200))};return .object(["ok":.bool(true),"chats":.array([.object(["id":.string("syntheticgroup"),"type":.string(kind),"title":.string("Gruppo demo"),"unread":.number(Double(unread)),"last":.object(["id":.number(Double(id)),"sender":.string(sender),"body":.string("Contenuto privato non mostrato nell'avviso")])])])])}
+ await alerts.check(store);var checks=["firstLoadSilent":!alerts.notice]
+ id=11;await alerts.check(store);checks["incomingGroupNotice"]=alerts.notice
+ alerts.dismiss();await alerts.check(store);checks["duplicateSilent"] = !alerts.notice
+ id=12;sender="synthetic@test.invalid";await alerts.check(store);checks["ownMessageSilent"] = !alerts.notice
+ id=13;sender="friend@test.invalid";unread=0;await alerts.check(store);checks["readMessageSilent"] = !alerts.notice
+ kind="dm";id=14;unread=1;await alerts.check(store);checks["directMessageOutsideScope"] = !alerts.notice
+ kind="group";id=15;await alerts.check(store);id=16;delay=true;let pending=Task{@MainActor in await alerts.check(store)};try? await Task.sleep(for:.milliseconds(20));alerts.reset();await pending.value;checks["resetRejectsOldReply"] = !alerts.notice
+ delay=false;await alerts.check(store);id=17;await alerts.check(store)
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:["checks":checks]).write(to:dir.appendingPathComponent("performance-checks.json"))
+ let page=UIHostingController(rootView:VStack{Label("Nuovo messaggio nel gruppo",systemImage:"bubble.left.and.bubble.right.fill").padding(12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:16));Text("Anteprima sintetica. Solo con NOVA attiva.").font(.footnote);Spacer()}.padding().preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ }
+}
