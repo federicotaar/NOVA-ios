@@ -29,3 +29,10 @@ struct NOVASwiftAssistantGlass:ViewModifier {
         }
     }
 }
+
+// Nearby native glass controls share one sampling region without merging shapes.
+struct NOVASwiftComposerGlassGroup:ViewModifier {
+    @ViewBuilder func body(content:Content)->some View {
+        if #available(iOS 26.0,*){GlassEffectContainer(spacing:0){content}}else{content}
+    }
+}
