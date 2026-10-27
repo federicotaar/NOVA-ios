@@ -37,6 +37,8 @@ jobs:
           for i in $(seq 1 45); do [ -f "$CONTAINER/Documents/interaction-ready" ] && break; sleep 1; done
           test -f "$CONTAINER/Documents/interaction-ready" || { xcrun simctl io "$UDID" screenshot evidence/incomplete.png; echo "Swift fixture did not appear"; exit 1; }
           xcrun simctl io "$UDID" screenshot evidence/native-segment-rest.png
+          cp "$CONTAINER/Documents/reported-bug-checks.json" evidence/
+          python3 -c 'import json;d=json.load(open("evidence/reported-bug-checks.json"));assert len(d)==4 and all(d.values()),d'
       - uses: actions/upload-artifact@v4
         with:
           name: NOVA-Swift-reported-rest
@@ -68,7 +70,8 @@ jobs:
           - tapOn: "Compito del 30"
           - tapOn: "Chiedi all'AI"
           - takeScreenshot: evidence/reported-assistant-glass
-          - tapOn: "Scrivi un messaggio"
+          - tapOn:
+              id: "swiftAssistantComposer"
           - inputText: "Bozza sintetica senza invio"
           - takeScreenshot: evidence/reported-assistant-keyboard
           FLOW
