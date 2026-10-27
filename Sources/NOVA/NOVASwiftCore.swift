@@ -450,6 +450,8 @@ extension NOVAJSON {
                 }.padding()}.onChange(of:messages.count){_,_ in if !messages.isEmpty{proxy.scrollTo(messages.count-1,anchor:.bottom)}}}
                 if !status.isEmpty{Text(status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
                 if let photoDraft=photoDraft,let data=Data(base64Encoded:photoDraft.components(separatedBy:",").last ?? ""),let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Rimuovi foto",role:.destructive){self.photoDraft=nil}}}
+
+            }.safeAreaInset(edge:.bottom,spacing:0){
                 HStack(alignment:.bottom){
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"photo")}.accessibilityLabel("Allega foto")
                     TextField("Scrivi un messaggio",text:$draft,axis:.vertical).lineLimit(1...6).textFieldStyle(.plain)
