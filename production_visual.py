@@ -763,3 +763,9 @@ if os.environ.get("NOVA_QR_INTERACTION")=="1":
     s=s.replace('preview?.frame=view.bounds;CATransaction.commit()', 'preview?.frame=view.bounds;view.layer.sublayers?.first(where:{$0.name=="syntheticCameraGeometry"})?.frame=view.bounds;CATransaction.commit()')
     s+='\nfunc novaScannerGeometryImage()->UIImage{UIGraphicsImageRenderer(size:CGSize(width:400,height:500)).image{c in UIColor.darkGray.setFill();c.fill(CGRect(x:0,y:0,width:400,height:500));for y in 0..<10{for x in 0..<8{((x+y)%2==0 ? UIColor.systemTeal:UIColor.systemIndigo).setFill();c.fill(CGRect(x:x*50,y:y*50,width:50,height:50))}};("TEST GEOMETRIA - NON CAMERA" as NSString).draw(at:CGPoint(x:14,y:250),withAttributes:[.font:UIFont.boldSystemFont(ofSize:17),.foregroundColor:UIColor.white])}}\n'
     p.write_text(s)
+
+if os.environ.get("NOVA_GROUP_VISUAL")=="1":
+    p=Path("/tmp/NOVAProductionVisual.swift")
+    s=p.read_text().replace("visualSwiftOwnedReady(web,0)","visualSwiftGroupReady(web,0)",1)
+    s+="\n"+Path("NOVAGroupVisualFixture.swift").read_text()
+    p.write_text(s)
