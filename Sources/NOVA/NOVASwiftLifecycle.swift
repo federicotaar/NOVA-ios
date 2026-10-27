@@ -22,6 +22,8 @@ import UserNotifications
     @ObservedObject var store:NOVASwiftStore
     @Environment(\.dismiss) var dismiss
     @State private var step=0
+    @State private var forward=true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     init(store:NOVASwiftStore,initialStep:Int=0){self.store=store;_step=State(initialValue:max(0,min(15,initialStep)))}
     @State private var name=""
     @State private var status=""
@@ -30,7 +32,9 @@ import UserNotifications
     private let descriptions=["Accedi per ritrovare la configurazione. Puoi anche saltare. Le password dei servizi restano sul telefono.","Uso il nome per salutarti nell'app e nelle risposte dell'assistente.","Gli amici ti trovano con lo username. Il salvataggio del profilo controlla la disponibilita online.","Scegli dove studi, i tuoi punti forti e una foto. Le modifiche al profilo richiedono Salva.","Cerca gratis una canzone e scegli l'anteprima per il tuo profilo.","Auto segue l'impostazione chiaro/scuro del tuo iPhone.","La Home mostra solo le schede che scegli. Puoi cambiare dopo.","Importa compiti, verifiche e voti. Password solo nel Portachiavi, richieste solo a ClasseViva.","I promemoria locali richiedono il permesso di iOS. Gli aggiornamenti in background non sono immediati.","Groq ha un piano gratuito. La chiave resta nel Portachiavi ed e usata solo verso api.groq.com.","Aggiungi o importa una foto, controlla le lezioni e salva. L'orario alimenta i widget.","Crea un'app su developer.spotify.com/dashboard, abilita Web API e usa nova://spotify-callback come Redirect URI. Per i controlli serve Premium.","Autorizza il collegamento sulla pagina ufficiale Spotify. Il collegamento resta sul telefono.","La sequenza cinematografica puo apparire solo la prima volta o a ogni avvio.","Facoltativo: NOVA chiede Face ID o il codice prima di mostrare i dati. L'attivazione richiede la verifica iOS.","Puoi cambiare ogni scelta dalle impostazioni. Nessun permesso o servizio viene attivato semplicemente continuando."]
     func value(_ key:String,_ fallback:String="")->Binding<String>{Binding(get:{store.archive?.active.object?[key]?.string ?? fallback},set:{new in save{$0[key] = .string(new)}})}
     func flag(_ key:String)->Binding<Bool>{Binding(get:{store.archive?.active.object?[key]?.flag==true},set:{on in save{root in root[key] = .number(on ? 1:0);if key=="introEvery",on{root["introOff"] = .number(0)}}})}
-    var body:some View{NavigationStack{VStack(spacing:0){ProgressView(value:Double(step+1),total:Double(titles.count)).padding(.horizontal);Form{
+    private var pageTransition:AnyTransition{reduceMotion ? .opacity:.asymmetric(insertion:.opacity.combined(with:.move(edge:forward ? .trailing:.leading)),removal:.opacity.combined(with:.move(edge:forward ? .leading:.trailing)))}
+    private func move(_ target:Int){forward=target>step;withAnimation(reduceMotion ? .easeOut(duration:0.15):.spring(response:0.5,dampingFraction:0.88)){step=max(0,min(titles.count-1,target))}}
+    var body:some View{NavigationStack{VStack(spacing:0){ProgressView(value:Double(step+1),total:Double(titles.count)).tint(.blue).padding(.horizontal).animation(reduceMotion ? nil:.easeInOut(duration:0.4),value:step);ZStack{Form{
         Section{Text("\(step+1) di \(titles.count)").font(.footnote).foregroundStyle(.secondary);Text(titles[step]).font(.title.bold());Text(descriptions[step]).foregroundStyle(.secondary)}
         Section{switch step{
         case 0:NavigationLink("Accedi o crea account"){NOVASwiftAccountLogin(store:store)}
@@ -45,7 +49,7 @@ import UserNotifications
         default:Button("Apri NOVA"){finish()}.buttonStyle(.borderedProminent)
         }}
         if !status.isEmpty{Text(status).foregroundStyle(.red)}
-    };HStack{Button("Indietro"){step=max(0,step-1)}.disabled(step==0);Spacer();Button(step==titles.count-1 ? "Inizia":"Avanti / Salta"){if step<titles.count-1{step+=1}else{finish()}}.buttonStyle(.borderedProminent)}.padding()}.navigationTitle("NOVA").toolbar{Button("Configura dopo"){finish()}}}.onAppear{if owner.isEmpty{owner=store.archive?.owner ?? ""}}.onChange(of:store.archive?.owner){_,new in owner=new ?? "";status=""}}
+    }.id(step).transition(pageTransition)}.clipped();HStack{Button("Indietro"){move(step-1)}.disabled(step==0);Spacer();Button(step==titles.count-1 ? "Inizia":"Avanti / Salta"){if step<titles.count-1{move(step+1)}else{finish()}}.buttonStyle(.borderedProminent)}.padding()}.navigationTitle("NOVA").toolbar{Button("Configura dopo"){finish()}}}.onAppear{if owner.isEmpty{owner=store.archive?.owner ?? ""}}.onChange(of:store.archive?.owner){_,new in owner=new ?? "";status=""}}
     func save(_ edit:(inout [String:NOVAJSON])->Void){do{try store.update(owner:owner,edit)}catch{status="Impostazioni non salvate. Riprova."}}
     func finish(){guard !owner.isEmpty else{return};save{root in root["done"] = .number(1);root["ob"] = .number(2);root["profDone"] = .number(1)};if status.isEmpty{dismiss()}}
 }
