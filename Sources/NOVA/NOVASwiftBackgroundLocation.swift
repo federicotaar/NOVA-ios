@@ -50,11 +50,11 @@ enum NOVASwiftLivePolicy {
     // Consent never follows cached legacy flags. Server budget remains separately fail-closed.
     static let released=true
     static func consent(_ root:[String:NOVAJSON],background:Bool=false)->Bool {
-        guard released,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string,!session.isEmpty,root["liveConsentV1"]?.string==session else{return false}
+        guard released,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string,!session.isEmpty,root["liveConsentV2"]?.string==session else{return false}
         return !background || root["liveBackgroundConsentV1"]?.string==session
     }
     static func sameStart(root:[String:NOVAJSON],current:NOVASession?,started:NOVASession?,sharing:String)->Bool{guard let current=current,let started=started else{return false};return current==started && root["locSessionToken"]?.string==current.token && root["locSession"]?.string==sharing && consent(root)}
-    static func runtimeAllowed(root:[String:NOVAJSON],current:NOVASession,started:NOVASession?,sharing:String,locallyStarted:Bool,now:Date,deadline:Date?)->Bool{locallyStarted && sameStart(root:root,current:current,started:started,sharing:sharing) && (deadline.map{now<$0} ?? false)}
+    static func runtimeAllowed(root:[String:NOVAJSON],current:NOVASession,started:NOVASession?,sharing:String,locallyStarted:Bool,now:Date,deadline:Date?)->Bool{locallyStarted && sameStart(root:root,current:current,started:started,sharing:sharing)}
     static func upload(now:Date,fix:CLLocation,previous:CLLocation?,sentAt:Date?)->Bool {
         guard fix.horizontalAccuracy>=0,fix.horizontalAccuracy<=200,now.timeIntervalSince(fix.timestamp)>=(-5),now.timeIntervalSince(fix.timestamp)<30 else{return false}
         if let sentAt=sentAt,now.timeIntervalSince(sentAt)<15{return false}
@@ -72,10 +72,11 @@ enum NOVASwiftLivePolicy {
     private var observation:AnyCancellable?
     private var stream:Task<Void,Never>?
     private var upload:Task<Void,Never>?
+    private var resume:Task<Void,Never>?
     private var backgroundSession:CLBackgroundActivitySession?
-    private var timeout:Task<Void,Never>?
-    private var sessionStarted:Date?
-    private var deadline:Date?
+    
+    
+    
     private var locallyStarted=false
     private var startedOwner:NOVASession?
     private var startedSharing=""
@@ -92,50 +93,50 @@ enum NOVASwiftLivePolicy {
     private var active=UIApplication.shared.applicationState == .active
     private var notificationTokens:[NSObjectProtocol]=[]
     private init(){for name in [UIApplication.didBecomeActiveNotification,UIApplication.willResignActiveNotification]{notificationTokens.append(NotificationCenter.default.addObserver(forName:name,object:nil,queue:.main){[weak self] _ in Task{@MainActor in self?.active = name == UIApplication.didBecomeActiveNotification;self?.reconcile()}})}}
-    func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};stop();self.store=store;if !locallyStarted,let archive=store.archive{try? store.update(owner:archive.owner){$0["liveConsentV1"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}};observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
-    func unbind(){locallyStarted=false;deadline=nil;stop();observation=nil;store=nil}
+    func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};stop();self.store=store;restoreEnabledPreference();observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
+    private func restoreEnabledPreference(){guard let archive=store?.archive,let root=archive.active.object,let current=NOVASession(archive.active),NOVASwiftLivePolicy.consent(root),root["locSessionToken"]?.string==current.token else{return};locallyStarted=true;startedOwner=current;startedSharing=root["locSession"]?.string ?? ""}
+    func unbind(){locallyStarted=false;stop();observation=nil;store=nil}
     func choose(_ enabled:Bool,background:Bool=false,_ store:NOVASwiftStore){
         bind(store)
         suspendedSharing=""
         guard let archive=store.archive,let root=archive.active.object,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string else{status="Attiva prima la condivisione.";return}
         if !background{locallyStarted=enabled}
-        if enabled && !background{deadline=Date().addingTimeInterval(600);startedOwner=NOVASession(archive.active);startedSharing=session}
+        if enabled && !background{startedOwner=NOVASession(archive.active);startedSharing=session}
         if background && enabled{guard locallyStarted,NOVASwiftLivePolicy.sameStart(root:root,current:NOVASession(archive.active),started:startedOwner,sharing:startedSharing) else{status="Scegli prima Avvia live.";return}}
         do{try store.update(owner:archive.owner){state in
             if background{state["liveBackgroundConsentV1"] = .string(enabled ? session:"")}
-            else{state["liveConsentV1"] = .string(enabled ? session:"");if !enabled{state["liveBackgroundConsentV1"] = .string("")}}
+            else{state["liveConsentV2"] = .string(enabled ? session:"");if !enabled{state["liveBackgroundConsentV1"] = .string("")}}
         };if enabled{NOVASwiftBackgroundLocation.shared.stop(clear:true);if permission.authorizationStatus == .notDetermined{permission.requestWhenInUseAuthorization()}};reconcile()}catch{status="Scelta live non salvata. Riprova."}
     }
-    func stopNow(){locallyStarted=false;startedOwner=nil;startedSharing="";deadline=nil;suspendedSharing=liveSession;stop();if let store=store,let archive=store.archive{try? store.update(owner:archive.owner){$0["liveConsentV1"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}};status="Live fermato. Nessun nuovo invio live."}
-    private func stop(){timeout?.cancel();timeout=nil;sessionStarted=nil;running=false;generation+=1;stream?.cancel();stream=nil;upload?.cancel();upload=nil;backgroundSession?.invalidate();backgroundSession=nil;owner=nil;liveSession="";runningBackground=false;previous=nil;sentAt=nil;lastSent=nil;retryAfter = .distantPast;failureCount=0}
+    func stopNow(){locallyStarted=false;startedOwner=nil;startedSharing="";suspendedSharing=liveSession;stop();if let store=store,let archive=store.archive{try? store.update(owner:archive.owner){$0["liveConsentV2"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}};status="Live fermato. Nessun nuovo invio live."}
+    private func stop(){resume?.cancel();resume=nil;running=false;generation+=1;stream?.cancel();stream=nil;upload?.cancel();upload=nil;backgroundSession?.invalidate();backgroundSession=nil;owner=nil;liveSession="";runningBackground=false;previous=nil;sentAt=nil;lastSent=nil;retryAfter = .distantPast;failureCount=0}
     private func reconcile(){
         // Crossing an account/token/sharing boundary revokes the local start permanently.
         // Switching back must never resume a previous session without another Start.
-        if locallyStarted,startedOwner != nil{let root=store?.archive?.active.object ?? [:];let current=store?.archive.flatMap{NOVASession($0.active)};if !NOVASwiftLivePolicy.sameStart(root:root,current:current,started:startedOwner,sharing:startedSharing){locallyStarted=false;startedOwner=nil;startedSharing="";deadline=nil;stop();status="Live fermato: account o condivisione cambiati. Scegli Avvia live per ripartire.";return}}
-        if let deadline=deadline,Date()>=deadline{stopNow();status="10 minuti conclusi. Riavvia live solo se vuoi.";return}
-        guard locallyStarted,let store=store,let root=store.archive?.active.object,let session=store.archive.flatMap({NOVASession($0.active)}),NOVASwiftLivePolicy.runtimeAllowed(root:root,current:session,started:startedOwner,sharing:startedSharing,locallyStarted:locallyStarted,now:Date(),deadline:deadline) else{stop();return}
+        if locallyStarted,startedOwner != nil{let root=store?.archive?.active.object ?? [:];let current=store?.archive.flatMap{NOVASession($0.active)};if !NOVASwiftLivePolicy.sameStart(root:root,current:current,started:startedOwner,sharing:startedSharing){locallyStarted=false;startedOwner=nil;startedSharing="";stop();status="Live fermato: account o condivisione cambiati. Scegli Avvia live per ripartire.";return}}
+        guard locallyStarted,let store=store,let root=store.archive?.active.object,let session=store.archive.flatMap({NOVASession($0.active)}),NOVASwiftLivePolicy.runtimeAllowed(root:root,current:session,started:startedOwner,sharing:startedSharing,locallyStarted:locallyStarted,now:Date(),deadline:nil) else{stop();return}
         guard suspendedSharing != root["locSession"]?.string else{return}
-        if let deadline=deadline,Date()>=deadline{stopNow();status="10 minuti conclusi. Riavvia live solo se vuoi.";return}
         let bg=NOVASwiftLivePolicy.consent(root,background:true)
         guard active || bg else{stop();status="Live in pausa: app non attiva.";return}
         if stream != nil,owner==session,liveSession==root["locSession"]?.string,runningBackground==bg{return}
-        // A new background activity must begin in the foreground, never silently after launch.
-        guard !bg || active else{stop();status="Riapri NOVA per riprendere la sessione live in background.";return}
+        // A saved V2 choice can rejoin its outstanding background activity after system relaunch.
+        // The first choice is only written by the foreground confirmation button.
+        guard ![.denied,.restricted].contains(permission.authorizationStatus) else{stop();status="Live abilitato ma posizione non autorizzata. Controlla le impostazioni iOS.";return}
         stop();owner=session;liveSession=root["locSession"]?.string ?? "";runningBackground=bg
         if bg{backgroundSession=CLBackgroundActivitySession()}
-        running=true;sessionStarted=Date();timeout=Task{[weak self] in try? await Task.sleep(for:.seconds(max(0,self?.deadline?.timeIntervalSinceNow ?? 0)));guard !Task.isCancelled else{return};self?.stopNow();self?.status="10 minuti conclusi. Riavvia live solo se vuoi."}
-        status="Live in attesa di una posizione recente. Massimo 10 minuti."
+        running=true
+        status="Live attivo fino a Ferma live. In attesa di una posizione recente."
         stream=Task{[weak self] in
             do{for try await update in CLLocationUpdate.liveUpdates(){
                 guard !Task.isCancelled,let self=self else{break}
                 guard self.owner==session,let current=self.store?.archive?.active.object,NOVASwiftLivePolicy.consent(current),self.store?.archive.flatMap({NOVASession($0.active)})==session else{self.stop();break}
                 if update.isStationary{self.status="Live: dispositivo fermo, aggiornamenti ridotti."}
                 if let fix=update.location{self.receive(fix,session)}
-            }}catch{guard !Task.isCancelled else{return};self?.locallyStarted=false;self?.stop();self?.status="Live interrotto da iOS o posizione non disponibile. Riprova."}
+            }}catch{guard !Task.isCancelled else{return};self?.pauseAndResume(after:60,status:"Live abilitato, in pausa: iOS o posizione non disponibile.")}
         }
     }
+    private func pauseAndResume(after seconds:Double,status message:String){stop();status=message;suspendedSharing=startedSharing;resume=Task{[weak self] in do{try await Task.sleep(for:.seconds(seconds))}catch{return};guard !Task.isCancelled,let self=self else{return};self.suspendedSharing="";self.reconcile()}}
     private func receive(_ fix:CLLocation,_ session:NOVASession){
-        if let deadline=deadline,Date()>=deadline{stopNow();return}
         guard Date()>=retryAfter,upload==nil,NOVASwiftLivePolicy.upload(now:Date(),fix:fix,previous:previous,sentAt:sentAt),let store=store,let root=store.archive?.active.object,NOVASwiftLivePolicy.consent(root),root["locSessionToken"]?.string==session.token,let sharing=root["locSession"]?.string,sharing==liveSession else{return}
         let epoch=generation
         upload=Task{[weak self] in
@@ -145,9 +146,20 @@ enum NOVASwiftLivePolicy {
                 guard result.object?["ok"]?.flag==true else{throw NOVAServiceError.invalidResponse}
                 self.failureCount=0;self.retryAfter = .distantPast;self.previous=fix;self.sentAt=Date();self.lastSent=fix.timestamp;self.status="Live: ultima posizione inviata "+fix.timestamp.formatted(date:.omitted,time:.standard)
             }catch{guard !Task.isCancelled,self.generation==epoch,self.owner==session else{return}
-                if case NOVAServiceError.http(let code,_)=error,[401,403,409,429,503].contains(code){self.suspendedSharing=sharing;self.locallyStarted=false;self.stop();self.status="Live in pausa: servizio non disponibile o limite gratuito raggiunto. Disattiva e riattiva più tardi per riprovare.";return}
+                if case NOVAServiceError.http(let code,_)=error{
+                    if [401,403,409].contains(code){self.stopNow();self.status="Live fermato: account o condivisione da riconfermare.";return}
+                    if [429,503].contains(code){let calendar=Calendar(identifier:.gregorian);var utc=calendar;utc.timeZone=TimeZone(secondsFromGMT:0)!;let nextDay=utc.date(byAdding:.day,value:1,to:utc.startOfDay(for:Date()))!;self.pauseAndResume(after:max(60,nextDay.timeIntervalSinceNow+5),status:"Live abilitato, invii in pausa fino al prossimo giorno UTC per proteggere il limite gratuito.");return}
+                }
                 self.failureCount=min(self.failureCount+1,5);self.retryAfter=Date().addingTimeInterval(min(900,30*pow(2,Double(self.failureCount-1))));self.status="Live non aggiornato: nuovo tentativo ridotto per rete o servizio non disponibile. Nessuna posizione simulata.";self.sentAt=Date()
             }
         }
     }
+}
+
+@MainActor enum NOVASwiftPersistentServices {
+    static let store=NOVASwiftStore()
+    static func restore(){NOVASwiftLiveLocation.shared.bind(store)}
+}
+@MainActor final class NOVASwiftLocationAppDelegate:NSObject,UIApplicationDelegate {
+    func application(_ application:UIApplication,didFinishLaunchingWithOptions launchOptions:[UIApplication.LaunchOptionsKey:Any]?=nil)->Bool{NOVASwiftPersistentServices.restore();return true}
 }
