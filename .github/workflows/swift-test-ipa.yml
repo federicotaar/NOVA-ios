@@ -88,7 +88,18 @@ jobs:
           sed 's/let bundle = Bundle.module/let bundle = Bundle.main/' Sources/NOVA/NOVAApp.swift > /tmp/NOVAProduction.swift
           xcrun swiftc -D NOVA_SWIFT_TEST -parse-as-library -O -target arm64-apple-ios17.0 -sdk "$SDK" /tmp/NOVAProduction.swift $(find Sources/NOVA -maxdepth 1 -name '*.swift' ! -name NOVAApp.swift) -o "$APP/NOVA"
           cp Sources/NOVA/nova.html "$APP/nova.html"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Nova" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName NOVA" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName NOVA" "$APP/Info.plist"
+          for P in "$APP"/PlugIns/*.appex/Info.plist; do
+            /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName NOVA" "$P"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleName NOVA" "$P"
+          done
+          python3 - <<'PYBRAND'
+          import plistlib,pathlib
+          root=pathlib.Path('/tmp/nova-sdk26/Payload/NOVA.app')
+          for p in [root/'Info.plist',*root.glob('PlugIns/*.appex/Info.plist')]:
+              d=plistlib.load(open(p,'rb'));assert d['CFBundleDisplayName']=='NOVA' and d['CFBundleName']=='NOVA',d
+          PYBRAND
           /usr/libexec/PlistBuddy -c "Add :NOVASwiftTestBuild bool true" "$APP/Info.plist"
           /usr/libexec/PlistBuddy -c "Add :DTSDKName string iphoneos$SDK_VERSION" "$APP/Info.plist"
           xcrun vtool -show-build "$APP/NOVA"
@@ -122,5 +133,5 @@ jobs:
             exit 0
           fi
           cp "$IPA" "NOVA-$BUILD_TAG.ipa"
-          gh release create "$REL" --latest --title "NOVA $BUILD_TAG TEST Swift (unsigned ipa)" --notes "[NOVA_UPDATE:IMPORTANT] Versione di prova Swift. Correzione: risposta con uno swipe a destra più breve e tollerante alle diagonali, senza attivarla durante lo scorrimento verticale. Anteprima compatta annullabile e citazione nel messaggio inviato invariate. Riferimenti alle risposte salvati sul server; citazioni non disponibili se il messaggio originale viene eliminato o nascosto dalla cronologia. Controlli chiaro/scuro, bozza vocale e link verificati con dati sintetici. La posizione live continua non è inclusa. Installa sopra la stessa app senza eliminarla. Dati e account preservati; registrazione/invio reale e background su iPhone fisico restano da verificare."
+          gh release create "$REL" --latest --title "NOVA $BUILD_TAG (unsigned ipa)" --notes "[NOVA_UPDATE:IMPORTANT] Live posizione con consenso esplicito: resta abilitato fino a Ferma live o Fantasma, senza limite di10minuti. Background separato e indicatore iOS. Mappa Persone con scorrimento su/giu e animazione a molla. Nome app/widgetNOVA, identificativi invariati. Riferimenti risposta e dati/account preservati. iOS/rete/quota gratuita possono sospendere gli invii; il servizio non promette consegna continua. Dopo riavvio a telefono bloccato puo servire sbloccare/riaprireNOVA. Controlli e logica testati con dati sintetici; background reale/end-to-end, consumo batteria e cache nome widget sul tuo iPhone restano da confermare. IPA non firmato. Installa sopra la stessa app senza eliminarla."
           gh release upload "$REL" "$IPA" "NOVA-$BUILD_TAG.ipa"
