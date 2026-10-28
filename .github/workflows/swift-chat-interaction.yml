@@ -83,6 +83,13 @@ jobs:
           - tapOn: "Invia messaggio"
           - assertNotVisible:
               id: "swiftReplyDraft"
+          - tapOn: "Fine tastiera"
+          - scrollUntilVisible:
+              element:
+                text: "Risposta sintetica"
+              direction: DOWN
+              timeout: 20000
+          - assertVisible: "Risposta sintetica"
           - takeScreenshot: evidence/swift-reply-sent
           - tapOn:
               id: "swiftConversationComposer"
