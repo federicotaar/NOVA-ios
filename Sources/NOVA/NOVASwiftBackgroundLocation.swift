@@ -47,8 +47,10 @@ import Combine
 
 // Live mode has new explicit consent. Cached one-shot/background flags never enable it.
 enum NOVASwiftLivePolicy {
+    // Unreleased: live mode remains disabled in28.2 until backend/device acceptance.
+    static let released=false
     static func consent(_ root:[String:NOVAJSON],background:Bool=false)->Bool {
-        guard NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string,!session.isEmpty,root["liveConsentV1"]?.string==session else{return false}
+        guard released,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string,!session.isEmpty,root["liveConsentV1"]?.string==session else{return false}
         return !background || root["liveBackgroundConsentV1"]?.string==session
     }
     static func upload(now:Date,fix:CLLocation,previous:CLLocation?,sentAt:Date?)->Bool {
