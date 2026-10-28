@@ -2,36 +2,75 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleDisplayName</key><string>Nova</string>
-  <key>CFBundleShortVersionString</key><string>2026.10.23</string>
-  <key>CFBundleVersion</key><string>2311</string>
-  <key>NOVAReleaseLabel</key><string>2026.10.23.11</string>
-  <key>CFBundleURLTypes</key>
-  <array><dict><key>CFBundleURLName</key><string>federicotaranu.site</string><key>CFBundleURLSchemes</key><array><string>nova</string></array></dict></array>
-  <key>UILaunchScreen</key><dict/>
-  <key>UISupportedInterfaceOrientations</key>
-  <array>
-    <string>UIInterfaceOrientationPortrait</string>
-    <string>UIInterfaceOrientationLandscapeLeft</string>
-    <string>UIInterfaceOrientationLandscapeRight</string>
-  </array>
-  <key>NSFaceIDUsageDescription</key>
-  <string>NOVA usa Face ID solo per sbloccare l'app quando lo attivi tu: il volto non lascia mai il telefono.</string>
-  <key>NSMicrophoneUsageDescription</key>
-  <string>NOVA usa il microfono solo per registrare i messaggi vocali che scegli di inviare in chat.</string>
-  <key>NSCameraUsageDescription</key>
-  <string>NOVA usa la fotocamera per scansionare i codici QR dei tuoi amici.</string>
-  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-  <string>Solo se scegli la condivisione nella mappa, NOVA invia la posizione agli amici autorizzati. Puoi scegliere grandi spostamenti o una sessione live in background con indicatore iOS. Rete e iOS possono interrompere gli aggiornamenti; Fantasma ferma gli invii.</string>
-  <key>NSLocationWhenInUseUsageDescription</key>
-  <string>NOVA usa la tua posizione per il meteo locale e, solo se la attivi tu, per mostrarti sulla mappa dei tuoi amici.</string>
-  <key>CFBundleIcons</key>
-  <dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon60x60</string></array></dict></dict>
-  <key>CFBundleIcons~ipad</key>
-  <dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon60x60</string><string>AppIcon76x76</string><string>AppIcon83.5x83.5</string></array></dict></dict>
-  <key>UIBackgroundModes</key>
-  <array><string>fetch</string><string>location</string></array>
-  <key>BGTaskSchedulerPermittedIdentifiers</key>
-  <array><string>federicotaranu.site.refresh</string></array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>federicotaranu.site.refresh</string>
+	</array>
+	<key>CFBundleDisplayName</key>
+	<string>NOVA</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon60x60</string>
+			</array>
+		</dict>
+	</dict>
+	<key>CFBundleIcons~ipad</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon60x60</string>
+				<string>AppIcon76x76</string>
+				<string>AppIcon83.5x83.5</string>
+			</array>
+		</dict>
+	</dict>
+	<key>CFBundleName</key>
+	<string>NOVA</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2026.10.23</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>federicotaranu.site</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>nova</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>2311</string>
+	<key>NOVAReleaseLabel</key>
+	<string>2026.10.23.11</string>
+	<key>NSCameraUsageDescription</key>
+	<string>NOVA usa la fotocamera per scansionare i codici QR dei tuoi amici.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>NOVA usa Face ID solo per sbloccare l'app quando lo attivi tu: il volto non lascia mai il telefono.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Solo se scegli la condivisione nella mappa, NOVA invia la posizione agli amici autorizzati. Puoi scegliere grandi spostamenti o una sessione live in background con indicatore iOS. Rete e iOS possono interrompere gli aggiornamenti; Fantasma ferma gli invii.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>NOVA usa la tua posizione per il meteo locale e, solo se la attivi tu, per mostrarti sulla mappa dei tuoi amici.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>NOVA usa il microfono solo per registrare i messaggi vocali che scegli di inviare in chat.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>location</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 </dict>
 </plist>
