@@ -65,11 +65,11 @@ jobs:
           - assertVisible: "@synthetic_friend"
           - takeScreenshot: evidence/swift-map-options
           - tapOn:
-              id: "novaLiveToggle"
+              id: "novaLiveStart"
           - assertVisible: "Avviare live per 10 minuti?"
           - takeScreenshot: evidence/swift-live-confirm
           - tapOn: "Annulla"
-          - assertVisible: "Live · massimo 10 minuti"
+          - assertVisible: "Avvia live · massimo 10 minuti"
           - takeScreenshot: evidence/swift-live-cancelled
           - tapOn: "Persone"
           - assertNotVisible: "Grandi spostamenti a app chiusa"
