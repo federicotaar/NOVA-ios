@@ -609,10 +609,14 @@ extension NOVAJSON {
     func refresh(_ store:NOVASwiftStore) async {
         guard let id=activeChat,let owner=session else{return};let epoch=generation
         do{
-            let result=try await transport(owner,"chats/"+id+"/messages","GET",nil,messages.last?.object?["id"].map{[URLQueryItem(name:"since",value:$0.string ?? String($0.integer))]} ?? [URLQueryItem(name:"limit",value:"50")])
+            var query=messages.last?.object?["id"].map{[URLQueryItem(name:"since",value:$0.string ?? String($0.integer))]} ?? [URLQueryItem(name:"limit",value:"50")]
+            let quoted=Array(Set(messages.compactMap{$0.object?["reply_to"]?.integer}.filter{$0>0})).sorted().suffix(100)
+            if !quoted.isEmpty{query.append(URLQueryItem(name:"quote_ids",value:quoted.map(String.init).joined(separator:",")))}
+            let result=try await transport(owner,"chats/"+id+"/messages","GET",nil,query)
             guard current(store,owner,epoch,id) else{return}
             // Another device may have cleared this account's copy while this screen was open.
             if let boundary=result.object?["cleared_through"]?.integer,boundary>0{messages.removeAll{($0.object?["id"]?.integer ?? 0)<=boundary}}
+            if let quotes=result.object?["quote_refresh"]?.object{for i in messages.indices{guard var row=messages[i].object,let source=row["reply_to"]?.integer,source>0 else{continue};row["reply"] = quotes[String(source)] ?? .object(["deleted":.bool(true)]);messages[i] = .object(row)}}
             for message in result.object?["messages"]?.array ?? []{if let index=messages.firstIndex(where:{$0.object?["id"]==message.object?["id"]}){messages[index]=message}else{messages.append(message)}};if let updated=result.object?["reactions"]?.object{reactions=updated};if let updated=result.object?["senders"]?.object{senders.merge(updated){_,new in new}};status=""
             // Opening a visible conversation has the same receipt semantics as the existing app.
             if let last=messages.last?.object?["id"]{_ = try? await transport(owner,"chats/"+id+"/read","POST",.object(["last_msg_id":last]),[])}
