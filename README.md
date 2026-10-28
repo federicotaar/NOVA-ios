@@ -194,3 +194,5 @@ User approved morning setup preview and requested IPA. Enable reviewed group and
 
 - Final map gate40668355014 passes all13 checks and direct collapsed-status/expanded-friend-row UI assertions. Inspected actual screenshots: synthetic pin/list/status and geometry accepted, blank ocean tiles are not live map-service proof.
 - Light composer readability candidate adds only a0.75pt12%-black outline in light appearance, no fill or glass material/geometry changes; dark is unchanged. Both appearance previews pending before packaging.
+
+- New support reports28.1: admin confirmation moved into tapped member row with explicit cancel/confirm, no top-of-Form popover. Permission setup retains explicit choices/no automatic defaults; now shows missing choices beside disabled Save. Reproducing actual picker-to-save path with synthetic server before calling save issue fixed. No real promotion/settings changes.
