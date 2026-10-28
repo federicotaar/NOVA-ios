@@ -63,7 +63,7 @@ enum NOVASwiftLivePolicy {
         return elapsed>=15 && (fix.distance(from:previous)>=15 || elapsed>=120)
     }
 }
-@MainActor final class NOVASwiftLiveLocation:ObservableObject {
+@MainActor final class NOVASwiftLiveLocation:NSObject,ObservableObject,CLLocationManagerDelegate {
     static let shared=NOVASwiftLiveLocation()
     @Published private(set) var status=""
     @Published private(set) var lastSent:Date?
@@ -92,7 +92,8 @@ enum NOVASwiftLivePolicy {
     private var suspendedSharing=""
     private var active=UIApplication.shared.applicationState == .active
     private var notificationTokens:[NSObjectProtocol]=[]
-    private init(){for name in [UIApplication.didBecomeActiveNotification,UIApplication.willResignActiveNotification]{notificationTokens.append(NotificationCenter.default.addObserver(forName:name,object:nil,queue:.main){[weak self] _ in Task{@MainActor in self?.active = name == UIApplication.didBecomeActiveNotification;self?.reconcile()}})}}
+    private override init(){super.init();permission.delegate=self;for name in [UIApplication.didBecomeActiveNotification,UIApplication.willResignActiveNotification]{notificationTokens.append(NotificationCenter.default.addObserver(forName:name,object:nil,queue:.main){[weak self] _ in Task{@MainActor in self?.active = name == UIApplication.didBecomeActiveNotification;self?.reconcile()}})}}
+    func locationManagerDidChangeAuthorization(_ manager:CLLocationManager){reconcile()}
     func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};stop();self.store=store;restoreEnabledPreference();observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
     private func restoreEnabledPreference(){guard let archive=store?.archive,let root=archive.active.object,let current=NOVASession(archive.active),NOVASwiftLivePolicy.consent(root),root["locSessionToken"]?.string==current.token else{return};locallyStarted=true;startedOwner=current;startedSharing=root["locSession"]?.string ?? ""}
     func unbind(){locallyStarted=false;stop();observation=nil;store=nil}
@@ -121,6 +122,7 @@ enum NOVASwiftLivePolicy {
         if stream != nil,owner==session,liveSession==root["locSession"]?.string,runningBackground==bg{return}
         // A saved V2 choice can rejoin its outstanding background activity after system relaunch.
         // The first choice is only written by the foreground confirmation button.
+        guard permission.authorizationStatus != .notDetermined else{stop();status="Live abilitato, apri le opzioni e conferma il permesso posizione.";return}
         guard ![.denied,.restricted].contains(permission.authorizationStatus) else{stop();status="Live abilitato ma posizione non autorizzata. Controlla le impostazioni iOS.";return}
         stop();owner=session;liveSession=root["locSession"]?.string ?? "";runningBackground=bg
         if bg{backgroundSession=CLBackgroundActivitySession()}
