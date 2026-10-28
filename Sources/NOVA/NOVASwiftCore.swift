@@ -721,26 +721,31 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
             if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
             if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
             if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store){photoDraft=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
-            if let data=voice.draft{HStack{Text("Vocale in bozza");Button("Invia"){Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store){voice.cancel()}}}.disabled(social.sending);Button("Elimina",role:.destructive){voice.cancel()}}.padding()}
-            if !voice.status.isEmpty{Text(voice.status).font(.caption).foregroundStyle(.secondary)}
             if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
         }.frame(maxWidth:.infinity,maxHeight:.infinity)
-        .overlay(alignment:.bottom){HStack(alignment:.bottom,spacing:10){
+        .safeAreaInset(edge:.bottom,spacing:0){VStack(spacing:8){
+            if voice.recording || voice.draft != nil{NOVASwiftVoiceDraftPanel(recording:voice.recording,busy:social.sending,status:voice.status,stop:{voice.finish()},discard:{voice.cancel()},send:{guard let data=voice.draft else{return};Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store){voice.cancel()}}})}
+            else if !voice.status.isEmpty{Text(voice.status).font(.caption).foregroundStyle(.secondary)}
+            HStack(alignment:.bottom,spacing:10){
                 PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
                 HStack(alignment:.bottom,spacing:8){
-                    TextField("Messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftConversationComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).shadow(color:.black.opacity(0.85),radius:2,x:0,y:1).frame(minHeight:28).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
+                    TextField("Messaggio",text:$draft,axis:.vertical).disabled(voice.recording || voice.draft != nil).accessibilityIdentifier("swiftConversationComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).shadow(color:.black.opacity(0.85),radius:2,x:0,y:1).frame(minHeight:28).onChange(of:draft){_,_ in if Date().timeIntervalSince(typingAt)>3{typingAt=Date();Task{await social.signalTyping(store)}}}
                     if draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || voice.recording{
-                        Button{if voice.recording{voice.finish()}else{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"waveform").font(.system(size:19)).frame(width:28,height:28)}.buttonStyle(.plain).accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale")
+                        Button{composerFocused=false;if voice.recording{voice.finish()}else if voice.draft==nil{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"waveform").font(.system(size:19)).frame(width:28,height:28)}.buttonStyle(.plain).accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale").disabled(voice.draft != nil || social.sending)
                     }else{
                         Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending)
                     }
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
-            }.modifier(NOVASwiftComposerGlassGroup()).padding(.horizontal,12).padding(.vertical,8)
+            }.modifier(NOVASwiftComposerGlassGroup())
+            }.padding(.horizontal,12).padding(.vertical,8)
         }.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .task{await social.open(id,store)}
         .task(id:phase){while !Task.isCancelled{try? await Task.sleep(for:.seconds(4));guard !Task.isCancelled else{return};if phase == .active{await social.refresh(store)}}}
+#if DEBUG
+        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASyntheticVoiceDraft"))){_ in voice.draft=Data(repeating:0,count:600);voice.status="Vocale sintetico in bozza";composerFocused=false}
+#endif
         .onDisappear{mediaEpoch += 1;voice.cancel();playback.stop();social.close()}
         .onChange(of:store.archive?.owner){_,_ in mediaEpoch += 1;draft="";photoDraft=nil;voice.cancel();playback.stop();social.close()}
         .onChange(of:photo){_,item in mediaEpoch += 1;let epoch=mediaEpoch,owner=store.archive.flatMap{NOVASession($0.active)};Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data) else{return};guard epoch==mediaEpoch,store.archive.flatMap({NOVASession($0.active)})==owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);photoDraft=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))}}}
