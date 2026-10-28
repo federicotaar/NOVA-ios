@@ -60,7 +60,10 @@ jobs:
           - assertVisible: "Persone"
           - assertVisible: "Posizioni recenti, non tracciamento continuo."
           - takeScreenshot: evidence/swift-map-full
-          - tapOn: "Persone"
+          - swipe:
+              start: 50%, 83%
+              end: 50%, 58%
+              duration: 600
           - assertVisible: "Grandi spostamenti a app chiusa"
           - assertVisible: "@synthetic_friend"
           - takeScreenshot: evidence/swift-map-options
@@ -71,9 +74,18 @@ jobs:
           - tapOn: "Annulla"
           - assertVisible: "Avvia live · fino a quando lo fermi"
           - takeScreenshot: evidence/swift-live-cancelled
-          - tapOn: "Persone"
+          - swipe:
+              start: 50%, 43%
+              end: 50%, 68%
+              duration: 600
           - assertNotVisible: "Grandi spostamenti a app chiusa"
           - takeScreenshot: evidence/swift-map-collapsed
+          - swipe:
+              start: 50%, 25%
+              end: 70%, 40%
+              duration: 600
+          - assertNotVisible: "Grandi spostamenti a app chiusa"
+          - takeScreenshot: evidence/swift-map-pan-independent
           FLOW
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
           xcrun simctl io "$UDID" recordVideo --codec=h264 evidence/nav-real-drag.mp4 >/tmp/nav-video.log 2>&1 &
