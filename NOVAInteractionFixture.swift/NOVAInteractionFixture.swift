@@ -132,7 +132,7 @@ import UIKit
  let runtimeDir=FileManager.default.temporaryDirectory.appendingPathComponent("live-engine-"+UUID().uuidString)
  let runtimeStore=NOVASwiftStore(directory:runtimeDir)
  try? runtimeStore.importOnce(["nova.v1":"{\"acct\":{\"email\":\"runtime@test.invalid\",\"token\":\"fake-runtime-token\"}}"])
- func seedRuntime(){try? runtimeStore.update(owner:runtimeStore.archive!.owner){$0["locShare"] = .number(1);$0["locSession"] = .string("runtime-session");$0["locConsentV2"] = .string("runtime-session");$0["locSessionToken"] = .string("fake-runtime-token")}}
+ @MainActor func seedRuntime(){try? runtimeStore.update(owner:runtimeStore.archive!.owner){$0["locShare"] = .number(1);$0["locSession"] = .string("runtime-session");$0["locConsentV2"] = .string("runtime-session");$0["locSessionToken"] = .string("fake-runtime-token")}}
  seedRuntime();var sends=0;var quota=false;var network=false
  let engine=NOVASwiftLiveLocation(deviceServices:false){_,_ in sends+=1;if quota{throw NOVAServiceError.http(429,"synthetic quota")};if network{throw URLError(.notConnectedToInternet)};return .object(["ok":.bool(true)])}
  engine.bind(runtimeStore);checks["engineBindDoesNotStartLegacy"] = !engine.running
