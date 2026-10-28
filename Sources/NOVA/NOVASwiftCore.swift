@@ -704,7 +704,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                             if o["kind"]?.string=="image"{NOVASwiftPrivateImage(url:url,store:store).frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
                             if o["kind"]?.string=="voice"{HStack{Button{playback.play(url,store)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
                         }
-                        if let text=o["body"]?.string,!text.isEmpty{Text(text).textSelection(.enabled).fixedSize(horizontal:false,vertical:true)}
+                        if let text=o["body"]?.string,!text.isEmpty{NOVASwiftMessageText(text:text,own:own)}
                         if o["edited"]?.flag==true{Text("modificato").font(.caption2).foregroundStyle(.secondary)}
                         let key=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                         let reactions=social.reactions[key]?.array ?? []
@@ -889,4 +889,42 @@ extension NOVASwiftStore {
     }.environment(\.locale,Locale(identifier:"it_IT"))}
     private func load(){guard !busy else{return};busy=true;error="";reader.read(allowEmpty:true){result in busy=false;switch result{case .success(let values):legacy=values;case .failure:legacy=nil;error="Dati precedenti non verificati. Nessun dato è stato cancellato. Riprova."}}}
     private func migrate(_ values:[String:String]){do{let data=values.isEmpty ? ["nova.v1":"{\"theme\":\"auto\",\"tasks\":[],\"gr\":[],\"chat\":[],\"tt\":{\"lessons\":[]},\"prof\":{},\"aiAct\":\"ask\"}"]:values;try store.importOnce(data)}catch{self.error="Importazione non completata. Archivio e memoria precedenti sono conservati."}}
+}
+
+import SwiftUI
+import Foundation
+
+// Link detection is local text parsing only. No previews or network reads.
+enum NOVASwiftMessageLinks {
+    static func safe(_ url:URL)->Bool {
+        guard let scheme=url.scheme?.lowercased(),["https","http"].contains(scheme),let host=url.host,!host.isEmpty,url.user==nil,url.password==nil else{return false}
+        return true
+    }
+    static func attributed(_ text:String)->AttributedString {
+        let result=NSMutableAttributedString(string:text)
+        if let detector=try? NSDataDetector(types:NSTextCheckingResult.CheckingType.link.rawValue){
+            for match in detector.matches(in:text,range:NSRange(text.startIndex...,in:text)){
+                guard let url=match.url,safe(url) else{continue}
+                result.addAttributes([.link:url,.underlineStyle:NSUnderlineStyle.single.rawValue],range:match.range)
+            }
+        }
+        return (try? AttributedString(result,including:\.uiKit)) ?? AttributedString(text)
+    }
+}
+struct NOVASwiftMessageText:View {
+    let text:String
+    let own:Bool
+    @Environment(\.openURL) private var openURL
+    var body:some View {
+        Text(NOVASwiftMessageLinks.attributed(text))
+            .tint(own ? .white:.blue)
+            .textSelection(.enabled)
+            .fixedSize(horizontal:false,vertical:true)
+            .environment(\.openURL,OpenURLAction{url in
+                // Recheck at activation, never execute arbitrary custom schemes.
+                guard NOVASwiftMessageLinks.safe(url) else{return .discarded}
+                openURL(url)
+                return .handled
+            })
+    }
 }
