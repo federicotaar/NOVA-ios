@@ -44,3 +44,79 @@ import Combine
     }
     func locationManager(_ manager:CLLocationManager,didFailWithError error:Error){if (error as? CLError)?.code != .locationUnknown{status="Aggiornamento posizione non riuscito. iOS può sospendere gli aggiornamenti in background."}}
 }
+
+// Live mode has new explicit consent. Cached one-shot/background flags never enable it.
+enum NOVASwiftLivePolicy {
+    static func consent(_ root:[String:NOVAJSON],background:Bool=false)->Bool {
+        guard NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string,!session.isEmpty,root["liveConsentV1"]?.string==session else{return false}
+        return !background || root["liveBackgroundConsentV1"]?.string==session
+    }
+    static func upload(now:Date,fix:CLLocation,previous:CLLocation?,sentAt:Date?)->Bool {
+        guard fix.horizontalAccuracy>=0,fix.horizontalAccuracy<=200,now.timeIntervalSince(fix.timestamp)>=(-5),now.timeIntervalSince(fix.timestamp)<30 else{return false}
+        if let sentAt=sentAt,now.timeIntervalSince(sentAt)<15{return false}
+        guard let previous=previous,let sentAt=sentAt else{return true}
+        let elapsed=now.timeIntervalSince(sentAt)
+        return elapsed>=15 && (fix.distance(from:previous)>=15 || elapsed>=120)
+    }
+}
+@MainActor final class NOVASwiftLiveLocation:ObservableObject {
+    static let shared=NOVASwiftLiveLocation()
+    @Published private(set) var status=""
+    @Published private(set) var lastSent:Date?
+    private weak var store:NOVASwiftStore?
+    private var observation:AnyCancellable?
+    private var stream:Task<Void,Never>?
+    private var upload:Task<Void,Never>?
+    private var backgroundSession:CLBackgroundActivitySession?
+    private var owner:NOVASession?
+    private var liveSession=""
+    private var runningBackground=false
+    private var generation=0
+    private var previous:CLLocation?
+    private var sentAt:Date?
+    private var active=UIApplication.shared.applicationState == .active
+    private var notificationTokens:[NSObjectProtocol]=[]
+    private init(){for name in [UIApplication.didBecomeActiveNotification,UIApplication.willResignActiveNotification]{notificationTokens.append(NotificationCenter.default.addObserver(forName:name,object:nil,queue:.main){[weak self] _ in Task{@MainActor in self?.active = name == UIApplication.didBecomeActiveNotification;self?.reconcile()}})}}
+    func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};stop();self.store=store;observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
+    func unbind(){stop();observation=nil;store=nil}
+    func choose(_ enabled:Bool,background:Bool=false,_ store:NOVASwiftStore){
+        bind(store)
+        guard let archive=store.archive,let root=archive.active.object,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string else{status="Attiva prima la condivisione.";return}
+        do{try store.update(owner:archive.owner){state in
+            if background{state["liveBackgroundConsentV1"] = .string(enabled ? session:"")}
+            else{state["liveConsentV1"] = .string(enabled ? session:"");if !enabled{state["liveBackgroundConsentV1"] = .string("")}}
+        };if enabled{NOVASwiftBackgroundLocation.shared.stop(clear:true)};reconcile()}catch{status="Scelta live non salvata. Riprova."}
+    }
+    private func stop(){generation+=1;stream?.cancel();stream=nil;upload?.cancel();upload=nil;backgroundSession?.invalidate();backgroundSession=nil;owner=nil;liveSession="";runningBackground=false;previous=nil;sentAt=nil;lastSent=nil}
+    private func reconcile(){
+        guard let store=store,let root=store.archive?.active.object,let session=store.archive.flatMap({NOVASession($0.active)}),root["locSessionToken"]?.string==session.token,NOVASwiftLivePolicy.consent(root) else{stop();return}
+        let bg=NOVASwiftLivePolicy.consent(root,background:true)
+        guard active || bg else{stop();status="Live in pausa: app non attiva.";return}
+        if stream != nil,owner==session,liveSession==root["locSession"]?.string,runningBackground==bg{return}
+        // A new background activity must begin in the foreground, never silently after launch.
+        guard !bg || active else{stop();status="Riapri NOVA per riprendere la sessione live in background.";return}
+        stop();owner=session;liveSession=root["locSession"]?.string ?? "";runningBackground=bg
+        if bg{backgroundSession=CLBackgroundActivitySession()}
+        status="Live in attesa di una posizione recente."
+        stream=Task{[weak self] in
+            do{for try await update in CLLocationUpdate.liveUpdates(){
+                guard !Task.isCancelled,let self=self else{break}
+                guard self.owner==session,let current=self.store?.archive?.active.object,NOVASwiftLivePolicy.consent(current),self.store?.archive.flatMap({NOVASession($0.active)})==session else{self.stop();break}
+                if update.isStationary{self.status="Live: dispositivo fermo, aggiornamenti ridotti."}
+                if let fix=update.location{self.receive(fix,session)}
+            }}catch{guard !Task.isCancelled else{return};self?.status="Live interrotto da iOS o posizione non disponibile. Riprova.";self?.stream=nil}
+        }
+    }
+    private func receive(_ fix:CLLocation,_ session:NOVASession){
+        guard upload==nil,NOVASwiftLivePolicy.upload(now:Date(),fix:fix,previous:previous,sentAt:sentAt),let store=store,let root=store.archive?.active.object,NOVASwiftLivePolicy.consent(root),root["locSessionToken"]?.string==session.token,let sharing=root["locSession"]?.string,sharing==liveSession else{return}
+        let epoch=generation
+        upload=Task{[weak self] in
+            guard let self=self else{return};defer{if self.generation==epoch{self.upload=nil}}
+            do{let result=try await NOVAAccountService(session:session).request("location",method:"PUT",body:.object(["lat":.number(fix.coordinate.latitude),"lon":.number(fix.coordinate.longitude),"sharing":.bool(true),"session":.string(sharing),"fix_ts":.number(fix.timestamp.timeIntervalSince1970*1000)]))
+                guard !Task.isCancelled,self.generation==epoch,self.owner==session,self.liveSession==sharing,self.store?.archive.flatMap({NOVASession($0.active)})==session else{return}
+                guard result.object?["ok"]?.flag==true else{throw NOVAServiceError.invalidResponse}
+                self.previous=fix;self.sentAt=Date();self.lastSent=fix.timestamp;self.status="Live: ultima posizione inviata "+fix.timestamp.formatted(date:.omitted,time:.standard)
+            }catch{guard !Task.isCancelled else{return};self.status="Live non aggiornato: controlla rete e permessi. Nessuna posizione simulata.";self.sentAt=Date()}
+        }
+    }
+}
