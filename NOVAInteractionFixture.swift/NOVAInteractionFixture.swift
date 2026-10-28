@@ -71,15 +71,31 @@ import UIKit
 
 @MainActor func visualSwiftMapInteractionReady(_ web:WKWebView,_ attempt:Int){
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftMapInteractionReady(web,attempt+1)}};return}
- let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("map-layout-fixture"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"tasks\":[],\"w\":{\"wx\":0,\"sp\":0}}"])}
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("map-layout-fixture-28"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"acct\":{\"email\":\"map@test.invalid\",\"token\":\"synthetic-only\"},\"tasks\":[],\"w\":{\"wx\":0,\"sp\":0}}"])}
+ Task{@MainActor in
  var old:[String:NOVAJSON]=["locShare":.number(1),"bgLoc":.number(1),"locSession":.string("old-session")]
  var checks=["oldFlagsCannotShare":!NOVASwiftLocationConsent.sharing(old),"oldFlagsCannotBackground":!NOVASwiftLocationConsent.background(old)]
  old["locConsentV2"] = .string("old-session");checks["sharingConsentAloneNoBackground"] = NOVASwiftLocationConsent.sharing(old) && !NOVASwiftLocationConsent.background(old)
  old["bgConsentV2"] = .string("old-session");checks["separateConsentRequired"] = NOVASwiftLocationConsent.background(old)
  old["locSession"] = .string("replacement-session");checks["replacementSessionRejectsOldConsent"] = !NOVASwiftLocationConsent.sharing(old) && !NOVASwiftLocationConsent.background(old)
+ func row(_ name:String,_ age:Double=0)->NOVAJSON{.object(["username":.string(name),"lat":.number(0),"lon":.number(0),"ts":.number(Date().timeIntervalSince1970*1000-age*1000)])}
+ func response(_ rows:[NOVAJSON])->NOVAJSON{.object(["ok":.bool(true),"friends":.array(rows)])}
+ checks["freshParserAccepted"] = NOVASwiftMapFriend.parse(row("synthetic")) != nil
+ checks["staleParserRejected"] = NOVASwiftMapFriend.parse(row("stale",1801)) == nil
+ var phase=0
+ let model=NOVASwiftMapModel{_,path,method,_ in precondition(path=="map" && method=="GET");return response(phase==0 ? []:[row("synthetic_friend")])}
+ await model.refresh(store);checks["emptyResponseExplained"] = model.friends.isEmpty && model.lastChecked != nil
+ phase=1;await model.refresh(store);checks["laterSharingAppearsOnRefresh"] = model.friends.count==1 && model.friends.first?.id=="synthetic_friend"
+ let bad=NOVASwiftMapModel{_,_,_,_ in .object(["error":.string("synthetic")])};await bad.refresh(store);checks["malformedNotEmptySuccess"] = bad.lastChecked==nil && bad.status.contains("non aggiornata")
+ let slow=NOVASwiftMapModel{_,_,_,_ in try? await Task.sleep(for:.milliseconds(150));return response([row("late")])}
+ let pending=Task{@MainActor in await slow.refresh(store)};try? await Task.sleep(for:.milliseconds(20));slow.cancel();await pending.value;checks["cancelRejectsLateResult"] = slow.friends.isEmpty && slow.lastChecked==nil
+ var calls=0
+ let race=NOVASwiftMapModel{_,_,_,_ in calls+=1;let n=calls;if n==1{try? await Task.sleep(for:.milliseconds(160))};return response([row(n==1 ? "older":"newer")])}
+ let first=Task{@MainActor in await race.refresh(store)};try? await Task.sleep(for:.milliseconds(20));await race.refresh(store);await first.value;checks["outOfOrderRefreshRejected"] = race.friends.first?.id=="newer"
+ checks["refreshDoesNotEnableSharing"] = !NOVASwiftLocationConsent.sharing(store.archive?.active.object ?? [:])
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("map-consent-checks.json"))
- let model=NOVASwiftMapModel{_,_,_,_ in .object(["friends":.array([])])}
- let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:3,mapModel:model,deviceServices:false));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:3,mapModel:model,deviceServices:false));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ }
 }
 
 @MainActor struct NOVASongArtworkFixture:View{
