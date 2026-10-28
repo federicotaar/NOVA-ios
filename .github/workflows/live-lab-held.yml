@@ -86,6 +86,7 @@ jobs:
           name: NOVA-Live-Lab-held-local-only
           path: |
             evidence/*.ipa
+            evidence/**/*.png
             evidence/*.png
             evidence/*.log
             evidence/*.json
