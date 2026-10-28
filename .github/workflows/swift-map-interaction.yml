@@ -52,6 +52,8 @@ jobs:
           ---
           - launchApp
           - assertVisible: "Persone"
+          - assertVisible: "@synthetic_friend"
+          - assertVisible: "Posizioni recenti, non tracciamento continuo."
           - takeScreenshot: evidence/swift-map-full
           - tapOn: "Persone"
           - assertVisible: "Anche a app chiusa"
