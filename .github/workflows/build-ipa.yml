@@ -123,5 +123,5 @@ jobs:
             exit 0
           fi
           cp "$IPA" "NOVA-$BUILD_TAG.ipa"
-          gh release create "$REL" --title "NOVA $BUILD_TAG (unsigned ipa)" --notes "NOVA.ipa non firmato, build $BUILD_TAG. Installa con AltStore o Sideloadly. Ultima build sempre qui: https://github.com/federicotaranudev/NOVA-ios/releases/latest/download/NOVA.ipa"
+          gh release create "$REL" --title "NOVA $BUILD_TAG (unsigned ipa)" --notes "NOVA non firmato, build $BUILD_TAG. Corretto lo scorrimento verticale delle chat con foto grandi, mantenendo lo swipe verso destra per rispondere. Verifica su simulatore in tema chiaro e scuro: scorrimento in entrambe le direzioni, risposta, annullamento, invio, tastiera e bozza vocale. Il comportamento sul telefono resta da confermare. Nessuna modifica ad account o dati. Aggiorna sopra la versione esistente con AltStore o Sideloadly, senza disinstallare. Le versioni precedenti restano disponibili."
           gh release upload "$REL" "$IPA" "NOVA-$BUILD_TAG.ipa"
