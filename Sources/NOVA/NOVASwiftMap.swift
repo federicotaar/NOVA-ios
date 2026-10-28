@@ -162,6 +162,8 @@ enum NOVASwiftLocationConsent {
                     if !position.status.isEmpty{Text("Tu · "+position.status).font(.caption).foregroundStyle(.secondary)}
                     if !model.status.isEmpty{Text(model.status).font(.caption).foregroundStyle(.secondary)}
                     if let checked=model.lastChecked{Text("Amici aggiornati: "+checked.formatted(date:.omitted,time:.standard)).font(.caption2).foregroundStyle(.secondary)}
+                    if live.running{Button("Ferma live",role:.destructive){live.stopNow()}.buttonStyle(.bordered)}
+                    if !live.status.isEmpty{Text(live.status).font(.caption)}
                     if expanded{
                         ScrollView{VStack(alignment:.leading,spacing:14){
                             Text(sharing ? "Condivisione attiva: gli amici vedono l'ultima lettura recente.":"Nessuna nuova posizione viene inviata da questo telefono.").font(.footnote)
