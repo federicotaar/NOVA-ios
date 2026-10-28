@@ -964,9 +964,22 @@ struct NOVASwiftReplyQuote:View {
     let own:Bool
     var body:some View{VStack(alignment:.leading,spacing:3){Text(author).font(.caption.bold());Text(preview).font(.caption).lineLimit(2)}.frame(maxWidth:.infinity,alignment:.leading).padding(.leading,11).padding(.vertical,8).overlay(alignment:.leading){RoundedRectangle(cornerRadius:2).fill(own ? Color.white.opacity(0.8):Color.blue).frame(width:3)}.fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).accessibilityElement(children:.combine)}
 }
+enum NOVASwiftReplyDragPolicy {
+    static func horizontal(_ x:CGFloat,_ y:CGFloat)->Bool{x>0 && x>abs(y)*1.25}
+    static func triggered(_ x:CGFloat,_ y:CGFloat)->Bool{x>=55 && horizontal(x,y)}
+}
 struct NOVASwiftSwipeReply:ViewModifier {
     let enabled:Bool
     let action:()->Void
     @State private var shift:CGFloat=0
-    func body(content:Content)->some View{content.offset(x:shift).overlay(alignment:.leading){if shift>20{Image(systemName:"arrowshape.turn.up.left.fill").foregroundStyle(.secondary).opacity(min(1,shift/70)).offset(x:-8)}}.simultaneousGesture(DragGesture(minimumDistance:24).onChanged{value in guard enabled,value.translation.width>0,abs(value.translation.height)<35 else{return};shift=min(84,value.translation.width*0.65)}.onEnded{value in let reply=enabled && value.translation.width>=80 && abs(value.translation.height)<35;withAnimation(.snappy){shift=0};if reply{action()}})}
+    @State private var horizontalIntent=false
+    @State private var verticalIntent=false
+    func body(content:Content)->some View{content.contentShape(Rectangle()).offset(x:shift).overlay(alignment:.leading){if shift>12{Image(systemName:"arrowshape.turn.up.left.fill").foregroundStyle(.secondary).opacity(min(1,shift/50)).offset(x:-8)}}.simultaneousGesture(DragGesture(minimumDistance:12).onChanged{value in
+        guard enabled else{return};let x=value.translation.width,y=value.translation.height
+        if !horizontalIntent && !verticalIntent{if abs(y)>abs(x)*1.25{verticalIntent=true}else if NOVASwiftReplyDragPolicy.horizontal(x,y){horizontalIntent=true}}
+        guard horizontalIntent,!verticalIntent else{return};shift=min(72,max(0,x*0.7))
+    }.onEnded{value in
+        let reply=enabled && horizontalIntent && !verticalIntent && NOVASwiftReplyDragPolicy.triggered(value.translation.width,value.translation.height)
+        horizontalIntent=false;verticalIntent=false;withAnimation(.snappy){shift=0};if reply{action()}
+    })}
 }
