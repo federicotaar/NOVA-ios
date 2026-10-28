@@ -76,10 +76,15 @@ jobs:
           - takeScreenshot: evidence/live-lab-stopped
           FLOW
           export MAESTRO_DRIVER_STARTUP_TIMEOUT=240000
-          python3 - <<'RUN'
-          import subprocess
-          subprocess.run(['maestro','test','/tmp/lab.yaml'],timeout=360,check=True)
+          UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
+          for THEME in light dark; do
+            xcrun simctl ui "$UDID" appearance "$THEME"
+            sed "s@evidence/live-lab-@evidence/live-lab-$THEME-@g" /tmp/lab.yaml > /tmp/lab-$THEME.yaml
+            python3 - "$THEME" <<'RUN'
+          import subprocess,sys
+          subprocess.run(['maestro','test','/tmp/lab-'+sys.argv[1]+'.yaml'],timeout=360,check=True)
           RUN
+          done
       - name: Collect UI screenshots
         if: always()
         run: |
