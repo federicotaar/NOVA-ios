@@ -733,7 +733,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                     if draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || voice.recording{
                         Button{composerFocused=false;if voice.recording{voice.finish()}else if voice.draft==nil{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"waveform").font(.system(size:19)).frame(width:28,height:28)}.buttonStyle(.plain).accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale").disabled(voice.draft != nil || social.sending)
                     }else{
-                        Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending)
+                        Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending || voice.recording || voice.draft != nil)
                     }
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
             }.modifier(NOVASwiftComposerGlassGroup())
