@@ -47,8 +47,8 @@ import Combine
 
 // Live mode has new explicit consent. Cached one-shot/background flags never enable it.
 enum NOVASwiftLivePolicy {
-    // Unreleased: live mode remains disabled in28.2 until backend/device acceptance.
-    static let released=false
+    // Consent never follows cached legacy flags. Server budget remains separately fail-closed.
+    static let released=true
     static func consent(_ root:[String:NOVAJSON],background:Bool=false)->Bool {
         guard released,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string,!session.isEmpty,root["liveConsentV1"]?.string==session else{return false}
         return !background || root["liveBackgroundConsentV1"]?.string==session
@@ -65,11 +65,19 @@ enum NOVASwiftLivePolicy {
     static let shared=NOVASwiftLiveLocation()
     @Published private(set) var status=""
     @Published private(set) var lastSent:Date?
+    @Published private(set) var running=false
     private weak var store:NOVASwiftStore?
     private var observation:AnyCancellable?
     private var stream:Task<Void,Never>?
     private var upload:Task<Void,Never>?
     private var backgroundSession:CLBackgroundActivitySession?
+    private var timeout:Task<Void,Never>?
+    private var sessionStarted:Date?
+    private var deadline:Date?
+    private var locallyStarted=false
+    private var startedOwner:NOVASession?
+    private var startedSharing=""
+    private let permission=CLLocationManager()
     private var owner:NOVASession?
     private var liveSession=""
     private var runningBackground=false
@@ -82,21 +90,26 @@ enum NOVASwiftLivePolicy {
     private var active=UIApplication.shared.applicationState == .active
     private var notificationTokens:[NSObjectProtocol]=[]
     private init(){for name in [UIApplication.didBecomeActiveNotification,UIApplication.willResignActiveNotification]{notificationTokens.append(NotificationCenter.default.addObserver(forName:name,object:nil,queue:.main){[weak self] _ in Task{@MainActor in self?.active = name == UIApplication.didBecomeActiveNotification;self?.reconcile()}})}}
-    func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};stop();self.store=store;observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
-    func unbind(){stop();observation=nil;store=nil}
+    func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};stop();self.store=store;if !locallyStarted,let archive=store.archive{try? store.update(owner:archive.owner){$0["liveConsentV1"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}};observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
+    func unbind(){locallyStarted=false;deadline=nil;stop();observation=nil;store=nil}
     func choose(_ enabled:Bool,background:Bool=false,_ store:NOVASwiftStore){
         suspendedSharing=""
+        locallyStarted=enabled
+        if enabled && !background{deadline=Date().addingTimeInterval(600)}
         bind(store)
         guard let archive=store.archive,let root=archive.active.object,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string else{status="Attiva prima la condivisione.";return}
+        if enabled{startedOwner=NOVASession(archive.active);startedSharing=session}
         do{try store.update(owner:archive.owner){state in
             if background{state["liveBackgroundConsentV1"] = .string(enabled ? session:"")}
             else{state["liveConsentV1"] = .string(enabled ? session:"");if !enabled{state["liveBackgroundConsentV1"] = .string("")}}
-        };if enabled{NOVASwiftBackgroundLocation.shared.stop(clear:true)};reconcile()}catch{status="Scelta live non salvata. Riprova."}
+        };if enabled{NOVASwiftBackgroundLocation.shared.stop(clear:true);if permission.authorizationStatus == .notDetermined{permission.requestWhenInUseAuthorization()}};reconcile()}catch{status="Scelta live non salvata. Riprova."}
     }
-    private func stop(){generation+=1;stream?.cancel();stream=nil;upload?.cancel();upload=nil;backgroundSession?.invalidate();backgroundSession=nil;owner=nil;liveSession="";runningBackground=false;previous=nil;sentAt=nil;lastSent=nil;retryAfter = .distantPast;failureCount=0}
+    func stopNow(){locallyStarted=false;startedOwner=nil;startedSharing="";deadline=nil;suspendedSharing=liveSession;stop();if let store=store,let archive=store.archive{try? store.update(owner:archive.owner){$0["liveConsentV1"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}};status="Live fermato. Nessun nuovo invio live."}
+    private func stop(){timeout?.cancel();timeout=nil;sessionStarted=nil;running=false;generation+=1;stream?.cancel();stream=nil;upload?.cancel();upload=nil;backgroundSession?.invalidate();backgroundSession=nil;owner=nil;liveSession="";runningBackground=false;previous=nil;sentAt=nil;lastSent=nil;retryAfter = .distantPast;failureCount=0}
     private func reconcile(){
-        guard let store=store,let root=store.archive?.active.object,let session=store.archive.flatMap({NOVASession($0.active)}),root["locSessionToken"]?.string==session.token,NOVASwiftLivePolicy.consent(root) else{stop();return}
+        guard locallyStarted,let store=store,let root=store.archive?.active.object,let session=store.archive.flatMap({NOVASession($0.active)}),root["locSessionToken"]?.string==session.token,NOVASwiftLivePolicy.consent(root),session==startedOwner,root["locSession"]?.string==startedSharing else{stop();return}
         guard suspendedSharing != root["locSession"]?.string else{return}
+        if let deadline=deadline,Date()>=deadline{stopNow();status="10 minuti conclusi. Riavvia live solo se vuoi.";return}
         let bg=NOVASwiftLivePolicy.consent(root,background:true)
         guard active || bg else{stop();status="Live in pausa: app non attiva.";return}
         if stream != nil,owner==session,liveSession==root["locSession"]?.string,runningBackground==bg{return}
@@ -104,7 +117,8 @@ enum NOVASwiftLivePolicy {
         guard !bg || active else{stop();status="Riapri NOVA per riprendere la sessione live in background.";return}
         stop();owner=session;liveSession=root["locSession"]?.string ?? "";runningBackground=bg
         if bg{backgroundSession=CLBackgroundActivitySession()}
-        status="Live in attesa di una posizione recente."
+        running=true;sessionStarted=Date();timeout=Task{[weak self] in try? await Task.sleep(for:.seconds(max(0,self?.deadline?.timeIntervalSinceNow ?? 0)));guard !Task.isCancelled else{return};self?.stopNow();self?.status="10 minuti conclusi. Riavvia live solo se vuoi."}
+        status="Live in attesa di una posizione recente. Massimo 10 minuti."
         stream=Task{[weak self] in
             do{for try await update in CLLocationUpdate.liveUpdates(){
                 guard !Task.isCancelled,let self=self else{break}
@@ -115,6 +129,7 @@ enum NOVASwiftLivePolicy {
         }
     }
     private func receive(_ fix:CLLocation,_ session:NOVASession){
+        if let deadline=deadline,Date()>=deadline{stopNow();return}
         guard Date()>=retryAfter,upload==nil,NOVASwiftLivePolicy.upload(now:Date(),fix:fix,previous:previous,sentAt:sentAt),let store=store,let root=store.archive?.active.object,NOVASwiftLivePolicy.consent(root),root["locSessionToken"]?.string==session.token,let sharing=root["locSession"]?.string,sharing==liveSession else{return}
         let epoch=generation
         upload=Task{[weak self] in
