@@ -26,13 +26,61 @@ jobs:
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" /tmp/LiveLab.app
+          xcrun simctl launch --console "$UDID" site.federicotaranu.nova.livelab --synthetic-checks > evidence/checks.log 2>&1 &
+          CHECK_PID=$!
+          sleep 3
+          xcrun simctl terminate "$UDID" site.federicotaranu.nova.livelab
+          wait "$CHECK_PID" || true
+          grep 'LIVE_LAB_CHECKS' evidence/checks.log
+          ! grep 'false' evidence/checks.log
           for THEME in light dark; do
             xcrun simctl ui "$UDID" appearance "$THEME"
-            xcrun simctl launch "$UDID" site.federicotaranu.nova.livelab --synthetic-preview
-            sleep 3
-            xcrun simctl io "$UDID" screenshot "evidence/live-lab-$THEME.png"
-            xcrun simctl terminate "$UDID" site.federicotaranu.nova.livelab
+            for STATE in preview confirm active; do
+              xcrun simctl launch "$UDID" site.federicotaranu.nova.livelab "--synthetic-$STATE"
+              sleep 3
+              xcrun simctl io "$UDID" screenshot "evidence/live-lab-$THEME-$STATE.png"
+              xcrun simctl terminate "$UDID" site.federicotaranu.nova.livelab
+            done
           done
+      - name: Synthetic UI confirm cancel stop and counters
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          export PATH="$HOME/.maestro/bin:$PATH"
+          cat > /tmp/lab.yaml <<'FLOW'
+          appId: site.federicotaranu.nova.livelab
+          ---
+          - launchApp:
+              stopApp: true
+              arguments:
+                --synthetic-confirm: true
+          - assertVisible: "Avviare il test locale di posizione?"
+          - takeScreenshot: evidence/live-lab-confirm-visible
+          - tapOn: "Annulla"
+          - assertVisible: "Avvia test locale"
+          - launchApp:
+              stopApp: true
+              arguments:
+                --synthetic-active: true
+          - assertVisible: "Ferma test"
+          - scrollUntilVisible:
+              element:
+                text: "In background"
+              direction: DOWN
+          - takeScreenshot: evidence/live-lab-counters
+          - scrollUntilVisible:
+              element:
+                text: "Ferma test"
+              direction: UP
+          - tapOn: "Ferma test"
+          - assertVisible: "Test fermato. Nessun dato inviato."
+          - assertVisible: "Avvia test locale"
+          - takeScreenshot: evidence/live-lab-stopped
+          FLOW
+          export MAESTRO_DRIVER_STARTUP_TIMEOUT=240000
+          python3 - <<'RUN'
+          import subprocess
+          subprocess.run(['maestro','test','/tmp/lab.yaml'],timeout=360,check=True)
+          RUN
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -40,3 +88,4 @@ jobs:
           path: |
             evidence/*.ipa
             evidence/*.png
+            evidence/*.log
