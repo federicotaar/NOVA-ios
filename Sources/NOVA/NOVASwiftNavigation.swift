@@ -24,7 +24,7 @@ struct NOVASwiftAssistantGlass:ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder func body(content:Content)->some View {
         if #available(iOS 26.0,*){
-            if circle{content.glassEffect(.clear.interactive(),in:.circle).overlay{if colorScheme == .light{Circle().strokeBorder(.black.opacity(0.20),lineWidth:1).allowsHitTesting(false)}}}else{content.glassEffect(.clear.interactive(),in:.rect(cornerRadius:22)).overlay{if colorScheme == .light{RoundedRectangle(cornerRadius:22).strokeBorder(.black.opacity(0.20),lineWidth:1).allowsHitTesting(false)}}}
+            if circle{content.glassEffect(.clear.interactive(),in:.circle)}else{content.glassEffect(.clear.interactive(),in:.rect(cornerRadius:22))}
         }else{
             if circle{content.background(.regularMaterial,in:Circle())}else{content.background(.regularMaterial,in:RoundedRectangle(cornerRadius:22))}
         }
@@ -33,8 +33,17 @@ struct NOVASwiftAssistantGlass:ViewModifier {
 
 // Nearby native glass controls share one sampling region without merging shapes.
 struct NOVASwiftComposerGlassGroup:ViewModifier {
+    var composerBoundary=false
+    @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder func body(content:Content)->some View {
-        if #available(iOS 26.0,*){GlassEffectContainer(spacing:0){content}}else{content}
+        if #available(iOS 26.0,*){GlassEffectContainer(spacing:0){content}.overlay {
+            if composerBoundary && colorScheme == .light {
+                HStack(alignment:.bottom,spacing:10){
+                    Circle().strokeBorder(.black.opacity(0.20),lineWidth:1).frame(width:44,height:44)
+                    RoundedRectangle(cornerRadius:22).strokeBorder(.black.opacity(0.20),lineWidth:1)
+                }.allowsHitTesting(false).accessibilityHidden(true)
+            }
+        }}else{content}
     }
 }
 
