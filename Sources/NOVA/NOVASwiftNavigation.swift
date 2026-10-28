@@ -24,7 +24,7 @@ struct NOVASwiftAssistantGlass:ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder func body(content:Content)->some View {
         if #available(iOS 26.0,*){
-            if circle{content.glassEffect(.clear.interactive(),in:.circle).overlay{if colorScheme == .light{Circle().strokeBorder(.black.opacity(0.12),lineWidth:0.75).allowsHitTesting(false)}}}else{content.glassEffect(.clear.interactive(),in:.rect(cornerRadius:22)).overlay{if colorScheme == .light{RoundedRectangle(cornerRadius:22).strokeBorder(.black.opacity(0.12),lineWidth:0.75).allowsHitTesting(false)}}}
+            if circle{content.glassEffect(.clear.interactive(),in:.circle).overlay{if colorScheme == .light{Circle().strokeBorder(.black.opacity(0.20),lineWidth:1).allowsHitTesting(false)}}}else{content.glassEffect(.clear.interactive(),in:.rect(cornerRadius:22)).overlay{if colorScheme == .light{RoundedRectangle(cornerRadius:22).strokeBorder(.black.opacity(0.20),lineWidth:1).allowsHitTesting(false)}}}
         }else{
             if circle{content.background(.regularMaterial,in:Circle())}else{content.background(.regularMaterial,in:RoundedRectangle(cornerRadius:22))}
         }
@@ -36,4 +36,9 @@ struct NOVASwiftComposerGlassGroup:ViewModifier {
     @ViewBuilder func body(content:Content)->some View {
         if #available(iOS 26.0,*){GlassEffectContainer(spacing:0){content}}else{content}
     }
+}
+
+struct NOVASwiftComposerTextShadow:ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    func body(content:Content)->some View {content.shadow(color:colorScheme == .dark ? .black.opacity(0.85):.clear,radius:colorScheme == .dark ? 2:0,x:0,y:colorScheme == .dark ? 1:0)}
 }
