@@ -621,19 +621,20 @@ extension NOVAJSON {
             guard current(store,owner,epoch,id) else{return};typing=(response.object?["typing"]?.array ?? []).compactMap(\.string).prefix(8).map{$0}
         }catch{if current(store,owner,epoch,id){typing=[];status="Messaggi non aggiornati. Riprova."}}
     }
-    func send(_ text:String,_ store:NOVASwiftStore) async -> Bool {let value=text.trimmingCharacters(in:.whitespacesAndNewlines);guard !value.isEmpty else{return false};return await sendBody(.object(["body":.string(value)]),store)}
+    func send(_ text:String,_ store:NOVASwiftStore,replyTo:Int?=nil) async -> Bool {let value=text.trimmingCharacters(in:.whitespacesAndNewlines);guard !value.isEmpty else{return false};var body:[String:NOVAJSON]=["body":.string(value)];if let replyTo=replyTo{body["reply_to"] = .number(Double(replyTo))};return await sendBody(.object(body),store)}
     func sendBody(_ body:NOVAJSON,_ store:NOVASwiftStore) async -> Bool {
         guard !sending,let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return false}
         let epoch=generation;sending=true;defer{if current(store,owner,epoch,id){sending=false}}
         do{_ = try await transport(owner,"chats/"+id+"/messages","POST",body,[]);guard current(store,owner,epoch,id) else{return false};await refresh(store);return true}catch{if current(store,owner,epoch,id){status="Messaggio non inviato. La bozza resta conservata."};return false}
     }
-    func media(_ data:Data,mime:String,kind:String,_ store:NOVASwiftStore) async -> Bool {
+    func media(_ data:Data,mime:String,kind:String,_ store:NOVASwiftStore,replyTo:Int?=nil) async -> Bool {
         guard !sending,data.count>=500,data.count<=900000,["image/jpeg","audio/mp4"].contains(mime),let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return false}
         let epoch=generation;sending=true;defer{if current(store,owner,epoch,id){sending=false}}
         do{
             let result=try await transport(owner,"media","POST",.object(["data":.string(data.base64EncodedString()),"mime":.string(mime)]),[])
             guard current(store,owner,epoch,id),let key=result.object?["url"]?.string else{return false}
-            _ = try await transport(owner,"chats/"+id+"/messages","POST",.object(["kind":.string(kind),"media_key":.string(key)]),[])
+            var message:[String:NOVAJSON]=["kind":.string(kind),"media_key":.string(key)];if let replyTo=replyTo{message["reply_to"] = .number(Double(replyTo))}
+            _ = try await transport(owner,"chats/"+id+"/messages","POST",.object(message),[])
             guard current(store,owner,epoch,id) else{return false};await refresh(store);return true
         }catch{if current(store,owner,epoch,id){status="Allegato non inviato. Riprova."};return false}
     }
@@ -677,6 +678,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) var phase
     @State private var groupInfo=false
+    @State private var replyMessage:NOVAJSON?
     @State private var draft=""
     @FocusState private var composerFocused:Bool
     @State private var photo:PhotosPickerItem?
@@ -690,6 +692,9 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     @State private var deleteOpen=false
     @StateObject private var voice=NOVASwiftVoice()
     @StateObject private var playback=NOVASwiftVoicePlayback()
+    var replyID:Int?{replyMessage.flatMap{NOVASwiftReply.identifier($0)}}
+    func selectReply(_ message:NOVAJSON){guard NOVASwiftReply.identifier(message) != nil,message.object?["deleted"]?.flag != true else{return};replyMessage=message;if !voice.recording && voice.draft==nil{composerFocused=true}}
+    func replyAuthor(_ message:NOVAJSON)->String{let sender=message.object?["sender"]?.string ?? "";return sender==store.archive?.active.object?["acct"]?.object?["email"]?.string ? "Tu":social.senders[sender]?.string ?? "Messaggio"}
     func mediaURL(_ key:String)->URL? {let url=key.hasPrefix("/") ? URL(string:"https://api.federicotaranu.site"+key):URL(string:key);return url?.scheme=="https" ? url:nil}
     var body:some View {
         VStack(spacing:0){
@@ -700,6 +705,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                 VStack(alignment:.leading,spacing:5){
                     if o["deleted"]?.flag==true{Text("Messaggio eliminato").italic().foregroundStyle(own ? .white.opacity(0.8):.secondary)}else{
                         if !own{Text(social.senders[o["sender"]?.string ?? ""]?.string ?? "Amico").font(.caption).foregroundStyle(.secondary)}
+                        if let reply=o["reply"],reply.object != nil{NOVASwiftReplyQuote(author:replyAuthor(reply),preview:NOVASwiftReply.preview(reply),own:own)}
                         if let key=o["media_key"]?.string,let url=mediaURL(key){
                             if o["kind"]?.string=="image"{NOVASwiftPrivateImage(url:url,store:store).frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
                             if o["kind"]?.string=="voice"{HStack{Button{playback.play(url,store)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
@@ -713,18 +719,22 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                 }.modifier(NOVASwiftComposerGlassGroup()).padding(.horizontal,12).padding(.vertical,8).fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).background(own ? Color.blue:Color(uiColor:.secondarySystemBackground),in:RoundedRectangle(cornerRadius:20))
                 if !own{Spacer(minLength:48)}
                 }.frame(maxWidth:.infinity,alignment:own ? .trailing:.leading)
+                .modifier(NOVASwiftSwipeReply(enabled:o["deleted"]?.flag != true && NOVASwiftReply.identifier(message) != nil,action:{selectReply(message)})).accessibilityIdentifier("swiftMessage_"+(NOVASwiftReply.identifier(message).map(String.init) ?? "unlinked"))
+                .accessibilityAction(named:Text("Rispondi")){selectReply(message)}
                 .contextMenu{
+                    if o["deleted"]?.flag != true{Button("Rispondi"){selectReply(message)}}
                     if o["deleted"]?.flag != true{ForEach(["👍","❤️","😂","😮","🎉"],id:\.self){emoji in Button(emoji){Task{await social.action(message,operation:"react",value:emoji,store)}}}
                     if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}}
                 }
             }}.padding().padding(.bottom,80)}.refreshable{await social.refresh(store)}
             if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
             if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
-            if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store){photoDraft=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
+            if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store,replyTo:replyID){photoDraft=nil;replyMessage=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
             if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
         }.frame(maxWidth:.infinity,maxHeight:.infinity)
         .safeAreaInset(edge:.bottom,spacing:0){VStack(spacing:8){
-            if voice.recording || voice.draft != nil{NOVASwiftVoiceDraftPanel(recording:voice.recording,busy:social.sending,status:voice.status,stop:{voice.finish()},discard:{voice.cancel()},send:{guard let data=voice.draft else{return};Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store){voice.cancel()}}})}
+            if let reply=replyMessage{HStack(spacing:10){NOVASwiftReplyQuote(author:"Rispondi a "+replyAuthor(reply),preview:NOVASwiftReply.preview(reply),own:false);Spacer(minLength:0);Button{replyMessage=nil}label:{Image(systemName:"xmark.circle.fill").font(.title3).foregroundStyle(.secondary).frame(width:44,height:44)}.buttonStyle(.plain).accessibilityLabel("Annulla risposta")}.padding(.leading,12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:16)).accessibilityIdentifier("swiftReplyDraft")}
+            if voice.recording || voice.draft != nil{NOVASwiftVoiceDraftPanel(recording:voice.recording,busy:social.sending,status:voice.status,stop:{voice.finish()},discard:{voice.cancel()},send:{guard let data=voice.draft else{return};Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store,replyTo:replyID){voice.cancel();replyMessage=nil}}})}
             else if !voice.status.isEmpty{Text(voice.status).font(.caption).foregroundStyle(.secondary)}
             HStack(alignment:.bottom,spacing:10){
                 PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
@@ -733,7 +743,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                     if draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || voice.recording{
                         Button{composerFocused=false;if voice.recording{voice.finish()}else if voice.draft==nil{Task{await voice.start()}}}label:{Image(systemName:voice.recording ? "stop.circle.fill":"waveform").font(.system(size:19)).frame(width:28,height:28)}.buttonStyle(.plain).accessibilityLabel(voice.recording ? "Ferma registrazione":"Registra vocale").disabled(voice.draft != nil || social.sending)
                     }else{
-                        Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending || voice.recording || voice.draft != nil)
+                        Button{let text=draft,target=replyID;Task{if await social.send(text,store,replyTo:target),draft==text{draft="";if replyID==target{replyMessage=nil}}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending || voice.recording || voice.draft != nil)
                     }
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
             }.modifier(NOVASwiftComposerGlassGroup(composerBoundary:true))
@@ -746,7 +756,9 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
 #if DEBUG
         .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASyntheticVoiceDraft"))){_ in voice.draft=Data(repeating:0,count:600);voice.status="Vocale sintetico in bozza";composerFocused=false}
 #endif
-        .onDisappear{mediaEpoch += 1;voice.cancel();playback.stop();social.close()}
+        .onChange(of:social.messages){_,messages in if let selected=replyID,!messages.contains(where:{NOVASwiftReply.identifier($0)==selected && $0.object?["deleted"]?.flag != true}){replyMessage=nil}}
+        .onChange(of:store.archive?.owner){_,_ in replyMessage=nil;draft="";voice.cancel()}
+        .onDisappear{replyMessage=nil;mediaEpoch += 1;voice.cancel();playback.stop();social.close()}
         .onChange(of:store.archive?.owner){_,_ in mediaEpoch += 1;draft="";photoDraft=nil;voice.cancel();playback.stop();social.close()}
         .onChange(of:photo){_,item in mediaEpoch += 1;let epoch=mediaEpoch,owner=store.archive.flatMap{NOVASession($0.active)};Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data) else{return};guard epoch==mediaEpoch,store.archive.flatMap({NOVASession($0.active)})==owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);photoDraft=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))}}}
     }
@@ -932,4 +944,22 @@ struct NOVASwiftMessageText:View {
                 return .handled
             })
     }
+}
+
+// Reply references are server-validated IDs; quoted text is never copied into outgoing bodies.
+enum NOVASwiftReply {
+    static func identifier(_ message:NOVAJSON)->Int?{guard let raw=message.object?["id"] else{return nil};let value=raw.string.flatMap(Int.init) ?? raw.integer;return value>0 ? value:nil}
+    static func preview(_ message:NOVAJSON)->String{let o=message.object ?? [:];if o["deleted"]?.flag==true{return "Messaggio non disponibile"};switch o["kind"]?.string{case "image":return "Foto";case "voice":return "Messaggio vocale";default:return String((o["body"]?.string ?? "Messaggio").prefix(180))}}
+}
+struct NOVASwiftReplyQuote:View {
+    let author:String
+    let preview:String
+    let own:Bool
+    var body:some View{HStack(spacing:8){RoundedRectangle(cornerRadius:2).fill(own ? Color.white.opacity(0.8):Color.blue).frame(width:3);VStack(alignment:.leading,spacing:3){Text(author).font(.caption.bold());Text(preview).font(.caption).lineLimit(2)}.frame(maxWidth:.infinity,alignment:.leading)}.foregroundStyle(own ? Color.white:Color.primary).padding(.vertical,8).accessibilityElement(children:.combine)}
+}
+struct NOVASwiftSwipeReply:ViewModifier {
+    let enabled:Bool
+    let action:()->Void
+    @State private var shift:CGFloat=0
+    func body(content:Content)->some View{content.offset(x:shift).overlay(alignment:.leading){if shift>20{Image(systemName:"arrowshape.turn.up.left.fill").foregroundStyle(.secondary).opacity(min(1,shift/70)).offset(x:-8)}}.simultaneousGesture(DragGesture(minimumDistance:24).onChanged{value in guard enabled,value.translation.width>0,abs(value.translation.height)<35 else{return};shift=min(84,value.translation.width*0.65)}.onEnded{value in let reply=enabled && value.translation.width>=80 && abs(value.translation.height)<35;withAnimation(.snappy){shift=0};if reply{action()}})}
 }
