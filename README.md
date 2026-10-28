@@ -186,3 +186,5 @@ User approved morning setup preview and requested IPA. Enable reviewed group and
 - Native functional/visual regression gate pending. No new IPA, version, backend deployment or mailbox reply. Private report screenshot is not in repository.
 
 - Gate40662560155 native13 checks passed but actual pixels lacked feed/status: scenePhase environment in UIKit hosting did not represent foreground activation reliably. Candidate now uses UIApplication active/resign notifications scoped to map visibility, and gate explicitly asserts synthetic friend pin/status before screenshots. Not accepted on compile-only result.
+
+- Chat URL support candidate: local NSDataDetector, underlined http/https links only with nonempty host/no credentials, native open on explicit tap, message text/selection preserved. No previews/background fetches, custom/file/javascript schemes blocked. Synthetic parser and intercepted-tap gate pending; no actual private shared URLs used.
