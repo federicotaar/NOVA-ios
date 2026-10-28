@@ -63,7 +63,7 @@ struct NOVASwiftArchive: Codable {
         // Copy personal data, never re-enable visibility or device services from a cached runtime flag.
         var active=imported.active.object ?? [:]
         for key in ["locShare","bgLoc"]{active[key] = .number(0)}
-        for key in ["locSession","locSessionToken","locConsentV2","bgConsentV2","liveConsentV1","liveBackgroundConsentV1"]{active[key] = .string("")}
+        for key in ["locSession","locSessionToken","locConsentV2","bgConsentV2","liveConsentV1","liveConsentV2","liveBackgroundConsentV1"]{active[key] = .string("")}
         imported.active = .object(active)
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
@@ -841,7 +841,7 @@ struct NOVASwiftHideTabsKey:PreferenceKey{static var defaultValue:Bool{false};st
         .task(id:"\(scenePhase)-\(store.archive?.owner ?? "")-\(store.archive?.active.object?["acct"]?.object?["token"]?.string ?? "")"){guard deviceServices else{return};groupAlerts.reset();guard scenePhase == .active else{return};while !Task.isCancelled{await groupAlerts.check(store);try? await Task.sleep(for:.seconds(10));if Task.isCancelled{return}}}
         .onPreferenceChange(NOVASwiftHideTabsKey.self){hideTabs=$0}
         .safeAreaInset(edge:.bottom){if !hideTabs{NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}}
-        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{guard deviceServices else{return};sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftLiveLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in guard deviceServices else{return};if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{if deviceServices{sync.stop();NOVASwiftBackgroundLocation.shared.unbind();NOVASwiftLiveLocation.shared.unbind()}}
+        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{guard deviceServices else{return};sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftLiveLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in guard deviceServices else{return};if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{if deviceServices{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}}
     }
 }
 
@@ -869,7 +869,7 @@ extension NOVASwiftStore {
             });return .object(entry)
         })
         next["acct"] = .object(["email":.string(target),"token":.string(token)])
-        next["locShare"] = .number(0);next["bgLoc"] = .number(0);next["locSession"] = .string("");next["locSessionToken"] = .string("");next["locConsentV2"] = .string("");next["bgConsentV2"] = .string("")
+        next["locShare"] = .number(0);next["bgLoc"] = .number(0);next["locSession"] = .string("");next["locSessionToken"] = .string("");next["locConsentV2"] = .string("");next["bgConsentV2"] = .string("");next["liveConsentV1"] = .string("");next["liveConsentV2"] = .string("");next["liveBackgroundConsentV1"] = .string("")
         current.active = .object(next)
         let data=try encoder.encode(current),url=directory.appendingPathComponent("state-v1.json")
         try data.write(to:url,options:[.atomic,.completeFileProtection])
@@ -894,7 +894,7 @@ extension NOVASwiftStore {
 // Held inactive until integrated simulator acceptance. Never renders the legacy app as a screen.
 @MainActor struct NOVASwiftLaunchRoot:View {
     @StateObject private var store:NOVASwiftStore
-    init(store:NOVASwiftStore?=nil){_store=StateObject(wrappedValue:store ?? NOVASwiftStore())}
+    init(store:NOVASwiftStore?=nil){_store=StateObject(wrappedValue:store ?? NOVASwiftPersistentServices.store)}
     @State private var reader=NOVALegacyReader()
     @State private var legacy:[String:String]?
     @State private var busy=false
