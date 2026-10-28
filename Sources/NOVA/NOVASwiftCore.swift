@@ -55,6 +55,7 @@ struct NOVASwiftArchive: Codable {
         let url = self.directory.appendingPathComponent("state-v1.json")
         if FileManager.default.fileExists(atPath:url.path){if let data=try? Data(contentsOf:url),let saved=try? JSONDecoder().decode(NOVASwiftArchive.self,from:data){archive=saved}else{unreadableArchive=true}}
     }
+    func reloadAfterProtectedUnlock(){guard unreadableArchive,archive==nil else{return};let url=directory.appendingPathComponent("state-v1.json");guard let data=try? Data(contentsOf:url),let saved=try? JSONDecoder().decode(NOVASwiftArchive.self,from:data) else{return};archive=saved;unreadableArchive=false}
     // Called only after the user reviews the one-time migration offer.
     func importOnce(_ values: [String:String]) throws {
         guard archive == nil,!FileManager.default.fileExists(atPath:directory.appendingPathComponent("state-v1.json").path) else { throw CocoaError(.fileWriteFileExists) }
