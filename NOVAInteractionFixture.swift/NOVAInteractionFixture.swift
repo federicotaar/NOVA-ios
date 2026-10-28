@@ -80,6 +80,8 @@ import UIKit
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftMapInteractionReady(web,attempt+1)}};return}
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("map-layout-fixture-28"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"acct\":{\"email\":\"map@test.invalid\",\"token\":\"synthetic-only\"},\"tasks\":[],\"w\":{\"wx\":0,\"sp\":0}}"])}
  Task{@MainActor in
+ // Reset this isolated synthetic fixture on every launch before checking refresh.
+ try? store.update(owner:store.archive!.owner){$0["locShare"] = .number(0);$0["locSession"] = .string("");$0["locConsentV2"] = .string("")}
  var old:[String:NOVAJSON]=["locShare":.number(1),"bgLoc":.number(1),"locSession":.string("old-session")]
  var checks=["oldFlagsCannotShare":!NOVASwiftLocationConsent.sharing(old),"oldFlagsCannotBackground":!NOVASwiftLocationConsent.background(old)]
  old["locConsentV2"] = .string("old-session");checks["sharingConsentAloneNoBackground"] = NOVASwiftLocationConsent.sharing(old) && !NOVASwiftLocationConsent.background(old)
