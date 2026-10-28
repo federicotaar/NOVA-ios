@@ -128,6 +128,26 @@ import UIKit
  let race=NOVASwiftMapModel{_,_,_,_ in calls+=1;let n=calls;if n==1{try? await Task.sleep(for:.milliseconds(160))};return response([row(n==1 ? "older":"newer")])}
  let first=Task{@MainActor in await race.refresh(store)};try? await Task.sleep(for:.milliseconds(20));await race.refresh(store);await first.value;checks["outOfOrderRefreshRejected"] = race.friends.first?.id=="newer"
  checks["refreshDoesNotEnableSharing"] = !NOVASwiftLocationConsent.sharing(store.archive?.active.object ?? [:])
+ // Exercise the production controller with isolated state and synthetic sensor/network inputs.
+ let runtimeDir=FileManager.default.temporaryDirectory.appendingPathComponent("live-engine-"+UUID().uuidString)
+ let runtimeStore=NOVASwiftStore(directory:runtimeDir)
+ try? runtimeStore.importOnce(["nova.v1":"{\"acct\":{\"email\":\"runtime@test.invalid\",\"token\":\"fake-runtime-token\"}}"])
+ func seedRuntime(){try? runtimeStore.update(owner:runtimeStore.archive!.owner){$0["locShare"] = .number(1);$0["locSession"] = .string("runtime-session");$0["locConsentV2"] = .string("runtime-session");$0["locSessionToken"] = .string("fake-runtime-token")}}
+ seedRuntime();var sends=0;var quota=false;var network=false
+ let engine=NOVASwiftLiveLocation(deviceServices:false){_,_ in sends+=1;if quota{throw NOVAServiceError.http(429,"synthetic quota")};if network{throw URLError(.notConnectedToInternet)};return .object(["ok":.bool(true)])}
+ engine.bind(runtimeStore);checks["engineBindDoesNotStartLegacy"] = !engine.running
+ engine.choose(true,runtimeStore);checks["engineExplicitStartRuns"] = engine.running
+ engine.testFix(recent);for _ in 0..<50{if !engine.testHasUpload{break};try? await Task.sleep(for:.milliseconds(10))}
+ checks["engineFreshFixSendsOnce"] = sends==1
+ engine.testFix(recent);try? await Task.sleep(for:.milliseconds(20));checks["engineSuppressesRapidRepeat"] = sends==1
+ engine.stopNow();engine.testFix(moved);try? await Task.sleep(for:.milliseconds(20));checks["engineStopCancelsAndClears"] = !engine.running && !NOVASwiftLivePolicy.consent(runtimeStore.archive!.active.object!) && sends==1
+ engine.choose(true,runtimeStore);engine.choose(true,background:true,runtimeStore);engine.testActive(false);checks["engineBackgroundKeepsEnabled"] = engine.running
+ engine.unbind();let restored=NOVASwiftLiveLocation(deviceServices:false){_,_ in .object(["ok":.bool(true)])};restored.bind(runtimeStore);checks["engineV2RelaunchRestoresOptIn"] = restored.running
+ try? runtimeStore.changeAccount(email:"other@test.invalid",token:"other-fake");try? await Task.sleep(for:.milliseconds(20));checks["engineAccountSwitchStops"] = !restored.running
+ try? runtimeStore.changeAccount(email:"runtime@test.invalid",token:"fake-runtime-token");try? await Task.sleep(for:.milliseconds(20));checks["engineReturnAccountDoesNotRestart"] = !restored.running && !NOVASwiftLivePolicy.consent(runtimeStore.archive!.active.object!)
+ restored.unbind();seedRuntime();engine.bind(runtimeStore);engine.testActive(true);quota=true;engine.choose(true,runtimeStore);engine.testFix(recent);for _ in 0..<50{if !engine.testHasUpload{break};try? await Task.sleep(for:.milliseconds(10))};checks["engineQuotaPausesButStaysEnabled"] = !engine.running && NOVASwiftLivePolicy.consent(runtimeStore.archive!.active.object!)
+ engine.stopNow();quota=false;network=true;engine.choose(true,runtimeStore);engine.testFix(recent);for _ in 0..<50{if !engine.testHasUpload{break};try? await Task.sleep(for:.milliseconds(10))};checks["engineOfflineKeepsExplicitChoice"] = NOVASwiftLivePolicy.consent(runtimeStore.archive!.active.object!) && engine.status.contains("rete")
+ engine.stopNow();engine.unbind();try? FileManager.default.removeItem(at:runtimeDir)
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("map-consent-checks.json"))
  try? store.update(owner:store.archive!.owner){$0["locShare"] = .number(1);$0["locSession"] = .string("synthetic-map-session");$0["locConsentV2"] = .string("synthetic-map-session");$0["locSessionToken"] = .string("synthetic-only")}
  let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:3,mapModel:model,deviceServices:false));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
