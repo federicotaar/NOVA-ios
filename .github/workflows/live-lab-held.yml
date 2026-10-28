@@ -80,6 +80,10 @@ jobs:
           import subprocess
           subprocess.run(['maestro','test','/tmp/lab.yaml'],timeout=360,check=True)
           RUN
+      - name: Collect UI screenshots
+        if: always()
+        run: |
+          find "$HOME/.maestro" /tmp -name 'live-lab-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
