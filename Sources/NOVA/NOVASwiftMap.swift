@@ -83,6 +83,7 @@ struct NOVASwiftMapFriend:Identifiable {
         if !enabled {
             NOVASwiftBackgroundLocation.shared.stop(clear:true)
             // Stop local visibility immediately. No further location upload is allowed.
+            NOVASwiftLiveLocation.shared.stopNow()
             do{try store.update(owner:archive.owner){$0["locShare"] = .number(0);$0["locSession"] = .string("");$0["locConsentV2"] = .string("");$0["bgConsentV2"] = .string("");$0["bgLoc"] = .number(0);$0["liveConsentV1"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}}catch{status="Impossibile salvare Fantasma. Nessuna nuova posizione inviata.";changing=false;return}
             // Stop legacy significant-change monitoring before any network wait.
             let defaults=UserDefaults.standard
@@ -166,10 +167,12 @@ enum NOVASwiftLocationConsent {
                             Text(sharing ? "Condivisione attiva: gli amici vedono l'ultima lettura recente.":"Nessuna nuova posizione viene inviata da questo telefono.").font(.footnote)
                             ForEach(model.friends){friend in HStack{Label("@"+friend.id,systemImage:"person.circle.fill");Spacer();Text(friend.timestamp,style:.relative).font(.caption)}.onTapGesture{camera = .region(MKCoordinateRegion(center:friend.coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)))}}
                             Button{if sharing || unconfirmed{Task{await model.sharing(false,store)}}else{confirmShare=true}}label:{Label(sharing || unconfirmed ? "Attiva Fantasma":"Condividi posizione",systemImage:"eye.slash")}.buttonStyle(.bordered)
+                            Toggle("Live · massimo 10 minuti",isOn:Binding(get:{NOVASwiftLivePolicy.consent(root)},set:{on in if on{confirmLive=true}else{live.stopNow()}})).disabled(!sharing)
+                            if NOVASwiftLivePolicy.consent(root){Button("Ferma live",role:.destructive){live.stopNow()};Toggle("Live anche in background",isOn:Binding(get:{NOVASwiftLivePolicy.consent(root,background:true)},set:{on in if on{confirmLiveBackground=true}else{live.choose(false,background:true,store)}}));Text(live.status).font(.caption)}
                             Toggle("Grandi spostamenti a app chiusa",isOn:Binding(get:{NOVASwiftLocationConsent.background(root)},set:{on in if on{confirmBackground=true}else{background.enabled(false,store)}})).disabled(!sharing || NOVASwiftLivePolicy.consent(root))
                             if !background.status.isEmpty{Text(background.status).font(.caption).foregroundStyle(.secondary)}
-                            Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Lo spegnimento offline richiede conferma del server. A app chiusa gli aggiornamenti avvengono ai grandi spostamenti: iOS può ritardarli o sospenderli.").font(.caption).foregroundStyle(.secondary)
-                        }.frame(maxWidth:.infinity,alignment:.leading)}.frame(maxHeight:min(260,geometry.size.height*0.35))
+                            Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Fantasma ferma nuovi invii; offline lo spegnimento sul server va confermato. Live dura al massimo 10 minuti e richiede Avvio a ogni apertura. iOS e rete possono sospendere gli aggiornamenti. Il limite gratuito può mettere live in pausa.").font(.caption).foregroundStyle(.secondary)
+                        }.frame(maxWidth:.infinity,alignment:.leading)}.frame(maxHeight:min(350,geometry.size.height*0.45))
                     }
                 }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,12).accessibilityIdentifier("swiftMapPanel")
             }
@@ -181,6 +184,8 @@ enum NOVASwiftLocationConsent {
                 do{try await Task.sleep(for:.seconds(15))}catch{break}
             }
         }
+        .alert("Avviare live per 10 minuti?",isPresented:$confirmLive,titleVisibility:.visible){Button("Avvia live"){live.choose(true,store)};Button("Annulla",role:.cancel){}}message:{Text("Invia ai tuoi amici NOVA che possono vedere la mappa. Minimo 15 secondi e 15 metri di spostamento, oppure circa 2 minuti da fermo se iOS dà nuove letture. Consuma più batteria e dati. Ferma live interrompe nuovi invii live; Fantasma spegne tutta la condivisione. Il server può fermare live al limite gratuito.")}
+        .alert("Continuare live in background?",isPresented:$confirmLiveBackground,titleVisibility:.visible){Button("Attiva live in background"){live.choose(true,background:true,store)};Button("Annulla",role:.cancel){}}message:{Text("Continua la sessione di massimo 10 minuti dopo aver lasciato NOVA, con indicatore posizione di iOS. Consuma più batteria. iOS può sospendere gli aggiornamenti. Dopo una chiusura forzata riapri e scegli Avvia live: non riparte da solo.")}
         .confirmationDialog("Condividere la tua posizione con gli amici NOVA?",isPresented:$confirmShare,titleVisibility:.visible){Button("Condividi"){Task{await model.sharing(true,store)}};Button("Annulla",role:.cancel){}}message:{Text("Verrà inviata solo quando richiedi una lettura. Gli aggiornamenti a app chiusa richiedono una scelta separata.")}
         .confirmationDialog("Aggiornare anche a app chiusa?",isPresented:$confirmBackground,titleVisibility:.visible){Button("Attiva aggiornamenti"){background.enabled(true,store)};Button("Annulla",role:.cancel){}}message:{Text("iOS usa i grandi spostamenti con il permesso Sempre. Puoi disattivare questa scelta o attivare Fantasma in qualsiasi momento.")}
         .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
