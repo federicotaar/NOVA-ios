@@ -958,7 +958,7 @@ struct NOVASwiftReplyQuote:View {
     let author:String
     let preview:String
     let own:Bool
-    var body:some View{HStack(spacing:8){RoundedRectangle(cornerRadius:2).fill(own ? Color.white.opacity(0.8):Color.blue).frame(width:3);VStack(alignment:.leading,spacing:3){Text(author).font(.caption.bold());Text(preview).font(.caption).lineLimit(2)}.frame(maxWidth:.infinity,alignment:.leading)}.foregroundStyle(own ? Color.white:Color.primary).padding(.vertical,8).accessibilityElement(children:.combine)}
+    var body:some View{VStack(alignment:.leading,spacing:3){Text(author).font(.caption.bold());Text(preview).font(.caption).lineLimit(2)}.frame(maxWidth:.infinity,alignment:.leading).padding(.leading,11).padding(.vertical,8).overlay(alignment:.leading){RoundedRectangle(cornerRadius:2).fill(own ? Color.white.opacity(0.8):Color.blue).frame(width:3)}.fixedSize(horizontal:false,vertical:true).foregroundStyle(own ? Color.white:Color.primary).accessibilityElement(children:.combine)}
 }
 struct NOVASwiftSwipeReply:ViewModifier {
     let enabled:Bool
