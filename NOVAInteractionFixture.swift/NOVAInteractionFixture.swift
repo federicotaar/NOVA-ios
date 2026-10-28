@@ -109,6 +109,7 @@ import UIKit
  let first=Task{@MainActor in await race.refresh(store)};try? await Task.sleep(for:.milliseconds(20));await race.refresh(store);await first.value;checks["outOfOrderRefreshRejected"] = race.friends.first?.id=="newer"
  checks["refreshDoesNotEnableSharing"] = !NOVASwiftLocationConsent.sharing(store.archive?.active.object ?? [:])
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("map-consent-checks.json"))
+ try? store.update(owner:store.archive!.owner){$0["locShare"] = .number(1);$0["locSession"] = .string("synthetic-map-session");$0["locConsentV2"] = .string("synthetic-map-session");$0["locSessionToken"] = .string("synthetic-only")}
  let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:3,mapModel:model,deviceServices:false));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
  }
 }
