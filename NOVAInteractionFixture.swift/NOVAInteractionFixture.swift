@@ -91,15 +91,15 @@ import UIKit
  func response(_ rows:[NOVAJSON])->NOVAJSON{.object(["ok":.bool(true),"friends":.array(rows)])}
  let time=Date();let recent=CLLocation(coordinate:CLLocationCoordinate2D(latitude:0,longitude:0),altitude:0,horizontalAccuracy:10,verticalAccuracy:10,timestamp:time)
  let moved=CLLocation(coordinate:CLLocationCoordinate2D(latitude:0.001,longitude:0),altitude:0,horizontalAccuracy:10,verticalAccuracy:10,timestamp:time)
- checks["legacyConsentDoesNotEnableLive"] = !NOVASwiftLivePolicy.consent(old)
- let runtimeRoot:[String:NOVAJSON] = ["acct":.object(["email":.string("synthetic@invalid.example"),"token":.string("synthetic-token")]),"locShare":.number(1),"locSession":.string("synthetic-session"),"locConsentV2":.string("synthetic-session"),"locSessionToken":.string("synthetic-token"),"liveConsentV1":.string("synthetic-session")]
+ old["liveConsentV1"] = .string("replacement-session");checks["legacyConsentDoesNotEnableLive"] = !NOVASwiftLivePolicy.consent(old)
+ let runtimeRoot:[String:NOVAJSON] = ["acct":.object(["email":.string("synthetic@invalid.example"),"token":.string("synthetic-token")]),"locShare":.number(1),"locSession":.string("synthetic-session"),"locConsentV2":.string("synthetic-session"),"locSessionToken":.string("synthetic-token"),"liveConsentV2":.string("synthetic-session")]
  let runtimeOwner=NOVASession(NOVAJSON.object(runtimeRoot))!
  func allowed(_ root:[String:NOVAJSON],_ started:NOVASession?,_ sharing:String,_ local:Bool,_ deadline:Date?)->Bool{NOVASwiftLivePolicy.runtimeAllowed(root:root,current:runtimeOwner,started:started,sharing:sharing,locallyStarted:local,now:time,deadline:deadline)}
  checks["explicitLiveSessionEligible"] = allowed(runtimeRoot,runtimeOwner,"synthetic-session",true,time.addingTimeInterval(600))
- checks["noAutomaticStartAfterLaunch"] = !allowed(runtimeRoot,runtimeOwner,"synthetic-session",false,time.addingTimeInterval(600))
+ checks["noRuntimeWithoutExplicitPersistentConsent"] = !allowed(runtimeRoot,runtimeOwner,"synthetic-session",false,time.addingTimeInterval(600))
  checks["wrongOwnerStopsLive"] = !allowed(runtimeRoot,nil,"synthetic-session",true,time.addingTimeInterval(600))
  checks["replacedSessionStopsLive"] = !allowed(runtimeRoot,runtimeOwner,"replacement",true,time.addingTimeInterval(600))
- checks["tenMinuteDeadlineBlocksLive"] = !allowed(runtimeRoot,runtimeOwner,"synthetic-session",true,time)
+ checks["noArtificialTenMinuteTimeout"] = allowed(runtimeRoot,runtimeOwner,"synthetic-session",true,time)
  var ghost=runtimeRoot;ghost["locShare"] = .number(0);checks["ghostBlocksLive"] = !allowed(ghost,runtimeOwner,"synthetic-session",true,time.addingTimeInterval(600))
  var changedToken=runtimeRoot;changedToken["locSessionToken"] = .string("replacement-token")
  checks["tokenBoundaryRevokesStart"] = !NOVASwiftLivePolicy.sameStart(root:changedToken,current:runtimeOwner,started:runtimeOwner,sharing:"synthetic-session")
