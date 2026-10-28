@@ -101,6 +101,14 @@ import UIKit
  checks["replacedSessionStopsLive"] = !allowed(runtimeRoot,runtimeOwner,"replacement",true,time.addingTimeInterval(600))
  checks["tenMinuteDeadlineBlocksLive"] = !allowed(runtimeRoot,runtimeOwner,"synthetic-session",true,time)
  var ghost=runtimeRoot;ghost["locShare"] = .number(0);checks["ghostBlocksLive"] = !allowed(ghost,runtimeOwner,"synthetic-session",true,time.addingTimeInterval(600))
+ var changedToken=runtimeRoot;changedToken["locSessionToken"] = .string("replacement-token")
+ checks["tokenBoundaryRevokesStart"] = !NOVASwiftLivePolicy.sameStart(root:changedToken,current:runtimeOwner,started:runtimeOwner,sharing:"synthetic-session")
+ var retainedStart=true
+ if !NOVASwiftLivePolicy.sameStart(root:ghost,current:runtimeOwner,started:runtimeOwner,sharing:"synthetic-session"){retainedStart=false}
+ checks["returnAfterGhostRequiresNewStart"] = !allowed(runtimeRoot,runtimeOwner,"synthetic-session",retainedStart,time.addingTimeInterval(600))
+ retainedStart=true
+ if !NOVASwiftLivePolicy.sameStart(root:runtimeRoot,current:nil,started:runtimeOwner,sharing:"synthetic-session"){retainedStart=false}
+ checks["returnAfterSignOutRequiresNewStart"] = !allowed(runtimeRoot,runtimeOwner,"synthetic-session",retainedStart,time.addingTimeInterval(600))
  checks["foregroundConsentNotBackground"] = !NOVASwiftLivePolicy.consent(runtimeRoot,background:true)
  checks["firstLiveFixEligible"] = NOVASwiftLivePolicy.upload(now:time,fix:recent,previous:nil,sentAt:nil)
  checks["movingRateBound"] = !NOVASwiftLivePolicy.upload(now:time,fix:moved,previous:recent,sentAt:time.addingTimeInterval(-5))
