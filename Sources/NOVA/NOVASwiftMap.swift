@@ -57,20 +57,25 @@ struct NOVASwiftMapFriend:Identifiable {
     @Published private(set) var friends:[NOVASwiftMapFriend]=[]
     @Published private(set) var status=""
     @Published private(set) var changing=false
+    @Published private(set) var lastChecked:Date?
+    private var refreshVersion=0
     private var generation=0
     typealias Request=(NOVASession,String,String,NOVAJSON?) async throws -> NOVAJSON
     private let request:Request
     init(request:Request?=nil){self.request=request ?? {session,path,method,body in try await NOVAAccountService(session:session).request(path,method:method,body:body)}}
-    func cancel() { generation += 1;changing=false;friends=[] }
+    func cancel() { generation += 1;refreshVersion += 1;changing=false;friends=[];lastChecked=nil;status="" }
     func refresh(_ store:NOVASwiftStore) async {
         guard let active=store.archive?.active,let owner=NOVASession(active) else{friends=[];status="Collega il tuo account NOVA per vedere gli amici sulla mappa.";return}
         let expected=generation
+        refreshVersion += 1;let refresh=refreshVersion
         do {
             let result=try await request(owner,"map","GET",nil)
-            guard generation==expected,store.archive.flatMap({NOVASession($0.active)})==owner else{return}
+            guard !Task.isCancelled,generation==expected,refreshVersion==refresh,store.archive.flatMap({NOVASession($0.active)})==owner else{return}
+            guard result.object?["ok"]?.flag==true,result.object?["friends"]?.array != nil else{throw NOVAServiceError.invalidResponse}
+            lastChecked=Date()
             friends=(result.object?["friends"]?.array ?? []).compactMap{NOVASwiftMapFriend.parse($0)}
             status=friends.isEmpty ? "Nessun amico ha una posizione recente condivisa.":"Posizioni recenti, non tracciamento continuo."
-        }catch{guard generation==expected else{return};friends=[];status="Mappa amici non aggiornata. Riprova."}
+        }catch{guard !Task.isCancelled,generation==expected,refreshVersion==refresh,store.archive.flatMap({NOVASession($0.active)})==owner else{return};friends=[];lastChecked=nil;status="Mappa amici non aggiornata. Riprova."}
     }
     func sharing(_ enabled:Bool,_ store:NOVASwiftStore) async {
         guard let archive=store.archive,let owner=NOVASession(archive.active) else{status="Collega prima il tuo account NOVA.";return}
@@ -120,6 +125,7 @@ enum NOVASwiftLocationConsent {
 }
 @MainActor struct NOVASwiftMap:View {
     @ObservedObject var store:NOVASwiftStore
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var model:NOVASwiftMapModel
     init(store:NOVASwiftStore,model:NOVASwiftMapModel?=nil){self.store=store;_model=StateObject(wrappedValue:model ?? NOVASwiftMapModel())}
     @StateObject private var position=NOVASwiftPosition()
@@ -149,11 +155,12 @@ enum NOVASwiftLocationConsent {
                 VStack(spacing:10){
                     Button{withAnimation(.snappy){expanded.toggle()}}label:{VStack(spacing:8){Capsule().fill(.secondary).frame(width:36,height:5);HStack{Image(systemName:sharing ? "person.2.fill":"eye.slash.fill");Text("Persone").font(.headline);Spacer();Text(sharing ? "Condivisione attiva":"Fantasma").font(.caption);Image(systemName:expanded ? "chevron.down":"chevron.up").font(.caption.bold())}}}.buttonStyle(.plain).accessibilityIdentifier("swiftMapExpand")
                     if unconfirmed{Text("Condivisione precedente non confermata. Nuovi invii sospesi su questo telefono; usa Fantasma per confermare lo spegnimento sul server.").font(.caption).foregroundStyle(.orange)}
-                    if !position.status.isEmpty{Text(position.status).font(.caption).foregroundStyle(.secondary)}
+                    if !position.status.isEmpty{Text("Tu · "+position.status).font(.caption).foregroundStyle(.secondary)}
+                    if !model.status.isEmpty{Text(model.status).font(.caption).foregroundStyle(.secondary)}
+                    if let checked=model.lastChecked{Text("Amici aggiornati: "+checked.formatted(date:.omitted,time:.standard)).font(.caption2).foregroundStyle(.secondary)}
                     if expanded{
                         ScrollView{VStack(alignment:.leading,spacing:14){
                             Text(sharing ? "Condivisione attiva: gli amici vedono l'ultima lettura recente.":"Nessuna nuova posizione viene inviata da questo telefono.").font(.footnote)
-                            if !model.status.isEmpty{Text(model.status).font(.footnote).foregroundStyle(.secondary)}
                             ForEach(model.friends){friend in HStack{Label("@"+friend.id,systemImage:"person.circle.fill");Spacer();Text(friend.timestamp,style:.relative).font(.caption)}.onTapGesture{camera = .region(MKCoordinateRegion(center:friend.coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)))}}
                             Button{if sharing || unconfirmed{Task{await model.sharing(false,store)}}else{confirmShare=true}}label:{Label(sharing || unconfirmed ? "Attiva Fantasma":"Condividi posizione",systemImage:"eye.slash")}.buttonStyle(.bordered)
                             Toggle("Anche a app chiusa",isOn:Binding(get:{NOVASwiftLocationConsent.background(root)},set:{on in if on{confirmBackground=true}else{background.enabled(false,store)}})).disabled(!sharing)
@@ -163,7 +170,14 @@ enum NOVASwiftLocationConsent {
                     }
                 }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,12).accessibilityIdentifier("swiftMapPanel")
             }
-        }.task{await model.refresh(store)}
+        }.task(id:"\(scenePhase)-\(store.archive?.owner ?? "")-\(root["acct"]?.object?["token"]?.string ?? "")"){
+            guard scenePhase == .active else{model.cancel();return}
+            // Only while this screen is active. No permission or sharing changes.
+            while !Task.isCancelled{
+                await model.refresh(store)
+                do{try await Task.sleep(for:.seconds(60))}catch{break}
+            }
+        }
         .confirmationDialog("Condividere la tua posizione con gli amici NOVA?",isPresented:$confirmShare,titleVisibility:.visible){Button("Condividi"){Task{await model.sharing(true,store)}};Button("Annulla",role:.cancel){}}message:{Text("Verrà inviata solo quando richiedi una lettura. Gli aggiornamenti a app chiusa richiedono una scelta separata.")}
         .confirmationDialog("Aggiornare anche a app chiusa?",isPresented:$confirmBackground,titleVisibility:.visible){Button("Attiva aggiornamenti"){background.enabled(true,store)};Button("Annulla",role:.cancel){}}message:{Text("iOS usa i grandi spostamenti con il permesso Sempre. Puoi disattivare questa scelta o attivare Fantasma in qualsiasi momento.")}
         .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
