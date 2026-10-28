@@ -1,0 +1,42 @@
+name: Held local-only Live Lab device gate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lab:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated lab and simulator previews
+        run: |
+          set -e
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          SIMSDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          mkdir -p /tmp/LiveLab.app evidence/Payload/LiveLab.app
+          cp Tests/LiveLab/Info.plist /tmp/LiveLab.app/Info.plist
+          cp Tests/LiveLab/Info.plist evidence/Payload/LiveLab.app/Info.plist
+          xcrun swiftc -parse-as-library -O -target arm64-apple-ios17.0 -sdk "$SDK" Tests/LiveLab/LiveLab.swift -o evidence/Payload/LiveLab.app/LiveLab
+          xcrun vtool -show-build evidence/Payload/LiveLab.app/LiveLab
+          codesign --force --sign - evidence/Payload/LiveLab.app
+          (cd evidence && zip -qry NOVA-Live-Lab-local-only.ipa Payload)
+          xcrun swiftc -D DEBUG -parse-as-library -target "$(uname -m)-apple-ios17.0-simulator" -sdk "$SIMSDK" Tests/LiveLab/LiveLab.swift -o /tmp/LiveLab.app/LiveLab
+          codesign --force --sign - /tmp/LiveLab.app
+          UDID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v if "iPhone" in x["name"]))')
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" /tmp/LiveLab.app
+          for THEME in light dark; do
+            xcrun simctl ui "$UDID" appearance "$THEME"
+            xcrun simctl launch "$UDID" site.federicotaranu.nova.livelab --synthetic-preview
+            sleep 3
+            xcrun simctl io "$UDID" screenshot "evidence/live-lab-$THEME.png"
+            xcrun simctl terminate "$UDID" site.federicotaranu.nova.livelab
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: NOVA-Live-Lab-held-local-only
+          path: |
+            evidence/*.ipa
+            evidence/*.png
