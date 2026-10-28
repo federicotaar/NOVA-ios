@@ -79,6 +79,24 @@ jobs:
               end: "70%,18%"
               duration: 450
           - assertVisible: "Rispondi a Amico demo"
+          - tapOn: "Annulla risposta"
+          - swipe:
+              start: "30%,18%"
+              end: "46%,22%"
+              duration: 250
+          - assertVisible: "Rispondi a Amico demo"
+          - tapOn: "Annulla risposta"
+          - swipe:
+              start: "30%,18%"
+              end: "32%,30%"
+              duration: 350
+          - assertNotVisible:
+              id: "swiftReplyDraft"
+          - swipe:
+              start: "25%,18%"
+              end: "70%,18%"
+              duration: 300
+          - assertVisible: "Rispondi a Amico demo"
           - inputText: "Risposta sintetica"
           - tapOn: "Invia messaggio"
           - assertNotVisible:
