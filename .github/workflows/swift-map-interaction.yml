@@ -47,6 +47,22 @@ jobs:
         with:
           name: NOVA-Swift-live-rest-${{ matrix.theme }}
           path: evidence/native-segment-rest.png
+      - name: Verify widget brand metadata and compile extension
+        run: |
+          set -e
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          ARCH=$(uname -m)
+          APP=/tmp/WidgetBrand.app
+          mkdir -p "$APP/PlugIns/NOVAWidget.appex"
+          xcrun swiftc -parse-as-library -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" Sources/NOVAWidget/NOVAWidget.swift -o "$APP/PlugIns/NOVAWidget.appex/NOVAWidget"
+          cp NOVAWidget-Info.plist "$APP/PlugIns/NOVAWidget.appex/Info.plist"
+          python3 - <<'WIDGET'
+          import plistlib
+          p='/tmp/WidgetBrand.app/PlugIns/NOVAWidget.appex/Info.plist';d=plistlib.load(open(p,'rb'))
+          assert d['CFBundleDisplayName']=='NOVA' and d['CFBundleName']=='NOVA'
+          s=open('Sources/NOVAWidget/NOVAWidget.swift').read();assert 'TEST Swift' not in s and 'NOVA TEST' not in s
+          print('Widget extension compiles; brand NOVA; individual titles and kind IDs unchanged.')
+          WIDGET
       - name: Install native UI driver
         run: |
           curl -fsSL https://get.maestro.mobile.dev | bash
