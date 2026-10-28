@@ -125,7 +125,7 @@ enum NOVASwiftLocationConsent {
 }
 @MainActor struct NOVASwiftMap:View {
     @ObservedObject var store:NOVASwiftStore
-    @Environment(\.scenePhase) private var scenePhase
+    @State private var mapActive = UIApplication.shared.applicationState == .active
     @StateObject private var model:NOVASwiftMapModel
     init(store:NOVASwiftStore,model:NOVASwiftMapModel?=nil){self.store=store;_model=StateObject(wrappedValue:model ?? NOVASwiftMapModel())}
     @StateObject private var position=NOVASwiftPosition()
@@ -170,8 +170,8 @@ enum NOVASwiftLocationConsent {
                     }
                 }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,12).accessibilityIdentifier("swiftMapPanel")
             }
-        }.task(id:"\(scenePhase)-\(store.archive?.owner ?? "")-\(root["acct"]?.object?["token"]?.string ?? "")"){
-            guard scenePhase == .active else{model.cancel();return}
+        }.task(id:"\(mapActive)-\(store.archive?.owner ?? "")-\(root["acct"]?.object?["token"]?.string ?? "")"){
+            guard mapActive else{model.cancel();return}
             // Only while this screen is active. No permission or sharing changes.
             while !Task.isCancelled{
                 await model.refresh(store)
@@ -181,6 +181,9 @@ enum NOVASwiftLocationConsent {
         .confirmationDialog("Condividere la tua posizione con gli amici NOVA?",isPresented:$confirmShare,titleVisibility:.visible){Button("Condividi"){Task{await model.sharing(true,store)}};Button("Annulla",role:.cancel){}}message:{Text("Verrà inviata solo quando richiedi una lettura. Gli aggiornamenti a app chiusa richiedono una scelta separata.")}
         .confirmationDialog("Aggiornare anche a app chiusa?",isPresented:$confirmBackground,titleVisibility:.visible){Button("Attiva aggiornamenti"){background.enabled(true,store)};Button("Annulla",role:.cancel){}}message:{Text("iOS usa i grandi spostamenti con il permesso Sempre. Puoi disattivare questa scelta o attivare Fantasma in qualsiasi momento.")}
         .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
+        .onReceive(NotificationCenter.default.publisher(for:UIApplication.didBecomeActiveNotification)){_ in mapActive=true}
+        .onReceive(NotificationCenter.default.publisher(for:UIApplication.willResignActiveNotification)){_ in mapActive=false;position.stop();model.cancel()}
+        .onAppear{mapActive = UIApplication.shared.applicationState == .active}
         .onChange(of:store.archive?.owner){_,_ in position.stop();model.cancel()}
         .onDisappear{position.stop();model.cancel()}
     }
