@@ -3,20 +3,54 @@ import LocalAuthentication
 import UserNotifications
 
 @MainActor final class NOVASwiftDeviceLock:ObservableObject {
+    static let shared=NOVASwiftDeviceLock()
     @Published private(set) var locked=false
     @Published private(set) var status=""
+    @Published private(set) var authenticating=false
     private var context:LAContext?
     private var generation=0
-    var enabled:Bool{UserDefaults.standard.bool(forKey:"nova.faceid")}
+    private var started=false
+    private var autoUnlockPending=false
+    private let defaults:UserDefaults
+    private let testAuthentication:((String) async throws -> Bool)?
+    init(defaults:UserDefaults = .standard,authentication:((String) async throws -> Bool)?=nil){self.defaults=defaults;self.testAuthentication=authentication;locked=defaults.bool(forKey:"nova.faceid")}
+    var enabled:Bool{defaults.bool(forKey:"nova.faceid")}
     func cover(){if enabled{locked=true}}
-    func unlock() async {guard enabled else{locked=false;return};generation+=1;let expected=generation;let context=LAContext();self.context=context;var error:NSError?;guard context.canEvaluatePolicy(.deviceOwnerAuthentication,error:&error) else{locked=true;status="Blocco non disponibile: configura Face ID o codice nelle impostazioni di iOS.";return};do{let ok=try await context.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:"Sblocca NOVA");guard expected==generation else{return};locked = !ok;status=ok ? "":"Sblocco non completato."}catch{if expected==generation{status="Sblocco non completato. Riprova."}}}
-    func set(_ on:Bool) async {generation+=1;let expected=generation;let context=LAContext();self.context=context;var error:NSError?;guard context.canEvaluatePolicy(.deviceOwnerAuthentication,error:&error) else{status="Configura prima Face ID o il codice di iOS.";return};do{let ok=try await context.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:on ? "Attiva il blocco di NOVA":"Disattiva il blocco di NOVA");guard expected==generation,ok else{return};UserDefaults.standard.set(on,forKey:"nova.faceid");locked=false;status=on ? "Blocco attivato.":"Blocco disattivato."}catch{if expected==generation{status="Scelta non modificata."}}}
-    func invalidate(){generation+=1;context?.invalidate();context=nil}
+    func launch() async {guard !started else{return};started=true;cover();await unlock()}
+    func sceneChanged(_ phase:ScenePhase) async {
+        // Authentication sheets cause inactive/active, not an actual trip to background.
+        // Never invalidate or schedule another prompt for those transient transitions.
+        if phase == .background{invalidate();cover();autoUnlockPending=enabled}
+        else if phase == .active,autoUnlockPending{autoUnlockPending=false;await unlock()}
+    }
+    private func authenticate(_ reason:String) async throws -> Bool {
+        if let testAuthentication=testAuthentication{return try await testAuthentication(reason)}
+        let candidate=LAContext();context=candidate
+        var error:NSError?
+        guard candidate.canEvaluatePolicy(.deviceOwnerAuthentication,error:&error) else{throw error ?? NSError(domain:"NOVADeviceLock",code:1)}
+        return try await candidate.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:reason)
+    }
+    func unlock() async {
+        guard enabled else{locked=false;return}
+        guard locked,!authenticating else{return}
+        authenticating=true;generation+=1;let expected=generation
+        defer{if expected==generation{authenticating=false;context=nil}}
+        do{let ok=try await authenticate("Sblocca NOVA");guard expected==generation else{return};locked = !ok;status=ok ? "":"Sblocco non completato. Tocca per riprovare."}
+        catch{if expected==generation{locked=true;status="Sblocco non completato. Tocca per riprovare con Face ID o codice iOS."}}
+    }
+    func set(_ on:Bool) async {
+        guard !authenticating else{return}
+        authenticating=true;generation+=1;let expected=generation
+        defer{if expected==generation{authenticating=false;context=nil}}
+        do{let ok=try await authenticate(on ? "Attiva il blocco di NOVA":"Disattiva il blocco di NOVA");guard expected==generation,ok else{return};defaults.set(on,forKey:"nova.faceid");locked=false;status=on ? "Blocco attivato.":"Blocco disattivato."}
+        catch{if expected==generation{status="Scelta non modificata."}}
+    }
+    func invalidate(){generation+=1;context?.invalidate();context=nil;authenticating=false}
 }
 @MainActor struct NOVASwiftDeviceSettings:View {
-    @StateObject private var lock=NOVASwiftDeviceLock()
+    @StateObject private var lock=NOVASwiftDeviceLock.shared
     @State private var notificationStatus=""
-    var body:some View {Form{Section("Blocco app"){Toggle("Face ID o codice iOS",isOn:Binding(get:{lock.enabled},set:{value in Task{await lock.set(value)}}));if !lock.status.isEmpty{Text(lock.status).font(.footnote)}};Section("Notifiche"){Button("Consenti notifiche"){Task{do{let accepted=try await UNUserNotificationCenter.current().requestAuthorization(options:[.alert,.sound,.badge]);notificationStatus=accepted ? "Notifiche autorizzate. iOS gestisce la consegna.":"Notifiche non autorizzate. Puoi cambiarle nelle impostazioni di iOS."}catch{notificationStatus="Permesso notifiche non verificato."}}};if !notificationStatus.isEmpty{Text(notificationStatus).font(.footnote).foregroundStyle(.secondary)};Text("I promemoria richiedono una conferma iOS. Le notifiche sociali ntfy non sono APNs e richiedono ancora verifica nella versione Swift.").font(.footnote).foregroundStyle(.secondary)}}.navigationTitle("Privacy e notifiche").onDisappear{lock.invalidate()}}
+    var body:some View {Form{Section("Blocco app"){Toggle("Face ID o codice iOS",isOn:Binding(get:{lock.enabled},set:{value in Task{await lock.set(value)}} )).disabled(lock.authenticating);if !lock.status.isEmpty{Text(lock.status).font(.footnote)}};Section("Notifiche"){Button("Consenti notifiche"){Task{do{let accepted=try await UNUserNotificationCenter.current().requestAuthorization(options:[.alert,.sound,.badge]);notificationStatus=accepted ? "Notifiche autorizzate. iOS gestisce la consegna.":"Notifiche non autorizzate. Puoi cambiarle nelle impostazioni di iOS."}catch{notificationStatus="Permesso notifiche non verificato."}}};if !notificationStatus.isEmpty{Text(notificationStatus).font(.footnote).foregroundStyle(.secondary)};Text("I promemoria richiedono una conferma iOS. Le notifiche sociali ntfy non sono APNs e richiedono ancora verifica nella versione Swift.").font(.footnote).foregroundStyle(.secondary)}}.navigationTitle("Privacy e notifiche")}
 }
 @MainActor struct NOVASwiftWelcome:View {
     @ObservedObject var store:NOVASwiftStore
@@ -56,16 +90,16 @@ import UserNotifications
 @MainActor struct NOVASwiftProtectedRoot:View {
     @ObservedObject var store:NOVASwiftStore
     @Environment(\.scenePhase) var phase
-    @StateObject private var lock=NOVASwiftDeviceLock()
+    @StateObject private var lock=NOVASwiftDeviceLock.shared
     @StateObject private var releaseCheck=NOVASwiftReleaseCheck()
     @State private var intro=false
     var body:some View{ZStack{
         if store.archive?.active.object?["done"]?.flag==true{NOVASwiftShell(store:store)}else{NOVASwiftWelcome(store:store)}
         if intro{NOVASwiftCinematicIntro{endIntro()}.transition(.opacity).allowsHitTesting(true)}
-        if lock.locked{ZStack{Color.black.ignoresSafeArea();VStack(spacing:20){Image(systemName:"lock.fill").font(.largeTitle);Text("NOVA è bloccata").font(.title.bold());Button("Sblocca con Face ID o codice"){Task{await lock.unlock()}}.buttonStyle(.borderedProminent);if !lock.status.isEmpty{Text(lock.status).font(.footnote)}}.foregroundStyle(.white).padding()}.zIndex(10)}
+        if lock.locked{ZStack{Color.black.ignoresSafeArea();VStack(spacing:20){Image(systemName:"lock.fill").font(.largeTitle);Text("NOVA è bloccata").font(.title.bold());Button("Sblocca con Face ID o codice"){Task{await lock.unlock()}}.buttonStyle(.borderedProminent).disabled(lock.authenticating);if !lock.status.isEmpty{Text(lock.status).font(.footnote)}}.foregroundStyle(.white).padding()}.zIndex(10)}
     }.safeAreaInset(edge:.top){if !lock.locked,!intro,let release=releaseCheck.newer{NOVASwiftReleaseBanner(release:release)}}
-    .task{await releaseCheck.check()}.modifier(NOVABugReportHost(enabled:!lock.locked)).task{lock.cover();if lock.locked{await lock.unlock()};let root=store.archive?.active.object ?? [:];intro=root["introOff"]?.flag != true && (root["introEvery"]?.flag==true || (root["introSeen"]?.flag != true && root["done"]?.flag != true))}
-    .onChange(of:phase){_,value in if value == .active{Task{await lock.unlock();await releaseCheck.check()}}else{endIntro();lock.invalidate();lock.cover()}}
+    .task{await releaseCheck.check()}.modifier(NOVABugReportHost(enabled:!lock.locked)).task{await lock.launch();let root=store.archive?.active.object ?? [:];intro=root["introOff"]?.flag != true && (root["introEvery"]?.flag==true || (root["introSeen"]?.flag != true && root["done"]?.flag != true))}
+    .onChange(of:phase){_,value in if value == .background{endIntro()};Task{await lock.sceneChanged(value);if value == .active{await releaseCheck.check()}}}
     }
     private func endIntro(){intro=false;if let owner=store.archive?.owner{try? store.update(owner:owner){$0["introSeen"] = .number(1)}}}
 
