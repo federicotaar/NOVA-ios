@@ -55,7 +55,38 @@ jobs:
           - takeScreenshot: evidence/group-info
           - tapOn: "Impostazioni"
           - assertVisible: "Autorizzazioni gruppo"
-          - takeScreenshot: evidence/group-settings
+          - assertVisible: "Per salvare scegli:.*"
+          - takeScreenshot: evidence/group-settings-unconfigured
+          - tapOn:
+              id: "groupPermission_add_members"
+          - tapOn: "Solo amministratori"
+          - tapOn:
+              id: "groupPermission_approval"
+          - tapOn: "No"
+          - tapOn:
+              id: "groupPermission_send_messages"
+          - tapOn: "Tutti"
+          - tapOn:
+              id: "groupPermission_edit_settings"
+          - tapOn: "Solo amministratori"
+          - tapOn: "Salva autorizzazioni"
+          - tapOn: "Salva"
+          - takeScreenshot: evidence/group-settings-saved
+          - scrollUntilVisible:
+              element:
+                id: "groupAdmin_amico.demo"
+              direction: DOWN
+          - tapOn:
+              id: "groupAdmin_amico.demo"
+          - assertVisible: "Rendere @amico.demo amministratore?"
+          - takeScreenshot: evidence/group-admin-inline
+          - tapOn: "Annulla"
+          - tapOn:
+              id: "groupAdmin_amico.demo"
+          - tapOn:
+              id: "groupAdminConfirm_amico.demo"
+          - assertVisible: "Rimuovi admin"
+          - takeScreenshot: evidence/group-admin-confirmed
           - tapOn:
               id: "BackButton"
           - assertVisible: "Aggiungi membri"
@@ -82,6 +113,15 @@ jobs:
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
+          cp "$CONTAINER/Documents/group-settings-saved.json" evidence/
+          cp "$CONTAINER/Documents/group-admin-saved.json" evidence/
+          python3 - <<'PYCHECK'
+          import json
+          s=json.load(open('evidence/group-settings-saved.json'))
+          assert s['revision']==0 and s['settings']==dict(add_members='admins',send_messages='all',edit_settings='admins',approval=False)
+          assert json.load(open('evidence/group-admin-saved.json'))==dict(username='amico.demo',role='admin')
+          PYCHECK
+
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           kill -INT "$PID" || true
           sleep 5
