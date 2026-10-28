@@ -76,16 +76,13 @@ jobs:
                 text: "Tempo osservato · non attiva"
               direction: DOWN
           - takeScreenshot: evidence/live-lab-lifecycle
-          - scrollUntilVisible:
-              element:
-                text: "Ferma test"
-              direction: UP
           - takeScreenshot: evidence/live-lab-before-stop
           - tapOn: "Ferma test"
           - scrollUntilVisible:
               element:
                 text: "Test fermato. Nessun dato inviato."
-              direction: DOWN
+              direction: UP
+              centerElement: true
           - assertVisible: "Test fermato. Nessun dato inviato."
           - assertVisible: "Avvia test locale"
           - takeScreenshot: evidence/live-lab-stopped
@@ -103,7 +100,7 @@ jobs:
       - name: Collect UI screenshots
         if: always()
         run: |
-          find "$HOME/.maestro" -name 'screenshot*.png' -exec cp {} evidence/ \; 2>/dev/null || true
+          find "$HOME/.maestro" -name '*failure*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           find "$HOME/.maestro" /tmp -name 'live-lab-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
