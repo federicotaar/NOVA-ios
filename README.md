@@ -191,3 +191,6 @@ User approved morning setup preview and requested IPA. Enable reviewed group and
 
 - Chat gate40666201551 succeeds:8/8 safe-link/text checks, actual synthetic link tap routed to injected native open handler, keyboard/back preserved. Inspected real screenshot: underlined blue link within surrounding message text. No external page fetched.
 - Map gate40666172849 visually shows synthetic pin + feed status/timestamp after UIApplication fix; gate assertion failed because map annotations are not exposed as standalone accessibility text. Update assertion to friend list row after expansion, keeping collapsed feed-status check; replacement gate pending. No new release/backend deployment.
+
+- Final map gate40668355014 passes all13 checks and direct collapsed-status/expanded-friend-row UI assertions. Inspected actual screenshots: synthetic pin/list/status and geometry accepted, blank ocean tiles are not live map-service proof.
+- Light composer readability candidate adds only a0.75pt12%-black outline in light appearance, no fill or glass material/geometry changes; dark is unchanged. Both appearance previews pending before packaging.
