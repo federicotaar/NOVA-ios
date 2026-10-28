@@ -647,7 +647,7 @@ extension NOVAJSON {
     }
     func signalTyping(_ store:NOVASwiftStore) async {guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return};_ = try? await transport(owner,"chats/"+id+"/typing","POST",.object([:]),[])}
 }
-enum NOVASwiftServerCapabilities { static let groupManagement=false; static let selfClear=false } // Enable only after backend verification and rollout.
+enum NOVASwiftServerCapabilities { static let groupManagement=true; static let selfClear=true } // Reviewed release capability; coordinate server rollout before delivery.
 @MainActor struct NOVASwiftChatList:View {
     @ObservedObject var store:NOVASwiftStore
     @StateObject private var social:NOVASwiftSocial
