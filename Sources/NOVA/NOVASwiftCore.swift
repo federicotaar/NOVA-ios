@@ -696,9 +696,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     func selectReply(_ message:NOVAJSON){guard NOVASwiftReply.identifier(message) != nil,message.object?["deleted"]?.flag != true else{return};replyMessage=message;if !voice.recording && voice.draft==nil{composerFocused=true}}
     func replyAuthor(_ message:NOVAJSON)->String{let sender=message.object?["sender"]?.string ?? "";return sender==store.archive?.active.object?["acct"]?.object?["email"]?.string ? "Tu":social.senders[sender]?.string ?? "Messaggio"}
     func mediaURL(_ key:String)->URL? {let url=key.hasPrefix("/") ? URL(string:"https://api.federicotaranu.site"+key):URL(string:key);return url?.scheme=="https" ? url:nil}
-    var body:some View {
-        VStack(spacing:0){
-            ScrollView{LazyVStack(alignment:.leading,spacing:6){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
+    @ViewBuilder private func messageRow(_ message:NOVAJSON)->some View {
                 let o=message.object ?? [:],own=o["sender"]?.string==store.archive?.active.object?["acct"]?.object?["email"]?.string
                 HStack(alignment:.bottom,spacing:0){
                 if own{Spacer(minLength:48)}
@@ -726,6 +724,11 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                     if o["deleted"]?.flag != true{ForEach(["👍","❤️","😂","😮","🎉"],id:\.self){emoji in Button(emoji){Task{await social.action(message,operation:"react",value:emoji,store)}}}
                     if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}}
                 }
+    }
+    var body:some View {
+        VStack(spacing:0){
+            ScrollView{LazyVStack(alignment:.leading,spacing:6){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
+                messageRow(message)
             }}.padding().padding(.bottom,80)}.refreshable{await social.refresh(store)}
             if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
             if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
