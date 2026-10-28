@@ -77,6 +77,12 @@ jobs:
               end: "50%,70%"
               duration: 500
           - takeScreenshot: evidence/swift-chat-dismiss
+          - tapOn: "Bozza vocale demo"
+          - assertVisible: "Vocale pronto"
+          - assertVisible: "Invia vocale"
+          - takeScreenshot: evidence/swift-voice-draft
+          - tapOn: "Elimina vocale"
+          - assertNotVisible: "Vocale pronto"
           - tapOn:
               id: "swiftChatBack"
           - assertVisible: "Gruppo demo"
