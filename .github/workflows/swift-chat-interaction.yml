@@ -63,6 +63,33 @@ jobs:
           - assertNotVisible:
               id: "swiftOwnedNavigation"
           - takeScreenshot: evidence/swift-chat-rest
+          - swipe:
+              start: "30%,65%"
+              end: "30%,25%"
+              duration: 500
+          - assertNotVisible: "Ci vediamo dopo?"
+          - assertNotVisible:
+              id: "swiftReplyDraft"
+          - takeScreenshot: evidence/swift-chat-scroll-up
+          - scrollUntilVisible:
+              element:
+                text: "FONDO CHAT SINTETICO"
+              direction: DOWN
+              timeout: 30000
+          - takeScreenshot: evidence/swift-chat-scroll-bottom
+          - swipe:
+              start: "30%,30%"
+              end: "30%,70%"
+              duration: 500
+          - assertNotVisible: "FONDO CHAT SINTETICO"
+          - assertNotVisible:
+              id: "swiftReplyDraft"
+          - scrollUntilVisible:
+              element:
+                text: "Ci vediamo dopo?"
+              direction: UP
+              timeout: 30000
+          - takeScreenshot: evidence/swift-chat-scroll-return
           - tapOn: "https://example.com/demo"
           - assertVisible: "Gruppo demo"
           - swipe:
