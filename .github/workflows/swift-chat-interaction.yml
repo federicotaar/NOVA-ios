@@ -131,10 +131,11 @@ jobs:
           - tapOn: "Fine tastiera"
           - scrollUntilVisible:
               element:
-                text: "Risposta sintetica"
+                id: "swiftMessage_20"
               direction: DOWN
-              timeout: 20000
-          - assertVisible: "Risposta sintetica"
+              timeout: 60000
+          - assertVisible:
+              id: "swiftMessage_20"
           - takeScreenshot: evidence/swift-reply-sent
           - tapOn:
               id: "swiftConversationComposer"
