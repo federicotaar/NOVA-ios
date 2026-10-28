@@ -84,6 +84,14 @@ import UIKit
  old["locSession"] = .string("replacement-session");checks["replacementSessionRejectsOldConsent"] = !NOVASwiftLocationConsent.sharing(old) && !NOVASwiftLocationConsent.background(old)
  func row(_ name:String,_ age:Double=0)->NOVAJSON{.object(["username":.string(name),"lat":.number(0),"lon":.number(0),"ts":.number(Date().timeIntervalSince1970*1000-age*1000)])}
  func response(_ rows:[NOVAJSON])->NOVAJSON{.object(["ok":.bool(true),"friends":.array(rows)])}
+ let time=Date();let recent=CLLocation(coordinate:CLLocationCoordinate2D(latitude:0,longitude:0),altitude:0,horizontalAccuracy:10,verticalAccuracy:10,timestamp:time)
+ let moved=CLLocation(coordinate:CLLocationCoordinate2D(latitude:0.001,longitude:0),altitude:0,horizontalAccuracy:10,verticalAccuracy:10,timestamp:time)
+ checks["legacyConsentDoesNotEnableLive"] = !NOVASwiftLivePolicy.consent(old)
+ checks["firstLiveFixEligible"] = NOVASwiftLivePolicy.upload(now:time,fix:recent,previous:nil,sentAt:nil)
+ checks["movingRateBound"] = !NOVASwiftLivePolicy.upload(now:time,fix:moved,previous:recent,sentAt:time.addingTimeInterval(-5))
+ checks["movingFixAfterMinimum"] = NOVASwiftLivePolicy.upload(now:time,fix:moved,previous:recent,sentAt:time.addingTimeInterval(-16))
+ checks["stationarySlowdown"] = !NOVASwiftLivePolicy.upload(now:time,fix:recent,previous:recent,sentAt:time.addingTimeInterval(-20))
+ checks["stationaryHeartbeat"] = NOVASwiftLivePolicy.upload(now:time,fix:recent,previous:recent,sentAt:time.addingTimeInterval(-121))
  checks["freshParserAccepted"] = NOVASwiftMapFriend.parse(row("synthetic")) != nil
  checks["staleParserRejected"] = NOVASwiftMapFriend.parse(row("stale",1801)) == nil
  var phase=0
