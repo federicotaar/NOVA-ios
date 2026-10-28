@@ -106,7 +106,7 @@ struct LiveLabView:View {
         Section("Sessione locale · massimo 10 minuti"){
             Toggle("Prova anche in background",isOn:$model.background).disabled(model.active)
             Text("iOS può mostrare l'indicatore posizione e sospendere gli aggiornamenti. Chiudere forzatamente l'app interrompe la prova. Non è un servizio sempre garantito.").font(.caption)
-            if model.active{Button("Ferma test",role:.destructive){model.stop()}}else{Button("Avvia test locale"){confirm=true}}
+            if model.active{Text("Test in corso. Ferma test dalla barra in alto.")}else{Button("Avvia test locale"){confirm=true}}
             Text(model.status).accessibilityIdentifier("liveLabStatus")
         }
         Section("Risultati locali, senza coordinate"){
@@ -134,7 +134,7 @@ struct LiveLabView:View {
         }
         Section{Text("Età e precisione descrivono l'ultima lettura ricevuta, anche se filtrata. Dopo Stop i valori restano fermi. I motivi di filtro sono esclusivi: viene contato il primo controllo non superato.").font(.caption)}
         Section{Text("Filtro: letture recenti meno di 30 secondi e precisione entro 200 metri. Minimo 15 secondi tra letture accettate mentre ti muovi; da fermo circa 120 secondi, solo se iOS fornisce una nuova lettura. Nessun invio al server.").font(.caption)}
-    }.navigationTitle("NOVA Live Lab")}.alert("Avviare il test locale di posizione?",isPresented:$confirm){Button("Avvia 10 minuti"){model.request()};Button("Annulla",role:.cancel){}}message:{Text("Usa la posizione reale su questo iPhone per valutare gli aggiornamenti di iOS. Nessun dato lascia il telefono; più consumo di batteria durante la prova. Puoi fermarla in qualsiasi momento.")}.task{
+    }.navigationTitle("NOVA Live Lab").toolbar{if model.active{ToolbarItem(placement:.topBarTrailing){Button("Ferma test",role:.destructive){model.stop()}}}}}.alert("Avviare il test locale di posizione?",isPresented:$confirm){Button("Avvia 10 minuti"){model.request()};Button("Annulla",role:.cancel){}}message:{Text("Usa la posizione reale su questo iPhone per valutare gli aggiornamenti di iOS. Nessun dato lascia il telefono; più consumo di batteria durante la prova. Puoi fermarla in qualsiasi momento.")}.task{
         #if DEBUG
         let args=ProcessInfo.processInfo.arguments
         if args.contains("--synthetic-preview"){model.synthetic()}
