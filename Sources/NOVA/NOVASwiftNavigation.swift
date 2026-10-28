@@ -21,9 +21,10 @@ struct NOVASwiftComposerSurface:ViewModifier {
 // The assistant uses a slim field and a separate attachment control, not one large capsule.
 struct NOVASwiftAssistantGlass:ViewModifier {
     let circle:Bool
+    @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder func body(content:Content)->some View {
         if #available(iOS 26.0,*){
-            if circle{content.glassEffect(.clear.interactive(),in:.circle)}else{content.glassEffect(.clear.interactive(),in:.rect(cornerRadius:22))}
+            if circle{content.glassEffect(.clear.interactive(),in:.circle).overlay{if colorScheme == .light{Circle().strokeBorder(.black.opacity(0.12),lineWidth:0.75).allowsHitTesting(false)}}}else{content.glassEffect(.clear.interactive(),in:.rect(cornerRadius:22)).overlay{if colorScheme == .light{RoundedRectangle(cornerRadius:22).strokeBorder(.black.opacity(0.12),lineWidth:0.75).allowsHitTesting(false)}}}
         }else{
             if circle{content.background(.regularMaterial,in:Circle())}else{content.background(.regularMaterial,in:RoundedRectangle(cornerRadius:22))}
         }
