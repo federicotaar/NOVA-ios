@@ -66,10 +66,10 @@ jobs:
           - takeScreenshot: evidence/swift-map-options
           - tapOn:
               id: "novaLiveStart"
-          - assertVisible: "Avviare live per 10 minuti?"
+          - assertVisible: "Attivare live fino a quando lo fermi?"
           - takeScreenshot: evidence/swift-live-confirm
           - tapOn: "Annulla"
-          - assertVisible: "Avvia live · massimo 10 minuti"
+          - assertVisible: "Avvia live · fino a quando lo fermi"
           - takeScreenshot: evidence/swift-live-cancelled
           - tapOn: "Persone"
           - assertNotVisible: "Grandi spostamenti a app chiusa"
