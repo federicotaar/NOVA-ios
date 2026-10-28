@@ -3,7 +3,7 @@ import CoreLocation
 import Combine
 
 // Bound to the Swift archive. No permission request occurs from bind or appearance.
-@MainActor final class NOVASwiftBackgroundLocation:NSObject,ObservableObject,CLLocationManagerDelegate {
+@MainActor final class NOVASwiftBackgroundLocation:NSObject,ObservableObject,@preconcurrency CLLocationManagerDelegate {
     static let shared=NOVASwiftBackgroundLocation()
     @Published private(set) var status=""
     private let manager=CLLocationManager()
@@ -63,7 +63,7 @@ enum NOVASwiftLivePolicy {
         return elapsed>=15 && (fix.distance(from:previous)>=15 || elapsed>=120)
     }
 }
-@MainActor final class NOVASwiftLiveLocation:NSObject,ObservableObject,CLLocationManagerDelegate {
+@MainActor final class NOVASwiftLiveLocation:NSObject,ObservableObject,@preconcurrency CLLocationManagerDelegate {
     static let shared=NOVASwiftLiveLocation()
     @Published private(set) var status=""
     @Published private(set) var lastSent:Date?
