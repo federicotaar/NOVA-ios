@@ -2,14 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleDisplayName</key><string>NOVA Orario</string>
-  <key>CFBundleShortVersionString</key><string>2026.10.23</string>
-  <key>CFBundleVersion</key><string>2311</string>
-  <key>NOVAReleaseLabel</key><string>2026.10.23.11</string>
-  <key>NSExtension</key>
-  <dict>
-    <key>NSExtensionPointIdentifier</key>
-    <string>com.apple.widgetkit-extension</string>
-  </dict>
+	<key>CFBundleDisplayName</key>
+	<string>NOVA</string>
+	<key>CFBundleName</key>
+	<string>NOVA</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2026.10.23</string>
+	<key>CFBundleVersion</key>
+	<string>2311</string>
+	<key>NOVAReleaseLabel</key>
+	<string>2026.10.23.11</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
 </dict>
 </plist>
