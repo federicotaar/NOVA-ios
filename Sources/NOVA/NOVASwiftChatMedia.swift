@@ -23,7 +23,7 @@ import AVFoundation
         }catch{status="Registrazione non avviata.";cancel()}
     }
     func finish(){recorder?.stop();recording=false;timer?.cancel();timer=nil;if let file=file,let data=try? Data(contentsOf:file),data.count>=500,data.count<=900000{draft=data;status="Vocale in bozza: invia o elimina."}else{draft=nil;status="Registrazione troppo corta o troppo grande."};if let file=file{try? FileManager.default.removeItem(at:file)};file=nil;recorder=nil}
-    func cancel(){generation += 1;recorder?.stop();recorder=nil;recording=false;timer?.cancel();timer=nil;draft=nil;if let file=file{try? FileManager.default.removeItem(at:file)};file=nil}
+    func cancel(){status="";generation += 1;recorder?.stop();recorder=nil;recording=false;timer?.cancel();timer=nil;draft=nil;if let file=file{try? FileManager.default.removeItem(at:file)};file=nil}
 }
 final class NOVAMediaRedirectGuard:NSObject,URLSessionTaskDelegate {
     func urlSession(_ session:URLSession,task:URLSessionTask,willPerformHTTPRedirection response:HTTPURLResponse,newRequest request:URLRequest,completionHandler:@escaping(URLRequest?)->Void){guard let url=request.url,url.scheme=="https",url.host=="api.federicotaranu.site",url.path.hasPrefix("/media/") else{completionHandler(nil);return};completionHandler(request)}
@@ -95,5 +95,28 @@ enum NOVASwiftPrivateMedia {
             if selected.count>1{Section("Gruppo"){TextField("Nome gruppo",text:$name);Toggle("Data esame",isOn:$hasExam);if hasExam{DatePicker("Esame",selection:$exam,displayedComponents:.date)}}}
             if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary)}
         }.navigationTitle("Nuova chat").toolbar{ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}};ToolbarItem(placement:.confirmationAction){Button("Crea"){busy=true;Task{if await social.create(selected.sorted(),name:name,exam:hasExam ? exam:nil,store) != nil{dismiss()};busy=false}}.disabled(selected.isEmpty||busy)}}.task{await social.loadFriends(store)}}
+    }
+}
+
+// Dedicated recording/draft surface above the composer, never behind its glass.
+struct NOVASwiftVoiceDraftPanel:View {
+    let recording:Bool
+    let busy:Bool
+    let status:String
+    let stop:()->Void
+    let discard:()->Void
+    let send:()->Void
+    var body:some View{
+        VStack(alignment:.leading,spacing:10){
+            HStack(spacing:12){
+                Button(action:discard){Image(systemName:"trash").frame(width:36,height:36)}.accessibilityLabel("Elimina vocale").disabled(busy)
+                Image(systemName:recording ? "waveform.circle.fill":"waveform").font(.title2).foregroundStyle(recording ? .red:.blue)
+                VStack(alignment:.leading,spacing:3){Text(recording ? "Registrazione vocale":"Vocale pronto").font(.headline);Text(recording ? "Massimo 60 secondi":"Invia o elimina prima di scrivere").font(.caption).foregroundStyle(.secondary)}
+                Spacer(minLength:4)
+                if recording{Button(action:stop){Image(systemName:"stop.fill").frame(width:40,height:40).foregroundStyle(.white).background(.red,in:Circle())}.accessibilityLabel("Ferma registrazione")}
+                else{Button(action:send){if busy{ProgressView()}else{Image(systemName:"arrow.up").font(.headline)}}.frame(width:40,height:40).foregroundStyle(.white).background(.blue,in:Circle()).accessibilityLabel("Invia vocale").disabled(busy)}
+            }
+            if !status.isEmpty{Text(status).font(.caption).foregroundStyle(.secondary)}
+        }.padding(12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:22)).accessibilityIdentifier("swiftVoiceDraftPanel")
     }
 }
