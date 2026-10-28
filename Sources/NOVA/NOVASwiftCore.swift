@@ -466,7 +466,7 @@ extension NOVAJSON {
                         TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).modifier(NOVASwiftComposerTextShadow()).frame(minHeight:28)
                         Button{send()}label:{Image(systemName:sending ? "hourglass":"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.secondary:Color.white).frame(width:28,height:28).background(draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil ? Color.clear:Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(sending || (draft.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && photoDraft==nil))
                     }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
-                }.modifier(NOVASwiftComposerGlassGroup()).padding(.horizontal,12).padding(.vertical,8)
+                }.modifier(NOVASwiftComposerGlassGroup(composerBoundary:true)).padding(.horizontal,12).padding(.vertical,8)
                 .frame(maxWidth:.infinity)
             }.toolbar{ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}}}.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
     }
@@ -736,7 +736,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                         Button{let text=draft;Task{if await social.send(text,store),draft==text{draft=""}}}label:{Image(systemName:"arrow.up").font(.system(size:16,weight:.semibold)).foregroundStyle(.white).frame(width:28,height:28).background(Color.blue,in:Circle())}.buttonStyle(.plain).accessibilityLabel("Invia messaggio").disabled(social.sending || voice.recording || voice.draft != nil)
                     }
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
-            }.modifier(NOVASwiftComposerGlassGroup())
+            }.modifier(NOVASwiftComposerGlassGroup(composerBoundary:true))
             }.padding(.horizontal,12).padding(.vertical,8)
         }.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
