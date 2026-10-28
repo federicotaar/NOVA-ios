@@ -15,6 +15,9 @@ import LocalAuthentication
 
 @main
 struct NOVAApp: App {
+    #if NOVA_SWIFT_TEST
+    @UIApplicationDelegateAdaptor(NOVASwiftLocationAppDelegate.self) private var locationDelegate
+    #endif
     init() {
         #if NOVA_SWIFT_TEST
         // Explicit test build route. Prevent the legacy background handler from running.
