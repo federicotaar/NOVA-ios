@@ -203,3 +203,7 @@ User approved morning setup preview and requested IPA. Enable reviewed group and
 
 - Voice/link matrix40672288229 both appearances passes draft/delete,8link checks/tap and keyboard/back. Inspected separated draft panel pixels with no text/glass overlap. Text-send must also disable while voice draft pending.
 - Live compile/UI40671858693 passes19 consent/freshness/throttle tests. No real background reliability or network budget claim. Group40671371515 picker/save/inline pixels passed until admin confirm role update failed. Testing borderless Form row buttons to avoid automatic multi-button row activation before acceptance; save-body proof still pending full gate.
+
+##2026.10.28.2 support fixes
+Approved demo preview: voice draft above composer, light/dark readable controls, tappable web links, member-adjacent admin confirmation, explicit four-choice group saving, friend map refresh/status. Group synthetic save/admin/history gate40674792640 passed. Link/voice preview40677102475 light passed; dark UI actions passed but driver teardown timed out, retried with600s.
+Continuous live location is NOT released: no live toggles and runtime consent hard-disabled. Candidate held separately for zero-cost budget, captured timestamps, device/background acceptance. Existing opt-in significant-change background mode remains OS-dependent. No new server rollout included; map bidirectional-block/query hardening remains candidate. Preserve accounts/storage and install over existing app.
