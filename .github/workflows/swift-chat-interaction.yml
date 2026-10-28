@@ -59,6 +59,8 @@ jobs:
           - assertNotVisible:
               id: "swiftOwnedNavigation"
           - takeScreenshot: evidence/swift-chat-rest
+          - tapOn: "https://example.com/demo"
+          - assertVisible: "Gruppo demo"
           - tapOn:
               id: "swiftConversationComposer"
           - inputText: "Bozza chat privata"
@@ -90,6 +92,11 @@ jobs:
           PYRUN
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
+          cp "$CONTAINER/Documents/chat-link-checks.json" evidence/
+          cp "$CONTAINER/Documents/chat-link-tapped.txt" evidence/
+          grep -Fx 'https://example.com/demo' evidence/chat-link-tapped.txt
+          python3 -c 'import json;assert all(json.load(open("evidence/chat-link-checks.json")).values())'
+
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           kill -INT "$PID" || true
           sleep 5
@@ -103,6 +110,7 @@ jobs:
             evidence/*.png
             evidence/*.mp4
             evidence/*.json
+            evidence/*.txt
             /tmp/**/*.png
             /tmp/.maestro/**/*.png
             /Users/runner/.maestro/**/*.png
