@@ -22,7 +22,7 @@
   <key>NSCameraUsageDescription</key>
   <string>NOVA usa la fotocamera per scansionare i codici QR dei tuoi amici.</string>
   <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-  <string>Solo se attivi "Anche a app chiusa" nella mappa, NOVA aggiorna la tua posizione ai grandi spostamenti mentre la condivisione è attiva, così gli amici che autorizzi ti vedono. Non è un tracciamento continuo e la modalità Fantasma la spegne subito.</string>
+  <string>Solo se scegli la condivisione nella mappa, NOVA invia la posizione agli amici autorizzati. Puoi scegliere grandi spostamenti o una sessione live in background con indicatore iOS. Rete e iOS possono interrompere gli aggiornamenti; Fantasma ferma gli invii.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
   <string>NOVA usa la tua posizione per il meteo locale e, solo se la attivi tu, per mostrarti sulla mappa dei tuoi amici.</string>
   <key>CFBundleIcons</key>
