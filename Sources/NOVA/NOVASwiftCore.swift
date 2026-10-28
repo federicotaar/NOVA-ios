@@ -969,18 +969,28 @@ enum NOVASwiftReplyDragPolicy {
     static func horizontal(_ x:CGFloat,_ y:CGFloat)->Bool{x>0 && x>abs(y)*1.25}
     static func triggered(_ x:CGFloat,_ y:CGFloat)->Bool{x>=55 && horizontal(x,y)}
 }
+@available(iOS 18.0,*)
+struct NOVASwiftHorizontalReplyGesture:UIGestureRecognizerRepresentable {
+    let enabled:Bool
+    let changed:(CGFloat)->Void
+    let ended:(CGFloat,CGFloat)->Void
+    func makeCoordinator(converter:CoordinateSpaceConverter)->Coordinator{Coordinator()}
+    func makeUIGestureRecognizer(context:Context)->UIPanGestureRecognizer{let pan=UIPanGestureRecognizer();pan.delegate=context.coordinator;pan.maximumNumberOfTouches=1;pan.cancelsTouchesInView=false;pan.isEnabled=enabled;return pan}
+    func updateUIGestureRecognizer(_ recognizer:UIPanGestureRecognizer,context:Context){recognizer.isEnabled=enabled}
+    func handleUIGestureRecognizerAction(_ pan:UIPanGestureRecognizer,context:Context){let v=pan.translation(in:pan.view);switch pan.state{case .began,.changed:changed(v.x);case .ended:ended(v.x,v.y);case .cancelled,.failed:ended(0,0);default:break}}
+    final class Coordinator:NSObject,UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ gesture:UIGestureRecognizer)->Bool{guard let pan=gesture as? UIPanGestureRecognizer else{return false};let v=pan.velocity(in:pan.view);return v.x>0 && v.x>abs(v.y)*1.25}
+        func gestureRecognizer(_ gesture:UIGestureRecognizer,shouldRecognizeSimultaneouslyWith other:UIGestureRecognizer)->Bool{true}
+    }
+}
 struct NOVASwiftSwipeReply:ViewModifier {
     let enabled:Bool
     let action:()->Void
     @State private var shift:CGFloat=0
-    @State private var horizontalIntent=false
-    @State private var verticalIntent=false
-    func body(content:Content)->some View{content.contentShape(Rectangle()).offset(x:shift).overlay(alignment:.leading){if shift>12{Image(systemName:"arrowshape.turn.up.left.fill").foregroundStyle(.secondary).opacity(min(1,shift/50)).offset(x:-8)}}.simultaneousGesture(DragGesture(minimumDistance:12).onChanged{value in
-        guard enabled else{return};let x=value.translation.width,y=value.translation.height
-        if !horizontalIntent && !verticalIntent{if abs(y)>abs(x)*1.25{verticalIntent=true}else if NOVASwiftReplyDragPolicy.horizontal(x,y){horizontalIntent=true}}
-        guard horizontalIntent,!verticalIntent else{return};shift=min(72,max(0,x*0.7))
-    }.onEnded{value in
-        let reply=enabled && horizontalIntent && !verticalIntent && NOVASwiftReplyDragPolicy.triggered(value.translation.width,value.translation.height)
-        horizontalIntent=false;verticalIntent=false;withAnimation(.snappy){shift=0};if reply{action()}
-    })}
+    func finish(_ x:CGFloat,_ y:CGFloat){let reply=enabled && NOVASwiftReplyDragPolicy.triggered(x,y);withAnimation(.snappy){shift=0};if reply{action()}}
+    @ViewBuilder func body(content:Content)->some View{
+        let row=content.contentShape(Rectangle()).offset(x:shift).overlay(alignment:.leading){if shift>12{Image(systemName:"arrowshape.turn.up.left.fill").foregroundStyle(.secondary).opacity(min(1,shift/50)).offset(x:-8)}}
+        if #available(iOS 18.0,*){row.simultaneousGesture(NOVASwiftHorizontalReplyGesture(enabled:enabled,changed:{shift=min(72,max(0,$0*0.7))},ended:finish))}
+        else{row.simultaneousGesture(DragGesture(minimumDistance:24).onChanged{v in guard enabled,NOVASwiftReplyDragPolicy.horizontal(v.translation.width,v.translation.height) else{return};shift=min(72,max(0,v.translation.width*0.7))}.onEnded{v in finish(v.translation.width,v.translation.height)})}
+    }
 }
