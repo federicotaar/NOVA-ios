@@ -6,6 +6,9 @@ permissions:
 jobs:
   wk-chat:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        appearance: [light, dark]
     steps:
       - uses: actions/checkout@v4
       - name: Build WKWebView regression app
@@ -30,6 +33,7 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl spawn "$UDID" defaults write com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool YES
           xcrun simctl spawn "$UDID" defaults write com.apple.Preferences DidShowContinuousPathIntroduction -bool YES
+          xcrun simctl ui "$UDID" appearance ${{ matrix.appearance }}
           xcrun simctl install "$UDID" /tmp/ChatTest.app
           mkdir -p evidence
           xcrun simctl launch "$UDID" site.federicotaranu.nova.chattest
@@ -39,7 +43,7 @@ jobs:
           xcrun simctl io "$UDID" screenshot evidence/native-segment-rest.png
       - uses: actions/upload-artifact@v4
         with:
-          name: NOVA-Swift-chat-rest
+          name: NOVA-Swift-chat-rest-${{ matrix.appearance }}
           path: evidence/native-segment-rest.png
       - name: Install native UI driver
         run: |
@@ -104,7 +108,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: NOVA-Swift-chat-interaction
+          name: NOVA-Swift-chat-interaction-${{ matrix.appearance }}
           include-hidden-files: true
           path: |
             evidence/*.png
