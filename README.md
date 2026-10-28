@@ -170,3 +170,10 @@ Clean history40587246247, scanner40587255882 and release40587265421 succeed. Act
 
 ## 2026.10.28.1 reviewed release preparation
 User approved morning setup preview and requested IPA. Enable reviewed group and self-clear menus, exact Nova launcher, normal Latest release. Group creator admin, explicit owner configuration without silently assigning permissions, per-add full/new history cards and final confirmation. Private authenticated media rollout coordinates with inspected compatible replacement; old unauthenticated builds must update for photos/voice, accepted by owner. No actual membership/history/clear operations as tests. Passed native group40587246247, scanner40587255882, setup40584841143, release important/minor40589593157. Physical camera feed and actual device motion/playback remain unverified. Existing accounts/data preserved; no personal fixtures. Build/artifact/backend inspection pending, not complete yet.
+
+
+## 2026.10.28.1 completed rollout
+
+- Reviewed immutable normal Latest release built successfully in run40641156510 from adc16bcc9dacf48d12b09c9417704451ea6bafa6. Exact downloaded IPA2,020,682bytes, SHA25685b2c9bce55400a63cc5f5a74d216d96c7ad3f9c5099a7b3ec4be91089cea60c. Inspected Nova launcher, unchanged federicotaranu.site bundle,2801, NOVASwiftTestBuild true, actual arm64 Mach-O SDK26.5/minimum17.0, private-media loader and history labels.
+- Only after compatible published replacement inspection, added four empty schema tables and deployed reviewed combined per-add group/self-clear/auth-media worker. Fresh exact source comparison and bindings/date/flags preservation verified. No account/profile/message/membership/history/clear mutations used as tests. Original media downloads/cache cannot be revoked; older unauthenticated loaders require update as accepted.
+- Native reviewed preview/gates and combined68 group/12 media regressions pass. Physical camera feed, actual device animation/voice, Face ID/background and live-user history behavior are not claimed tested. Install over same app, do not delete app/data. This is unsigned TEST Swift, not final production app.
