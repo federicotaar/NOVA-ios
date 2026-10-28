@@ -141,22 +141,9 @@ enum NOVASwiftLocationConsent {
     var root:[String:NOVAJSON]{store.archive?.active.object ?? [:]}
     var sharing:Bool {NOVASwiftLocationConsent.sharing(root)}
     var unconfirmed:Bool {root["locShare"]?.flag==true && !sharing}
-    var body:some View {
-        GeometryReader{geometry in
-            ZStack(alignment:.bottom){
-                Map(position:$camera){
-                    if let coordinate=position.coordinate{Annotation("Tu",coordinate:coordinate){Image(systemName:"person.circle.fill").font(.largeTitle).foregroundStyle(.blue).background(.background,in:Circle())}}
-                    ForEach(model.friends){friend in Annotation("@"+friend.id,coordinate:friend.coordinate){VStack(spacing:3){Image(systemName:"person.circle.fill").font(.title);Text("@"+friend.id).font(.caption.bold());Text(friend.timestamp,style:.relative).font(.caption2)}.padding(6).background(.regularMaterial,in:RoundedRectangle(cornerRadius:12))}}
-                }.mapStyle(.standard).mapControls{MapCompass();MapScaleView()}.ignoresSafeArea()
-                VStack{
-                    HStack{Spacer();VStack(spacing:18){
-                        Button{withAnimation(.snappy){expanded.toggle()}}label:{Image(systemName:"slider.horizontal.3")}.accessibilityLabel("Opzioni mappa")
-                        Button{position.read()}label:{Image(systemName:"location.fill")}.accessibilityLabel("Leggi la mia posizione")
-                        Button{Task{await model.refresh(store)}}label:{Image(systemName:"arrow.clockwise")}.accessibilityLabel("Aggiorna amici")
-                    }.font(.title3).padding(15).background(.regularMaterial,in:Capsule()).padding(.trailing,18)}.padding(.top,14)
-                    Spacer()
-                }
-                VStack(spacing:10){
+    @ViewBuilder private func friendMarker(_ friend:NOVASwiftMapFriend)->some View{VStack(spacing:3){Image(systemName:"person.circle.fill").font(.title);Text("@"+friend.id).font(.caption.bold());Text(friend.timestamp,style:.relative).font(.caption2)}.padding(6).background(.regularMaterial,in:RoundedRectangle(cornerRadius:12))}
+    @ViewBuilder private func peoplePanel(height:CGFloat)->some View{
+VStack(spacing:10){
                     Button{withAnimation(.snappy){expanded.toggle()}}label:{VStack(spacing:8){Capsule().fill(.secondary).frame(width:36,height:5);HStack{Image(systemName:sharing ? "person.2.fill":"eye.slash.fill");Text("Persone").font(.headline);Spacer();Text(sharing ? "Condivisione attiva":"Fantasma").font(.caption);Image(systemName:expanded ? "chevron.down":"chevron.up").font(.caption.bold())}}}.buttonStyle(.plain).accessibilityIdentifier("swiftMapExpand")
                     if unconfirmed{Text("Condivisione precedente non confermata. Nuovi invii sospesi su questo telefono; usa Fantasma per confermare lo spegnimento sul server.").font(.caption).foregroundStyle(.orange)}
                     if !position.status.isEmpty{Text("Tu · "+position.status).font(.caption).foregroundStyle(.secondary)}
@@ -174,9 +161,26 @@ enum NOVASwiftLocationConsent {
                             Toggle("Grandi spostamenti a app chiusa",isOn:Binding(get:{NOVASwiftLocationConsent.background(root)},set:{on in if on{confirmBackground=true}else{background.enabled(false,store)}})).disabled(!sharing || NOVASwiftLivePolicy.consent(root))
                             if !background.status.isEmpty{Text(background.status).font(.caption).foregroundStyle(.secondary)}
                             Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Fantasma ferma nuovi invii; offline lo spegnimento sul server va confermato. Live dura al massimo 10 minuti e richiede Avvio a ogni apertura. iOS e rete possono sospendere gli aggiornamenti. Il limite gratuito può mettere live in pausa.").font(.caption).foregroundStyle(.secondary)
-                        }.frame(maxWidth:.infinity,alignment:.leading)}.frame(maxHeight:min(350,geometry.size.height*0.45))
+                        }.frame(maxWidth:.infinity,alignment:.leading)}.frame(maxHeight:min(350,height*0.45))
                     }
                 }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,12).accessibilityIdentifier("swiftMapPanel")
+    }
+    var body:some View {
+        GeometryReader{geometry in
+            ZStack(alignment:.bottom){
+                Map(position:$camera){
+                    if let coordinate=position.coordinate{Annotation("Tu",coordinate:coordinate){Image(systemName:"person.circle.fill").font(.largeTitle).foregroundStyle(.blue).background(.background,in:Circle())}}
+                    ForEach(model.friends){friend in Annotation("@"+friend.id,coordinate:friend.coordinate){friendMarker(friend)}}
+                }.mapStyle(.standard).mapControls{MapCompass();MapScaleView()}.ignoresSafeArea()
+                VStack{
+                    HStack{Spacer();VStack(spacing:18){
+                        Button{withAnimation(.snappy){expanded.toggle()}}label:{Image(systemName:"slider.horizontal.3")}.accessibilityLabel("Opzioni mappa")
+                        Button{position.read()}label:{Image(systemName:"location.fill")}.accessibilityLabel("Leggi la mia posizione")
+                        Button{Task{await model.refresh(store)}}label:{Image(systemName:"arrow.clockwise")}.accessibilityLabel("Aggiorna amici")
+                    }.font(.title3).padding(15).background(.regularMaterial,in:Capsule()).padding(.trailing,18)}.padding(.top,14)
+                    Spacer()
+                }
+                peoplePanel(height:geometry.size.height)
             }
         }.task(id:"\(mapActive)-\(store.archive?.owner ?? "")-\(root["acct"]?.object?["token"]?.string ?? "")"){
             guard mapActive else{model.cancel();return}
@@ -186,8 +190,8 @@ enum NOVASwiftLocationConsent {
                 do{try await Task.sleep(for:.seconds(15))}catch{break}
             }
         }
-        .alert("Avviare live per 10 minuti?",isPresented:$confirmLive,titleVisibility:.visible){Button("Avvia live"){live.choose(true,store)};Button("Annulla",role:.cancel){}}message:{Text("Invia ai tuoi amici NOVA che possono vedere la mappa. Minimo 15 secondi e 15 metri di spostamento, oppure circa 2 minuti da fermo se iOS dà nuove letture. Consuma più batteria e dati. Ferma live interrompe nuovi invii live; Fantasma spegne tutta la condivisione. Il server può fermare live al limite gratuito.")}
-        .alert("Continuare live in background?",isPresented:$confirmLiveBackground,titleVisibility:.visible){Button("Attiva live in background"){live.choose(true,background:true,store)};Button("Annulla",role:.cancel){}}message:{Text("Continua la sessione di massimo 10 minuti dopo aver lasciato NOVA, con indicatore posizione di iOS. Consuma più batteria. iOS può sospendere gli aggiornamenti. Dopo una chiusura forzata riapri e scegli Avvia live: non riparte da solo.")}
+        .alert("Avviare live per 10 minuti?",isPresented:$confirmLive){Button("Avvia live"){live.choose(true,store)};Button("Annulla",role:.cancel){}}message:{Text("Invia ai tuoi amici NOVA che possono vedere la mappa. Minimo 15 secondi e 15 metri di spostamento, oppure circa 2 minuti da fermo se iOS dà nuove letture. Consuma più batteria e dati. Ferma live interrompe nuovi invii live; Fantasma spegne tutta la condivisione. Il server può fermare live al limite gratuito.")}
+        .alert("Continuare live in background?",isPresented:$confirmLiveBackground){Button("Attiva live in background"){live.choose(true,background:true,store)};Button("Annulla",role:.cancel){}}message:{Text("Continua la sessione di massimo 10 minuti dopo aver lasciato NOVA, con indicatore posizione di iOS. Consuma più batteria. iOS può sospendere gli aggiornamenti. Dopo una chiusura forzata riapri e scegli Avvia live: non riparte da solo.")}
         .confirmationDialog("Condividere la tua posizione con gli amici NOVA?",isPresented:$confirmShare,titleVisibility:.visible){Button("Condividi"){Task{await model.sharing(true,store)}};Button("Annulla",role:.cancel){}}message:{Text("Verrà inviata solo quando richiedi una lettura. Gli aggiornamenti a app chiusa richiedono una scelta separata.")}
         .confirmationDialog("Aggiornare anche a app chiusa?",isPresented:$confirmBackground,titleVisibility:.visible){Button("Attiva aggiornamenti"){background.enabled(true,store)};Button("Annulla",role:.cancel){}}message:{Text("iOS usa i grandi spostamenti con il permesso Sempre. Puoi disattivare questa scelta o attivare Fantasma in qualsiasi momento.")}
         .onChange(of:position.fixVersion){_,_ in guard let coordinate=position.coordinate else{return};camera = .region(MKCoordinateRegion(center:coordinate,span:MKCoordinateSpan(latitudeDelta:0.04,longitudeDelta:0.04)));Task{await model.upload(coordinate,store)}}
