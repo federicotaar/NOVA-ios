@@ -135,7 +135,7 @@ enum NOVASwiftLocationConsent {
     @State private var camera:MapCameraPosition = .automatic
     @State private var expanded=false
     @GestureState private var panelDrag:CGFloat=0
-    private var panelGesture:some Gesture{DragGesture(minimumDistance:12).updating($panelDrag){value,state,_ in guard abs(value.translation.height)>abs(value.translation.width)*1.25 else{return};state=max(-70,min(70,value.translation.height*0.4))}.onEnded{value in guard abs(value.translation.height)>abs(value.translation.width)*1.25 else{return};withAnimation(.spring(response:0.38,dampingFraction:0.86)){if value.predictedEndTranslation.height < -36{expanded=true}else if value.predictedEndTranslation.height > 36{expanded=false}}}}
+    private var panelGesture:some Gesture{DragGesture(minimumDistance:12).updating($panelDrag){value,state,_ in guard (!expanded || value.startLocation.y<90),abs(value.translation.height)>abs(value.translation.width)*1.25 else{return};state=max(-70,min(70,value.translation.height*0.4))}.onEnded{value in guard (!expanded || value.startLocation.y<90),abs(value.translation.height)>abs(value.translation.width)*1.25 else{return};withAnimation(.spring(response:0.38,dampingFraction:0.86)){if value.predictedEndTranslation.height < -36{expanded=true}else if value.predictedEndTranslation.height > 36{expanded=false}}}}
     @State private var confirmShare=false
     @State private var confirmBackground=false
     @State private var confirmLive=false
@@ -146,7 +146,7 @@ enum NOVASwiftLocationConsent {
     @ViewBuilder private func friendMarker(_ friend:NOVASwiftMapFriend)->some View{VStack(spacing:3){Image(systemName:"person.circle.fill").font(.title);Text("@"+friend.id).font(.caption.bold());Text(friend.timestamp,style:.relative).font(.caption2)}.padding(6).background(.regularMaterial,in:RoundedRectangle(cornerRadius:12))}
     @ViewBuilder private func peoplePanel(height:CGFloat)->some View{
 VStack(spacing:10){
-                    Button{withAnimation(.snappy){expanded.toggle()}}label:{VStack(spacing:8){Capsule().fill(.secondary).frame(width:36,height:5);HStack{Image(systemName:sharing ? "person.2.fill":"eye.slash.fill");Text("Persone").font(.headline);Spacer();Text(sharing ? "Condivisione attiva":"Fantasma").font(.caption);Image(systemName:expanded ? "chevron.down":"chevron.up").font(.caption.bold())}}}.buttonStyle(.plain).accessibilityIdentifier("swiftMapExpand").simultaneousGesture(panelGesture)
+                    Button{withAnimation(.snappy){expanded.toggle()}}label:{VStack(spacing:8){Capsule().fill(.secondary).frame(width:36,height:5);HStack{Image(systemName:sharing ? "person.2.fill":"eye.slash.fill");Text("Persone").font(.headline);Spacer();Text(sharing ? "Condivisione attiva":"Fantasma").font(.caption);Image(systemName:expanded ? "chevron.down":"chevron.up").font(.caption.bold())}}}.buttonStyle(.plain).accessibilityIdentifier("swiftMapExpand")
                     if unconfirmed{Text("Condivisione precedente non confermata. Nuovi invii sospesi su questo telefono; usa Fantasma per confermare lo spegnimento sul server.").font(.caption).foregroundStyle(.orange)}
                     if !position.status.isEmpty{Text("Tu · "+position.status).font(.caption).foregroundStyle(.secondary)}
                     if !model.status.isEmpty{Text(model.status).font(.caption).foregroundStyle(.secondary)}
@@ -166,7 +166,7 @@ VStack(spacing:10){
                             Text("Le posizioni degli amici oltre 30 minuti non sono mostrate. Fantasma ferma nuovi invii; offline lo spegnimento sul server va confermato. Live resta abilitato fino a Ferma live o Fantasma. iOS e rete possono sospendere gli aggiornamenti. Il limite gratuito può mettere live in pausa.").font(.caption).foregroundStyle(.secondary)
                         }.frame(maxWidth:.infinity,alignment:.leading)}.frame(maxHeight:min(350,height*0.45))
                     }
-                }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,12).offset(y:panelDrag).animation(.spring(response:0.38,dampingFraction:0.86),value:panelDrag).animation(.spring(response:0.38,dampingFraction:0.86),value:expanded).accessibilityIdentifier("swiftMapPanel")
+                }.padding(16).background(.regularMaterial,in:RoundedRectangle(cornerRadius:28)).padding(.horizontal,16).padding(.bottom,12).offset(y:panelDrag).animation(.spring(response:0.38,dampingFraction:0.86),value:panelDrag).animation(.spring(response:0.38,dampingFraction:0.86),value:expanded).accessibilityIdentifier("swiftMapPanel").simultaneousGesture(panelGesture)
     }
     var body:some View {
         GeometryReader{geometry in
