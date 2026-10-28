@@ -47,6 +47,13 @@ import UIKit
     }
     func stop(){pending=false;active=false;stream?.cancel();stream=nil;timer?.cancel();timer=nil;activity?.invalidate();activity=nil;previous=nil;sentAt=nil;start=nil;status="Test fermato. Nessun dato inviato."}
     #if DEBUG
+    func syntheticActive(){synthetic();active=true;background=true;start=Date().addingTimeInterval(-195);status="Test sintetico attivo. Nessun sensore avviato."}
+    func syntheticChecks()->[String:Bool]{
+        syntheticActive();stop();let stopped = !active && stream==nil && timer==nil && activity==nil && previous==nil && sentAt==nil && start==nil
+        syntheticActive();start=Date().addingTimeInterval(-601);tick();let timeout = !active && stream==nil && timer==nil && activity==nil && previous==nil && sentAt==nil
+        syntheticActive();stop();let cancellation = !active && stream==nil && timer==nil && activity==nil
+        return ["stop_clears_state":stopped,"ten_minute_timeout_clears_state":timeout,"background_resources_cleared":cancellation,"synthetic_never_started_sensor":stream==nil && activity==nil]
+    }
     func synthetic(){accepted=9;rejected=22;foregroundCount=6;backgroundCount=3;lastAge="2 secondi";lastAccuracy="± 18 metri";elapsed=195;status="Anteprima sintetica. Nessun sensore avviato."}
     #endif
 }
@@ -73,7 +80,11 @@ struct LiveLabView:View {
         Section{Text("Filtro: letture recenti meno di 30 secondi e precisione entro 200 metri. Minimo 15 secondi tra letture accettate mentre ti muovi; da fermo circa 120 secondi, solo se iOS fornisce una nuova lettura. Nessun invio al server.").font(.caption)}
     }.navigationTitle("NOVA Live Lab")}.confirmationDialog("Avviare il test locale di posizione?",isPresented:$confirm,titleVisibility:.visible){Button("Avvia 10 minuti"){model.request()};Button("Annulla",role:.cancel){}}message:{Text("Usa la posizione reale su questo iPhone per valutare gli aggiornamenti di iOS. Nessun dato lascia il telefono; più consumo di batteria durante la prova. Puoi fermarla in qualsiasi momento.")}.task{
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--synthetic-preview"){model.synthetic()}
+        let args=ProcessInfo.processInfo.arguments
+        if args.contains("--synthetic-preview"){model.synthetic()}
+        if args.contains("--synthetic-active"){model.syntheticActive()}
+        if args.contains("--synthetic-confirm"){model.synthetic();confirm=true}
+        if args.contains("--synthetic-checks"){let checks=model.syntheticChecks();print("LIVE_LAB_CHECKS "+String(data:try! JSONSerialization.data(withJSONObject:checks,options:.sortedKeys),encoding:.utf8)!);precondition(checks.values.allSatisfy{$0})}
         #endif
     }}
 }
