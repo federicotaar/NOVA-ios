@@ -990,7 +990,7 @@ struct NOVASwiftSwipeReply:ViewModifier {
     func finish(_ x:CGFloat,_ y:CGFloat){let reply=enabled && NOVASwiftReplyDragPolicy.triggered(x,y);withAnimation(.snappy){shift=0};if reply{action()}}
     @ViewBuilder func body(content:Content)->some View{
         let row=content.contentShape(Rectangle()).offset(x:shift).overlay(alignment:.leading){if shift>12{Image(systemName:"arrowshape.turn.up.left.fill").foregroundStyle(.secondary).opacity(min(1,shift/50)).offset(x:-8)}}
-        if #available(iOS 18.0,*){row.simultaneousGesture(NOVASwiftHorizontalReplyGesture(enabled:enabled,changed:{shift=min(72,max(0,$0*0.7))},ended:finish))}
+        if #available(iOS 18.0,*){row.gesture(NOVASwiftHorizontalReplyGesture(enabled:enabled,changed:{shift=min(72,max(0,$0*0.7))},ended:finish))}
         else{row.simultaneousGesture(DragGesture(minimumDistance:24).onChanged{v in guard enabled,NOVASwiftReplyDragPolicy.horizontal(v.translation.width,v.translation.height) else{return};shift=min(72,max(0,v.translation.width*0.7))}.onEnded{v in finish(v.translation.width,v.translation.height)})}
     }
 }
