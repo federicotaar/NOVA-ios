@@ -1,10 +1,14 @@
-name: Swift full map layout acceptance
+name: Swift opt-in live integration acceptance
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   wk-chat:
+    strategy:
+      fail-fast: false
+      matrix:
+        theme: [light, dark]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,6 +19,7 @@ jobs:
           SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
           ARCH=$(uname -m)
           NOVA_MAP_INTERACTION=1 python3 production_visual.py
+          python3 -c 'from pathlib import Path;p=Path("/tmp/NOVAProductionVisual.swift");s=p.read_text();s=s.replace(".preferredColorScheme(.dark)",".preferredColorScheme(."+"${{ matrix.theme }}"+")");p.write_text(s)' 
           xcrun swiftc -D DEBUG -parse-as-library -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" /tmp/NOVAProductionVisual.swift -o /tmp/ChatTest.app/ChatTest
           cp Sources/NOVA/nova.html /tmp/ChatTest.app/nova.html
           cat > /tmp/ChatTest.app/Info.plist <<'PLIST'
@@ -30,6 +35,7 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl spawn "$UDID" defaults write com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool YES
           xcrun simctl spawn "$UDID" defaults write com.apple.Preferences DidShowContinuousPathIntroduction -bool YES
+          xcrun simctl ui "$UDID" appearance "${{ matrix.theme }}"
           xcrun simctl install "$UDID" /tmp/ChatTest.app
           mkdir -p evidence
           xcrun simctl launch "$UDID" site.federicotaranu.nova.chattest
@@ -39,7 +45,7 @@ jobs:
           xcrun simctl io "$UDID" screenshot evidence/native-segment-rest.png
       - uses: actions/upload-artifact@v4
         with:
-          name: NOVA-Swift-map-rest
+          name: NOVA-Swift-live-rest-${{ matrix.theme }}
           path: evidence/native-segment-rest.png
       - name: Install native UI driver
         run: |
@@ -58,6 +64,12 @@ jobs:
           - assertVisible: "Grandi spostamenti a app chiusa"
           - assertVisible: "@synthetic_friend"
           - takeScreenshot: evidence/swift-map-options
+          - tapOn: "Live · massimo 10 minuti"
+          - assertVisible: "Avviare live per 10 minuti?"
+          - takeScreenshot: evidence/swift-live-confirm
+          - tapOn: "Annulla"
+          - assertVisible: "Live · massimo 10 minuti"
+          - takeScreenshot: evidence/swift-live-cancelled
           - tapOn: "Persone"
           - assertNotVisible: "Grandi spostamenti a app chiusa"
           - takeScreenshot: evidence/swift-map-collapsed
@@ -82,7 +94,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: NOVA-Swift-map-interaction
+          name: NOVA-Swift-live-integration-${{ matrix.theme }}
           include-hidden-files: true
           path: |
             evidence/*.png
