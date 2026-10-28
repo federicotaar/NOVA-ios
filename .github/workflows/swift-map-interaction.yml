@@ -64,7 +64,8 @@ jobs:
           - assertVisible: "Grandi spostamenti a app chiusa"
           - assertVisible: "@synthetic_friend"
           - takeScreenshot: evidence/swift-map-options
-          - tapOn: "Live · massimo 10 minuti"
+          - tapOn:
+              id: "novaLiveToggle"
           - assertVisible: "Avviare live per 10 minuti?"
           - takeScreenshot: evidence/swift-live-confirm
           - tapOn: "Annulla"
@@ -77,7 +78,7 @@ jobs:
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
           xcrun simctl io "$UDID" recordVideo --codec=h264 evidence/nav-real-drag.mp4 >/tmp/nav-video.log 2>&1 &
           PID=$!
-          trap 'kill -INT "$PID" 2>/dev/null || true; sleep 3; find "$HOME/.maestro" /tmp -name "*.png" -exec cp {} evidence/ \; 2>/dev/null || true; CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data); cp "$CONTAINER/Documents/swift-root-state.json" evidence/ 2>/dev/null || true' EXIT
+          trap 'kill -INT "$PID" 2>/dev/null || true; sleep 3; find "$HOME/.maestro" /tmp -name "*.png" -exec cp {} evidence/ \; 2>/dev/null || true; CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data); cp "$CONTAINER/Documents/swift-root-state.json" "$CONTAINER/Documents/map-consent-checks.json" evidence/ 2>/dev/null || true' EXIT
           export MAESTRO_DRIVER_STARTUP_TIMEOUT=240000
           python3 - <<'PYRUN'
           import subprocess
@@ -87,6 +88,7 @@ jobs:
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
           cp "$CONTAINER/Documents/map-consent-checks.json" evidence/
+          python3 -c 'import json;d=json.load(open("evidence/map-consent-checks.json"));assert all(d.values()),d;print(d)'
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           kill -INT "$PID" || true
           sleep 5
