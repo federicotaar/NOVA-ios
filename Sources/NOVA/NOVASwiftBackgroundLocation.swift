@@ -53,7 +53,8 @@ enum NOVASwiftLivePolicy {
         guard released,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string,!session.isEmpty,root["liveConsentV1"]?.string==session else{return false}
         return !background || root["liveBackgroundConsentV1"]?.string==session
     }
-    static func runtimeAllowed(root:[String:NOVAJSON],current:NOVASession,started:NOVASession?,sharing:String,locallyStarted:Bool,now:Date,deadline:Date?)->Bool{locallyStarted && current==started && root["locSessionToken"]?.string==current.token && root["locSession"]?.string==sharing && consent(root) && (deadline.map{now<$0} ?? false)}
+    static func sameStart(root:[String:NOVAJSON],current:NOVASession?,started:NOVASession?,sharing:String)->Bool{guard let current=current,let started=started else{return false};return current==started && root["locSessionToken"]?.string==current.token && root["locSession"]?.string==sharing && consent(root)}
+    static func runtimeAllowed(root:[String:NOVAJSON],current:NOVASession,started:NOVASession?,sharing:String,locallyStarted:Bool,now:Date,deadline:Date?)->Bool{locallyStarted && sameStart(root:root,current:current,started:started,sharing:sharing) && (deadline.map{now<$0} ?? false)}
     static func upload(now:Date,fix:CLLocation,previous:CLLocation?,sentAt:Date?)->Bool {
         guard fix.horizontalAccuracy>=0,fix.horizontalAccuracy<=200,now.timeIntervalSince(fix.timestamp)>=(-5),now.timeIntervalSince(fix.timestamp)<30 else{return false}
         if let sentAt=sentAt,now.timeIntervalSince(sentAt)<15{return false}
@@ -94,12 +95,12 @@ enum NOVASwiftLivePolicy {
     func bind(_ store:NOVASwiftStore){if self.store===store,observation != nil{reconcile();return};stop();self.store=store;if !locallyStarted,let archive=store.archive{try? store.update(owner:archive.owner){$0["liveConsentV1"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}};observation=store.$archive.sink{[weak self] _ in Task{@MainActor in self?.reconcile()}};reconcile()}
     func unbind(){locallyStarted=false;deadline=nil;stop();observation=nil;store=nil}
     func choose(_ enabled:Bool,background:Bool=false,_ store:NOVASwiftStore){
-        suspendedSharing=""
-        if !background{locallyStarted=enabled}
-        if enabled && !background{deadline=Date().addingTimeInterval(600)}
         bind(store)
+        suspendedSharing=""
         guard let archive=store.archive,let root=archive.active.object,NOVASwiftLocationConsent.sharing(root),let session=root["locSession"]?.string else{status="Attiva prima la condivisione.";return}
-        if enabled{startedOwner=NOVASession(archive.active);startedSharing=session}
+        if !background{locallyStarted=enabled}
+        if enabled && !background{deadline=Date().addingTimeInterval(600);startedOwner=NOVASession(archive.active);startedSharing=session}
+        if background && enabled{guard locallyStarted,NOVASwiftLivePolicy.sameStart(root:root,current:NOVASession(archive.active),started:startedOwner,sharing:startedSharing) else{status="Scegli prima Avvia live.";return}}
         do{try store.update(owner:archive.owner){state in
             if background{state["liveBackgroundConsentV1"] = .string(enabled ? session:"")}
             else{state["liveConsentV1"] = .string(enabled ? session:"");if !enabled{state["liveBackgroundConsentV1"] = .string("")}}
@@ -108,6 +109,9 @@ enum NOVASwiftLivePolicy {
     func stopNow(){locallyStarted=false;startedOwner=nil;startedSharing="";deadline=nil;suspendedSharing=liveSession;stop();if let store=store,let archive=store.archive{try? store.update(owner:archive.owner){$0["liveConsentV1"] = .string("");$0["liveBackgroundConsentV1"] = .string("")}};status="Live fermato. Nessun nuovo invio live."}
     private func stop(){timeout?.cancel();timeout=nil;sessionStarted=nil;running=false;generation+=1;stream?.cancel();stream=nil;upload?.cancel();upload=nil;backgroundSession?.invalidate();backgroundSession=nil;owner=nil;liveSession="";runningBackground=false;previous=nil;sentAt=nil;lastSent=nil;retryAfter = .distantPast;failureCount=0}
     private func reconcile(){
+        // Crossing an account/token/sharing boundary revokes the local start permanently.
+        // Switching back must never resume a previous session without another Start.
+        if locallyStarted,startedOwner != nil{let root=store?.archive?.active.object ?? [:];let current=store?.archive.flatMap{NOVASession($0.active)};if !NOVASwiftLivePolicy.sameStart(root:root,current:current,started:startedOwner,sharing:startedSharing){locallyStarted=false;startedOwner=nil;startedSharing="";deadline=nil;stop();status="Live fermato: account o condivisione cambiati. Scegli Avvia live per ripartire.";return}}
         if let deadline=deadline,Date()>=deadline{stopNow();status="10 minuti conclusi. Riavvia live solo se vuoi.";return}
         guard locallyStarted,let store=store,let root=store.archive?.active.object,let session=store.archive.flatMap({NOVASession($0.active)}),NOVASwiftLivePolicy.runtimeAllowed(root:root,current:session,started:startedOwner,sharing:startedSharing,locallyStarted:locallyStarted,now:Date(),deadline:deadline) else{stop();return}
         guard suspendedSharing != root["locSession"]?.string else{return}
