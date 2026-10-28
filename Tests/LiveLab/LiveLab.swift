@@ -78,7 +78,7 @@ struct LiveLabView:View {
             LabeledContent("Precisione",value:model.lastAccuracy)
         }
         Section{Text("Filtro: letture recenti meno di 30 secondi e precisione entro 200 metri. Minimo 15 secondi tra letture accettate mentre ti muovi; da fermo circa 120 secondi, solo se iOS fornisce una nuova lettura. Nessun invio al server.").font(.caption)}
-    }.navigationTitle("NOVA Live Lab")}.confirmationDialog("Avviare il test locale di posizione?",isPresented:$confirm,titleVisibility:.visible){Button("Avvia 10 minuti"){model.request()};Button("Annulla",role:.cancel){}}message:{Text("Usa la posizione reale su questo iPhone per valutare gli aggiornamenti di iOS. Nessun dato lascia il telefono; più consumo di batteria durante la prova. Puoi fermarla in qualsiasi momento.")}.task{
+    }.navigationTitle("NOVA Live Lab")}.alert("Avviare il test locale di posizione?",isPresented:$confirm){Button("Avvia 10 minuti"){model.request()};Button("Annulla",role:.cancel){}}message:{Text("Usa la posizione reale su questo iPhone per valutare gli aggiornamenti di iOS. Nessun dato lascia il telefono; più consumo di batteria durante la prova. Puoi fermarla in qualsiasi momento.")}.task{
         #if DEBUG
         let args=ProcessInfo.processInfo.arguments
         if args.contains("--synthetic-preview"){model.synthetic()}
