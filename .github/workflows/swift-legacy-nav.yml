@@ -54,7 +54,7 @@ jobs:
               test -f "$CONTAINER/Documents/legacy-nav-tapped" || { echo "tap check missing for $VARIANT $APPEARANCE"; exit 1; }
               xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-chat.png"
               cp "$CONTAINER/Documents/legacy-nav-checks.txt" "evidence/legacy-nav-$VARIANT-$APPEARANCE-checks.txt"
-              python3 -c "import json;c=json.load(open('evidence/legacy-nav-$VARIANT-$APPEARANCE-checks.txt'));assert c.get('surfaceFound') and c.get('tabSwitched'),c;print('PASS surface+tap',$VARIANT,'$APPEARANCE',c)"
+              python3 -c "import json;c=json.load(open('evidence/legacy-nav-$VARIANT-$APPEARANCE-checks.txt'));assert c.get('surfaceFound') and c.get('tabSwitched'),c;print('PASS surface+tap','$VARIANT','$APPEARANCE',c)"
             done
           done
       - uses: actions/upload-artifact@v4
