@@ -114,7 +114,7 @@ import UIKit
     }
     func hasTasks(_ date:Date)->Bool{!NOVASwiftTaskDay.tasks(root["tasks"]?.array ?? [],on:date).isEmpty}
     func changeMonth(_ direction:Int){month=Calendar.current.date(byAdding:.month,value:direction,to:month) ?? month}
-    func useWeatherPosition(){guard locationOwner==store.archive?.owner,let coordinate=position.coordinate else{return};let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude)]);Task{await weather.load(city:city)}}
+    func useWeatherPosition(){guard locationOwner==store.archive?.owner,let owner=store.archive?.owner,let coordinate=position.coordinate else{return};let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude)]);Task{await weather.load(city:city);guard store.archive?.owner==owner else{return};let existing=root["city"]?.object;if existing?["name"]?.string=="Posizione attuale",abs((existing?["lat"]?.double ?? 0)-coordinate.latitude)<0.01,abs((existing?["lon"]?.double ?? 0)-coordinate.longitude)<0.01{return};try? store.update(owner:owner){$0["city"] = city}}}
     func findCity(){
         let query=cityQuery.trimmingCharacters(in:.whitespacesAndNewlines),owner=store.archive?.owner ?? ""
         cityGeneration += 1;let expected=cityGeneration;searching=true;cityError=""
