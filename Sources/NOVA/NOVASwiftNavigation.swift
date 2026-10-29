@@ -17,7 +17,7 @@ if #available(iOS 26.0,*){let container=UIView();let surface=NativeLensSegments(
     // Pre-iOS 26 has no UIGlassEffect; the fallback keeps the capsule language with a frosted blur instead of a bare segmented control.
     private func makeLegacyNavigation(_ context:Context)->UIView{
 #if DEBUG
-if NOVASwiftNavigation.legacyPlainStyle{let surface=UISegmentedControl(items:[]);context.coordinator.surface=surface;configure(surface,context.coordinator);return surface}
+if NOVASwiftNavigation.legacyPlainStyle{let surface=UISegmentedControl(items:[]);surface.accessibilityIdentifier="swiftOwnedNavigation";context.coordinator.surface=surface;configure(surface,context.coordinator);return surface}
 #endif
 let container=NOVASwiftLegacyNavContainer();let backdrop=UIVisualEffectView(effect:UIBlurEffect(style:.systemMaterial));backdrop.isUserInteractionEnabled=false;backdrop.translatesAutoresizingMaskIntoConstraints=false
 let surface=UISegmentedControl(items:[]);surface.accessibilityIdentifier="swiftOwnedNavigation";surface.translatesAutoresizingMaskIntoConstraints=false;surface.backgroundColor = .clear
