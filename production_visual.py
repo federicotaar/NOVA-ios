@@ -809,6 +809,15 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
  root.present(page,animated:false){
   let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
   DispatchQueue.main.asyncAfter(deadline:.now()+3){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+  var scroll:UIScrollView?
+  var swaited=0
+  func armScroll(){
+   if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("scroll-now").path){swaited+=1;if swaited<240{DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armScroll()}};return}
+   func findScroll(_ v:UIView){if scroll==nil,let s=v as? UIScrollView,s.contentSize.height>s.bounds.height+1{scroll=s};for sub in v.subviews{findScroll(sub)}}
+   findScroll(page.view)
+   if let sv=scroll{sv.setContentOffset(CGPoint(x:0,y:max(0,sv.contentSize.height-sv.bounds.height+sv.adjustedContentInset.bottom)),animated:false);sv.layoutIfNeeded()}
+   DispatchQueue.main.asyncAfter(deadline:.now()+1.5){try? Data().write(to:dir.appendingPathComponent("scrolled-now"));armTap()}
+  }
   var waited=0
   func armTap(){
    if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("tap-now").path){waited+=1;if waited<240{DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armTap()}};return}
@@ -816,9 +825,9 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
    func hunt(_ v:UIView){if let c=v as? UISegmentedControl,c.accessibilityIdentifier=="swiftOwnedNavigation"{surface=c};for sub in v.subviews{hunt(sub)}}
    hunt(page.view)
    if let control=surface{control.selectedSegmentIndex=2;control.sendActions(for:.valueChanged)}
-   DispatchQueue.main.asyncAfter(deadline:.now()+2){try? JSONSerialization.data(withJSONObject:["surfaceFound":surface != nil,"tabSwitched":(surface?.selectedSegmentIndex ?? -1)==2],options:.sortedKeys).write(to:dir.appendingPathComponent("legacy-nav-checks.txt"));try? Data().write(to:dir.appendingPathComponent("legacy-nav-tapped"))}
+   DispatchQueue.main.asyncAfter(deadline:.now()+2){try? JSONSerialization.data(withJSONObject:["surfaceFound":surface != nil,"tabSwitched":(surface?.selectedSegmentIndex ?? -1)==2,"scrolledToBottom":scroll != nil],options:.sortedKeys).write(to:dir.appendingPathComponent("legacy-nav-checks.txt"));try? Data().write(to:dir.appendingPathComponent("legacy-nav-tapped"))}
   }
-  armTap()
+  armScroll()
  }
 }
 '''
