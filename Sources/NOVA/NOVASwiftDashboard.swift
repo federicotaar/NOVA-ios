@@ -87,7 +87,7 @@ import UIKit
                     card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")").foregroundStyle(.secondary)}
                     
                     if !status.isEmpty{Text(status).foregroundStyle(.red)}
-                }.padding(20)
+                }.padding(20).padding(.bottom,80)
             }.background(Color(uiColor:.systemGroupedBackground)).navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented:Binding(get:{assistantTask != nil},set:{if !$0{assistantTask=nil}})){if let task=assistantTask{NOVASwiftTaskHelp(store:store,task:task)}}
             .sheet(isPresented:$createTask){NOVASwiftTaskEditor(store:store)}.sheet(isPresented:$timetable){NOVASwiftTimetable(store:store)}.sheet(isPresented:$settings){NOVASwiftSettings(store:store)}
