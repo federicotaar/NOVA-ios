@@ -47,12 +47,13 @@ jobs:
             for APPEARANCE in light dark; do
               xcrun simctl ui "$UDID" appearance "$APPEARANCE"
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-              rm -f "$CONTAINER/Documents/interaction-ready" "$CONTAINER/Documents/legacy-nav-tapped" "$CONTAINER/Documents/legacy-nav-checks.txt"
+              rm -f "$CONTAINER/Documents/interaction-ready" "$CONTAINER/Documents/legacy-nav-tapped" "$CONTAINER/Documents/legacy-nav-checks.txt" "$CONTAINER/Documents/tap-now"
               xcrun simctl launch "$UDID" "$BID" > /dev/null
               for i in $(seq 1 60); do [ -f "$CONTAINER/Documents/interaction-ready" ] && break; sleep 1; done
               test -f "$CONTAINER/Documents/interaction-ready" || { xcrun simctl io "$UDID" screenshot "evidence/incomplete-$VARIANT-$APPEARANCE.png"; echo "fixture did not appear for $VARIANT $APPEARANCE"; exit 1; }
               sleep 2
               xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-home.png"
+              touch "$CONTAINER/Documents/tap-now"
               for i in $(seq 1 30); do [ -f "$CONTAINER/Documents/legacy-nav-tapped" ] && break; sleep 1; done
               test -f "$CONTAINER/Documents/legacy-nav-tapped" || { echo "tap check missing for $VARIANT $APPEARANCE"; exit 1; }
               xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-chat.png"
