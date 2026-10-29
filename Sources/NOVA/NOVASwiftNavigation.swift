@@ -21,9 +21,7 @@ if NOVASwiftNavigation.legacyPlainStyle{let surface=UISegmentedControl(items:[])
 #endif
 let container=NOVASwiftLegacyNavContainer();let backdrop=UIVisualEffectView(effect:UIBlurEffect(style:.systemMaterial));backdrop.isUserInteractionEnabled=false;backdrop.translatesAutoresizingMaskIntoConstraints=false
 let surface=UISegmentedControl(items:[]);surface.accessibilityIdentifier="swiftOwnedNavigation";surface.translatesAutoresizingMaskIntoConstraints=false;surface.backgroundColor = .clear
-surface.setBackgroundImage(UIImage(),for:.normal,barMetrics:.default);surface.setBackgroundImage(UIImage(),for:.selected,barMetrics:.default);surface.setBackgroundImage(UIImage(),for:.highlighted,barMetrics:.default)
 surface.setDividerImage(UIImage(),forLeftSegmentState:.normal,rightSegmentState:.normal,barMetrics:.default)
-surface.selectedSegmentTintColor = UIColor{trait in trait.userInterfaceStyle == .dark ? UIColor.white.withAlphaComponent(0.22):UIColor.black.withAlphaComponent(0.10)}
 container.addSubview(backdrop);container.addSubview(surface)
 NSLayoutConstraint.activate([backdrop.leadingAnchor.constraint(equalTo:container.leadingAnchor),backdrop.trailingAnchor.constraint(equalTo:container.trailingAnchor),backdrop.topAnchor.constraint(equalTo:container.topAnchor),backdrop.bottomAnchor.constraint(equalTo:container.bottomAnchor),surface.leadingAnchor.constraint(equalTo:container.leadingAnchor),surface.trailingAnchor.constraint(equalTo:container.trailingAnchor),surface.topAnchor.constraint(equalTo:container.topAnchor),surface.bottomAnchor.constraint(equalTo:container.bottomAnchor)])
 context.coordinator.surface=surface;configure(surface,context.coordinator);return container}
