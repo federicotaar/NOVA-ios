@@ -809,13 +809,16 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
  root.present(page,animated:false){
   let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
   DispatchQueue.main.asyncAfter(deadline:.now()+3){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
-  DispatchQueue.main.asyncAfter(deadline:.now()+5){
+  var waited=0
+  func armTap(){
+   if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("tap-now").path){waited+=1;if waited<240{DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armTap()}};return}
    var surface:UISegmentedControl?
    func hunt(_ v:UIView){if let c=v as? UISegmentedControl,c.accessibilityIdentifier=="swiftOwnedNavigation"{surface=c};for sub in v.subviews{hunt(sub)}}
    hunt(page.view)
    if let control=surface{control.selectedSegmentIndex=2;control.sendActions(for:.valueChanged)}
    DispatchQueue.main.asyncAfter(deadline:.now()+2){try? JSONSerialization.data(withJSONObject:["surfaceFound":surface != nil,"tabSwitched":(surface?.selectedSegmentIndex ?? -1)==2],options:.sortedKeys).write(to:dir.appendingPathComponent("legacy-nav-checks.txt"));try? Data().write(to:dir.appendingPathComponent("legacy-nav-tapped"))}
   }
+  armTap()
  }
 }
 '''
