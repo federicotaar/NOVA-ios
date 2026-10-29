@@ -854,6 +854,7 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
     let wp=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false))
     wp.modalPresentationStyle = .fullScreen
     @MainActor func showWeather(){
+     try? Data().write(to:dir.appendingPathComponent("weather-show"))
      Task{@MainActor in
       try? await Task.sleep(nanoseconds:1_500_000_000)
       let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(44.644),"lon":.number(10.925)])
@@ -875,8 +876,12 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
       armWeatherBack()
      }
     }
-    if let presented=page.presentedViewController{presented.dismiss(animated:false){page.present(wp,animated:false){showWeather()}}}
-    else{page.present(wp,animated:false){showWeather()}}
+    var top:UIViewController=page
+    while let presented=top.presentedViewController{top=presented}
+    top.present(wp,animated:false){
+     try? Data().write(to:dir.appendingPathComponent("weather-presented"))
+     showWeather()
+    }
    }
   }
   armScroll()
