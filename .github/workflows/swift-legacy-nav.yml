@@ -69,8 +69,8 @@ jobs:
               xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-banner.png"
               xcrun simctl spawn "$UDID" defaults write "site.federicotaranu.nova.navtest.$VARIANT" "nova.dismissed-release.2026.10.29.8" -bool true
               touch "$CONTAINER/Documents/dismissed-now"
-              for i in $(seq 1 30); do [ -f "$CONTAINER/Documents/dismissed-shown" "$CONTAINER/Documents/weather-now" "$CONTAINER/Documents/weather-shown" "$CONTAINER/Documents/weather-back-now" "$CONTAINER/Documents/weather-back-shown" ] && break; sleep 1; done
-              test -f "$CONTAINER/Documents/dismissed-shown" "$CONTAINER/Documents/weather-now" "$CONTAINER/Documents/weather-shown" "$CONTAINER/Documents/weather-back-now" "$CONTAINER/Documents/weather-back-shown" || { echo "dismissed check missing for $VARIANT $APPEARANCE"; exit 1; }
+              for i in $(seq 1 30); do [ -f "$CONTAINER/Documents/dismissed-shown" ] && break; sleep 1; done
+              test -f "$CONTAINER/Documents/dismissed-shown" || { echo "dismissed check missing for $VARIANT $APPEARANCE"; exit 1; }
               xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-dismissed.png"
               touch "$CONTAINER/Documents/weather-now"
               for i in $(seq 1 45); do [ -f "$CONTAINER/Documents/weather-shown" ] && break; sleep 1; done
