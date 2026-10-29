@@ -62,6 +62,7 @@ jobs:
               test -f "$CONTAINER/Documents/legacy-nav-tapped" || { echo "tap check missing for $VARIANT $APPEARANCE"; exit 1; }
               xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-chat.png"
               cp "$CONTAINER/Documents/legacy-nav-checks.txt" "evidence/legacy-nav-$VARIANT-$APPEARANCE-checks.txt"
+              xcrun simctl spawn "$UDID" defaults delete "site.federicotaranu.nova.navtest.$VARIANT" "nova.dismissed-release.2026.10.29.8" || true
               touch "$CONTAINER/Documents/banner-now"
               for i in $(seq 1 30); do [ -f "$CONTAINER/Documents/banner-shown" ] && break; sleep 1; done
               test -f "$CONTAINER/Documents/banner-shown" || { echo "banner check missing for $VARIANT $APPEARANCE"; exit 1; }
