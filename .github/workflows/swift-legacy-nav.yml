@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   legacy-nav:
     runs-on: macos-latest
@@ -62,3 +65,14 @@ jobs:
         with:
           name: NOVA-legacy-nav
           path: evidence/
+      - name: Publish evidence branch
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan ev-tmp 2>/dev/null || git checkout -B ev-tmp
+          git rm -rf . 2>/dev/null || true
+          cp evidence/* . 2>/dev/null || true
+          git add -A
+          git commit -m "Evidence for run $GITHUB_RUN_ID" || true
+          git push -f origin ev-tmp:legacy-nav-evidence
