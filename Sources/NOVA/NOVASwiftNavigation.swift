@@ -5,7 +5,28 @@ import UIKit
     @Binding var selected:Int
     let avatar:String
     func makeCoordinator()->Coordinator{Coordinator(self)}
-    func makeUIView(context:Context)->UIView{if #available(iOS 26.0,*){let container=UIView();let surface=NativeLensSegments(items:[]);surface.accessibilityIdentifier="swiftOwnedNavigation";let backdrop=UIVisualEffectView(effect:UIGlassEffect(style:.regular));backdrop.cornerConfiguration = .capsule();backdrop.isUserInteractionEnabled=false;backdrop.translatesAutoresizingMaskIntoConstraints=false;surface.translatesAutoresizingMaskIntoConstraints=false;container.addSubview(backdrop);container.addSubview(surface);NSLayoutConstraint.activate([surface.leadingAnchor.constraint(equalTo:container.leadingAnchor),surface.trailingAnchor.constraint(equalTo:container.trailingAnchor),surface.topAnchor.constraint(equalTo:container.topAnchor),surface.bottomAnchor.constraint(equalTo:container.bottomAnchor),backdrop.leadingAnchor.constraint(equalTo:container.leadingAnchor),backdrop.trailingAnchor.constraint(equalTo:container.trailingAnchor),backdrop.topAnchor.constraint(equalTo:container.topAnchor),backdrop.bottomAnchor.constraint(equalTo:container.bottomAnchor)]);context.coordinator.surface=surface;configure(surface,context.coordinator);return container}else{let surface=UISegmentedControl(items:[]);context.coordinator.surface=surface;configure(surface,context.coordinator);return surface}}
+    #if DEBUG
+    static var forceLegacyFallback=false
+    static var legacyPlainStyle=false
+    #endif
+    func makeUIView(context:Context)->UIView{
+#if DEBUG
+if NOVASwiftNavigation.forceLegacyFallback{return makeLegacyNavigation(context)}
+#endif
+if #available(iOS 26.0,*){let container=UIView();let surface=NativeLensSegments(items:[]);surface.accessibilityIdentifier="swiftOwnedNavigation";let backdrop=UIVisualEffectView(effect:UIGlassEffect(style:.regular));backdrop.cornerConfiguration = .capsule();backdrop.isUserInteractionEnabled=false;backdrop.translatesAutoresizingMaskIntoConstraints=false;surface.translatesAutoresizingMaskIntoConstraints=false;container.addSubview(backdrop);container.addSubview(surface);NSLayoutConstraint.activate([surface.leadingAnchor.constraint(equalTo:container.leadingAnchor),surface.trailingAnchor.constraint(equalTo:container.trailingAnchor),surface.topAnchor.constraint(equalTo:container.topAnchor),surface.bottomAnchor.constraint(equalTo:container.bottomAnchor),backdrop.leadingAnchor.constraint(equalTo:container.leadingAnchor),backdrop.trailingAnchor.constraint(equalTo:container.trailingAnchor),backdrop.topAnchor.constraint(equalTo:container.topAnchor),backdrop.bottomAnchor.constraint(equalTo:container.bottomAnchor)]);context.coordinator.surface=surface;configure(surface,context.coordinator);return container}else{return makeLegacyNavigation(context)}}
+    // Pre-iOS 26 has no UIGlassEffect; the fallback keeps the capsule language with a frosted blur instead of a bare segmented control.
+    private func makeLegacyNavigation(_ context:Context)->UIView{
+#if DEBUG
+if NOVASwiftNavigation.legacyPlainStyle{let surface=UISegmentedControl(items:[]);context.coordinator.surface=surface;configure(surface,context.coordinator);return surface}
+#endif
+let container=NOVASwiftLegacyNavContainer();let backdrop=UIVisualEffectView(effect:UIBlurEffect(style:.systemMaterial));backdrop.isUserInteractionEnabled=false;backdrop.translatesAutoresizingMaskIntoConstraints=false
+let surface=UISegmentedControl(items:[]);surface.accessibilityIdentifier="swiftOwnedNavigation";surface.translatesAutoresizingMaskIntoConstraints=false;surface.backgroundColor = .clear
+surface.setBackgroundImage(UIImage(),for:.normal,barMetrics:.default);surface.setBackgroundImage(UIImage(),for:.selected,barMetrics:.default);surface.setBackgroundImage(UIImage(),for:.highlighted,barMetrics:.default)
+surface.setDividerImage(UIImage(),forLeftSegmentState:.normal,rightSegmentState:.normal,barMetrics:.default)
+surface.selectedSegmentTintColor = UIColor{trait in trait.userInterfaceStyle == .dark ? UIColor.white.withAlphaComponent(0.22):UIColor.black.withAlphaComponent(0.10)}
+container.addSubview(backdrop);container.addSubview(surface)
+NSLayoutConstraint.activate([backdrop.leadingAnchor.constraint(equalTo:container.leadingAnchor),backdrop.trailingAnchor.constraint(equalTo:container.trailingAnchor),backdrop.topAnchor.constraint(equalTo:container.topAnchor),backdrop.bottomAnchor.constraint(equalTo:container.bottomAnchor),surface.leadingAnchor.constraint(equalTo:container.leadingAnchor),surface.trailingAnchor.constraint(equalTo:container.trailingAnchor),surface.topAnchor.constraint(equalTo:container.topAnchor),surface.bottomAnchor.constraint(equalTo:container.bottomAnchor)])
+context.coordinator.surface=surface;configure(surface,context.coordinator);return container}
     private func configure(_ surface:UISegmentedControl,_ coordinator:Coordinator){for (index,symbol) in ["house","chart.bar","bubble.left.and.bubble.right","map","person.crop.circle"].enumerated(){surface.insertSegment(with:UIImage(systemName:symbol),at:index,animated:false)};surface.selectedSegmentIndex=selected;surface.addTarget(coordinator,action:#selector(Coordinator.changed),for:.valueChanged);if #available(iOS 26.0,*),let lens=surface as? NativeLensSegments{lens.trackingEvent={phase,x in
 #if DEBUG
 NotificationCenter.default.post(name:Notification.Name("NOVASwiftNavigationTracking"),object:nil,userInfo:["phase":phase])
@@ -50,4 +71,10 @@ struct NOVASwiftComposerGlassGroup:ViewModifier {
 struct NOVASwiftComposerTextShadow:ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     func body(content:Content)->some View {content.shadow(color:colorScheme == .dark ? .black.opacity(0.85):.clear,radius:colorScheme == .dark ? 2:0,x:0,y:colorScheme == .dark ? 1:0)}
+}
+
+// Frosted capsule used by the pre-iOS 26 navigation fallback.
+@MainActor final class NOVASwiftLegacyNavContainer:UIView {
+    override func layoutSubviews(){super.layoutSubviews();layer.cornerRadius=bounds.height/2;layer.cornerCurve = .continuous;layer.masksToBounds=true;layer.borderWidth=0.5;layer.borderColor=UIColor.separator.withAlphaComponent(0.5).cgColor}
+    override func traitCollectionDidChange(_ previous:UITraitCollection?){super.traitCollectionDidChange(previous);layer.borderColor=UIColor.separator.withAlphaComponent(0.5).cgColor}
 }
