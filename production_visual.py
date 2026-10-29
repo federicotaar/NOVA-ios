@@ -827,7 +827,24 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
    if let control=surface{control.selectedSegmentIndex=2;control.sendActions(for:.valueChanged)}
    DispatchQueue.main.asyncAfter(deadline:.now()+2){try? JSONSerialization.data(withJSONObject:["surfaceFound":surface != nil,"tabSwitched":(surface?.selectedSegmentIndex ?? -1)==2,"scrolledToBottom":scroll != nil],options:.sortedKeys).write(to:dir.appendingPathComponent("legacy-nav-checks.txt"));try? Data().write(to:dir.appendingPathComponent("legacy-nav-tapped"))}
   }
+  func armBanner(){
+   if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("banner-now").path){DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armBanner()};return}
+   let rel=NOVASwiftRelease(version:"2026.10.29.8",page:URL(string:"https://github.com/federicotaranudev/NOVA-ios/releases/tag/v2026.10.29.8")!,important:false)
+   let bp=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false).safeAreaInset(edge:.top){NOVASwiftReleaseBanner(release:rel)})
+   bp.modalPresentationStyle = .fullScreen
+   page.present(bp,animated:false){
+    DispatchQueue.main.asyncAfter(deadline:.now()+2){try? Data().write(to:dir.appendingPathComponent("banner-shown"))}
+    func armDismissed(){
+     if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("dismissed-now").path){DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armDismissed()};return}
+     let bp2=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false).safeAreaInset(edge:.top){NOVASwiftReleaseBanner(release:rel)})
+     bp2.modalPresentationStyle = .fullScreen
+     bp.present(bp2,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){try? Data().write(to:dir.appendingPathComponent("dismissed-shown"))}}
+    }
+    armDismissed()
+   }
+  }
   armScroll()
+  armBanner()
  }
 }
 '''
