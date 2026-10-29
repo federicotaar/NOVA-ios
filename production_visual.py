@@ -648,7 +648,7 @@ s=p.read_text()+r"""
  guard let root=UIApplication.shared.connectedScenes.compactMap({$0 as? UIWindowScene}).flatMap({$0.windows}).first(where:{$0.isKeyWindow})?.rootViewController else{return}
  let folder=FileManager.default.temporaryDirectory.appendingPathComponent("integrated-swift-"+UUID().uuidString)
  let store=NOVASwiftStore(directory:folder)
- let value="{\"name\":\"Studente demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tasks\":[{\"id\":\"task\",\"title\":\"Ripasso funzioni\",\"due\":\"2026-11-03T17:00\",\"subj\":\"Matematica\",\"rem\":0}],\"gr\":[{\"subj\":\"Matematica\",\"v\":7,\"date\":\"2026-10-20\"}],\"w\":{\"wx\":0,\"sp\":0},\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"studente.demo\"}}"
+ let value="{\"name\":\"Studente demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tasks\":[{\"id\":\"task\",\"title\":\"Ripasso funzioni\",\"due\":\"2026-11-03T17:00\",\"subj\":\"Matematica\",\"rem\":0}],\"gr\":[{\"subj\":\"Matematica\",\"v\":7,\"date\":\"2026-10-20\"}],\"w\":{\"sp\":0},\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"studente.demo\"}}"
  do{try store.importOnce(["nova.v1":value]);let reload=NOVASwiftStore(directory:folder);let original=try JSONDecoder().decode(NOVASwiftArchive.self,from:Data(contentsOf:folder.appendingPathComponent("legacy-import-v1.json")));let checks:[String:Bool]=["shellReloadPreservesPersonalData":reload.archive?.active==store.archive?.active,"immutableOriginalRecoveryRetained":original.localStorage["nova.v1"]==value,"noMigrationServiceOrSharingActivation":store.archive?.active.object?["locShare"]?.flag==false && store.archive?.active.object?["bgLoc"]?.flag==false && store.archive?.active.object?["cv"]==nil];try JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("swift-integrated-checks.txt"))}catch{return}
  root.presentedViewController?.dismiss(animated:false){let page=UIHostingController(rootView:NOVASwiftShell(store:store,initialTab:index));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-swift-integrated-tab-"+String(index)+".png");if index<4{visualSwiftIntegratedShell(web,dir,index+1)}else{page.overrideUserInterfaceStyle = .dark;try? store.update(owner:"local"){$0["theme"] = .string("dark")};DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-swift-integrated-profile-dark.png");visualSwiftImportOrigin(web,dir)}}}}}
 }
@@ -804,7 +804,7 @@ NOVASwiftNavigation.forceLegacyFallback=true
 NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
 #endif
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("legacy-nav-synthetic-"+UUID().uuidString))
- do{try store.importOnce(["nova.v1":"{\"name\":\"Fixture\",\"done\":1,\"introOff\":1,\"theme\":\"auto\",\"tasks\":[{\"id\":\"fixture-task\",\"title\":\"Compito dimostrativo\",\"due\":\"2026-11-03T18:00\",\"subj\":\"Esempio\"}],\"gr\":[{\"subj\":\"Esempio\",\"v\":7,\"date\":\"2026-10-20\"}],\"w\":{\"wx\":0,\"sp\":0},\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"fixture\"}}"])}catch{return}
+ do{try store.importOnce(["nova.v1":"{\"name\":\"Fixture\",\"done\":1,\"introOff\":1,\"theme\":\"auto\",\"tasks\":[{\"id\":\"fixture-task\",\"title\":\"Compito dimostrativo\",\"due\":\"2026-11-03T18:00\",\"subj\":\"Esempio\"}],\"gr\":[{\"subj\":\"Esempio\",\"v\":7,\"date\":\"2026-10-20\"}],\"w\":{\"sp\":0},\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"fixture\"}}"])}catch{return}
  let page=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false));page.modalPresentationStyle = .fullScreen
  root.present(page,animated:false){
   let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
@@ -847,8 +847,39 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
     }
    }
   }
+  func armWeather(){
+   if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("weather-now").path){DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armWeather()};return}
+   Task{@MainActor in
+    let wp=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false))
+    wp.modalPresentationStyle = .fullScreen
+    page.presentedViewController?.dismiss(animated:false){
+     page.present(wp,animated:false){
+      Task{@MainActor in
+       try? await Task.sleep(nanoseconds:1_500_000_000)
+       let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(44.644),"lon":.number(10.925)])
+       try? store.update(owner:"local"){$0["city"] = city}
+       try? await Task.sleep(nanoseconds:7_000_000_000)
+       try? Data().write(to:dir.appendingPathComponent("weather-shown"))
+       @MainActor func armWeatherBack(){
+        if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("weather-back-now").path){Task{try? await Task.sleep(nanoseconds:500_000_000);armWeatherBack()};return}
+        var surface:UISegmentedControl?
+        func hunt(_ v:UIView){if let c=v as? UISegmentedControl,c.accessibilityIdentifier=="swiftOwnedNavigation"{surface=c};for sub in v.subviews{hunt(sub)}}
+        hunt(wp.view)
+        if let control=surface{control.selectedSegmentIndex=2;control.sendActions(for:.valueChanged)}
+        DispatchQueue.main.asyncAfter(deadline:.now()+1.5){
+         if let control=surface{control.selectedSegmentIndex=0;control.sendActions(for:.valueChanged)}
+         DispatchQueue.main.asyncAfter(deadline:.now()+6){try? Data().write(to:dir.appendingPathComponent("weather-back-shown"))}
+        }
+       }
+       armWeatherBack()
+      }
+     }
+    }
+   }
+  }
   armScroll()
   armBanner()
+  armWeather()
  }
 }
 '''
