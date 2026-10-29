@@ -850,31 +850,33 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
   func armWeather(){
    if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("weather-now").path){DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armWeather()};return}
    Task{@MainActor in
+    try? Data().write(to:dir.appendingPathComponent("weather-armed"))
     let wp=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false))
     wp.modalPresentationStyle = .fullScreen
-    page.presentedViewController?.dismiss(animated:false){
-     page.present(wp,animated:false){
-      Task{@MainActor in
-       try? await Task.sleep(nanoseconds:1_500_000_000)
-       let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(44.644),"lon":.number(10.925)])
-       try? store.update(owner:"local"){$0["city"] = city}
-       try? await Task.sleep(nanoseconds:7_000_000_000)
-       try? Data().write(to:dir.appendingPathComponent("weather-shown"))
-       @MainActor func armWeatherBack(){
-        if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("weather-back-now").path){Task{try? await Task.sleep(nanoseconds:500_000_000);armWeatherBack()};return}
-        var surface:UISegmentedControl?
-        func hunt(_ v:UIView){if let c=v as? UISegmentedControl,c.accessibilityIdentifier=="swiftOwnedNavigation"{surface=c};for sub in v.subviews{hunt(sub)}}
-        hunt(wp.view)
-        if let control=surface{control.selectedSegmentIndex=2;control.sendActions(for:.valueChanged)}
-        DispatchQueue.main.asyncAfter(deadline:.now()+1.5){
-         if let control=surface{control.selectedSegmentIndex=0;control.sendActions(for:.valueChanged)}
-         DispatchQueue.main.asyncAfter(deadline:.now()+6){try? Data().write(to:dir.appendingPathComponent("weather-back-shown"))}
-        }
+    @MainActor func showWeather(){
+     Task{@MainActor in
+      try? await Task.sleep(nanoseconds:1_500_000_000)
+      let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(44.644),"lon":.number(10.925)])
+      try? store.update(owner:"local"){$0["city"] = city}
+      try? Data().write(to:dir.appendingPathComponent("weather-city"))
+      try? await Task.sleep(nanoseconds:7_000_000_000)
+      try? Data().write(to:dir.appendingPathComponent("weather-shown"))
+      @MainActor func armWeatherBack(){
+       if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("weather-back-now").path){Task{try? await Task.sleep(nanoseconds:500_000_000);armWeatherBack()};return}
+       var surface:UISegmentedControl?
+       func hunt(_ v:UIView){if let c=v as? UISegmentedControl,c.accessibilityIdentifier=="swiftOwnedNavigation"{surface=c};for sub in v.subviews{hunt(sub)}}
+       hunt(wp.view)
+       if let control=surface{control.selectedSegmentIndex=2;control.sendActions(for:.valueChanged)}
+       DispatchQueue.main.asyncAfter(deadline:.now()+1.5){
+        if let control=surface{control.selectedSegmentIndex=0;control.sendActions(for:.valueChanged)}
+        DispatchQueue.main.asyncAfter(deadline:.now()+6){try? Data().write(to:dir.appendingPathComponent("weather-back-shown"))}
        }
-       armWeatherBack()
       }
+      armWeatherBack()
      }
     }
+    if let presented=page.presentedViewController{presented.dismiss(animated:false){page.present(wp,animated:false){showWeather()}}}
+    else{page.present(wp,animated:false){showWeather()}}
    }
   }
   armScroll()
