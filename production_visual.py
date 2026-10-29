@@ -790,3 +790,34 @@ Path("/tmp/LockController.swift").write_text("import SwiftUI\nimport LocalAuthen
 Path("/tmp/LockLifecycleTests.swift").write_text('import SwiftUI\nimport LocalAuthentication\n@main struct LockTests {\n @MainActor static func main() async throws {\n  let d=UserDefaults(suiteName:"nova.synthetic.lock.tests")!;d.removePersistentDomain(forName:"nova.synthetic.lock.tests");d.set(true,forKey:"nova.faceid")\n  var calls=0;var pending:CheckedContinuation<Bool,Error>?\n  let lock=NOVASwiftDeviceLock(defaults:d,authentication:{_ in calls+=1;return try await withCheckedThrowingContinuation{pending=$0}})\n  let start=Task{@MainActor in await lock.launch()};await Task.yield()\n  precondition(calls==1 && lock.locked && lock.authenticating)\n  await lock.sceneChanged(.inactive);await lock.sceneChanged(.active);await lock.unlock()\n  precondition(calls==1 && lock.authenticating,"auth sheet must not cancel or duplicate prompt")\n  pending!.resume(returning:true);await start.value\n  precondition(!lock.locked && !lock.authenticating)\n  await lock.sceneChanged(.inactive);await lock.sceneChanged(.active);await lock.unlock();await lock.launch()\n  precondition(calls==1,"success must not immediately reprompt")\n  await lock.sceneChanged(.background);precondition(lock.locked)\n  let second=Task{@MainActor in await lock.sceneChanged(.active)};await Task.yield();precondition(calls==2)\n  pending!.resume(throwing:LAError(.userCancel));await second.value\n  await lock.sceneChanged(.inactive);await lock.sceneChanged(.active)\n  precondition(lock.locked && calls==2,"cancel requires explicit retry")\n  let retry=Task{@MainActor in await lock.unlock()};await Task.yield();precondition(calls==3)\n  await lock.sceneChanged(.background);pending!.resume(returning:true);await retry.value\n  precondition(lock.locked,"late auth success after background must not unlock")\n  let resume=Task{@MainActor in await lock.sceneChanged(.active)};await Task.yield();precondition(calls==4)\n  pending!.resume(returning:true);await resume.value;precondition(!lock.locked)\n  var changes=0;var optionPending:CheckedContinuation<Bool,Error>?\n  let settings=NOVASwiftDeviceLock(defaults:d,authentication:{_ in changes+=1;return try await withCheckedThrowingContinuation{optionPending=$0}})\n  let set=Task{@MainActor in await settings.set(false)};await Task.yield()\n  await settings.sceneChanged(.inactive);await settings.sceneChanged(.active);await settings.set(false)\n  precondition(changes==1 && settings.enabled,"single settings authentication")\n  optionPending!.resume(returning:true);await set.value;precondition(!settings.enabled && !settings.locked)\n  let off=NOVASwiftDeviceLock(defaults:d,authentication:{_ in preconditionFailure("disabled lock must not prompt")})\n  await off.launch();await off.sceneChanged(.background);await off.sceneChanged(.active);precondition(!off.locked)\n  // Fallback uses the same deviceOwnerAuthentication result path: no biometrics-only gate.\n  d.set(true,forKey:"nova.faceid");var passcodeCalls=0\n  let fallback=NOVASwiftDeviceLock(defaults:d,authentication:{_ in passcodeCalls+=1;return true})\n  await fallback.launch();await fallback.sceneChanged(.inactive);await fallback.sceneChanged(.active)\n  precondition(passcodeCalls==1 && !fallback.locked)\n  precondition(NOVASwiftDeviceLock.shared === NOVASwiftDeviceLock.shared)\n  print("PASS: 10 auth lifecycle regressions: single flight, transient inactive, success, cancel, background, stale callback, settings disable, disabled lock, passcode fallback, shared instance")\n  d.removePersistentDomain(forName:"nova.synthetic.lock.tests")\n }\n}\n')
 subprocess.run(["swiftc","-parse-as-library","/tmp/LockController.swift","/tmp/LockLifecycleTests.swift","-o","/tmp/nova-lock-tests"],check=True)
 subprocess.run(["/tmp/nova-lock-tests"],check=True)
+
+if os.environ.get("NOVA_LEGACY_NAV")=="1":
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text()
+    assert 'visualSwiftOwnedReady(web,0)' in s, 'Swift entry point missing'
+    s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftLegacyNavReady(web,0)',1)
+    s+=r'''
+@MainActor func visualSwiftLegacyNavReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<90{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftLegacyNavReady(web,attempt+1)}};return}
+#if DEBUG
+NOVASwiftNavigation.forceLegacyFallback=true
+NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
+#endif
+ let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("legacy-nav-synthetic-"+UUID().uuidString))
+ do{try store.importOnce(["nova.v1":"{\"name\":\"Fixture\",\"done\":1,\"introOff\":1,\"theme\":\"auto\",\"tasks\":[{\"id\":\"fixture-task\",\"title\":\"Compito dimostrativo\",\"due\":\"2026-11-03T18:00\",\"subj\":\"Esempio\"}],\"gr\":[{\"subj\":\"Esempio\",\"v\":7,\"date\":\"2026-10-20\"}],\"w\":{\"wx\":0,\"sp\":0},\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"fixture\"}}"])}catch{return}
+ let page=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false));page.modalPresentationStyle = .fullScreen
+ root.present(page,animated:false){
+  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+  DispatchQueue.main.asyncAfter(deadline:.now()+3){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+  DispatchQueue.main.asyncAfter(deadline:.now()+5){
+   var surface:UISegmentedControl?
+   func hunt(_ v:UIView){if let c=v as? UISegmentedControl,c.accessibilityIdentifier=="swiftOwnedNavigation"{surface=c};for sub in v.subviews{hunt(sub)}}
+   hunt(page.view)
+   if let control=surface{control.selectedSegmentIndex=2;control.sendActions(for:.valueChanged)}
+   DispatchQueue.main.asyncAfter(deadline:.now()+2){try? JSONSerialization.data(withJSONObject:["surfaceFound":surface != nil,"tabSwitched":(surface?.selectedSegmentIndex ?? -1)==2],options:.sortedKeys).write(to:dir.appendingPathComponent("legacy-nav-checks.txt"));try? Data().write(to:dir.appendingPathComponent("legacy-nav-tapped"))}
+  }
+ }
+}
+'''
+    s=s.replace('LEGACYPLAIN','true' if os.environ.get("NOVA_LEGACY_NAV_PLAIN")=="1" else 'false')
+    p.write_text(s)
