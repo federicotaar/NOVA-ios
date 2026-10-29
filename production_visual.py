@@ -836,8 +836,8 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
     page.present(bp,animated:false){
      DispatchQueue.main.asyncAfter(deadline:.now()+2){try? Data().write(to:dir.appendingPathComponent("banner-shown"))}
      Task{@MainActor in
-      func armDismissed(){
-       if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("dismissed-now").path){DispatchQueue.main.asyncAfter(deadline:.now()+0.5){armDismissed()};return}
+      @MainActor func armDismissed(){
+       if !FileManager.default.fileExists(atPath:dir.appendingPathComponent("dismissed-now").path){Task{try? await Task.sleep(nanoseconds:500_000_000);armDismissed()};return}
        let bp2=UIHostingController(rootView:NOVASwiftShell(store:store,deviceServices:false).safeAreaInset(edge:.top){NOVASwiftReleaseBanner(release:rel)})
        bp2.modalPresentationStyle = .fullScreen
        bp.present(bp2,animated:false){DispatchQueue.main.asyncAfter(deadline:.now()+2){try? Data().write(to:dir.appendingPathComponent("dismissed-shown"))}}
