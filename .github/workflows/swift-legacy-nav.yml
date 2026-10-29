@@ -47,7 +47,7 @@ jobs:
             for APPEARANCE in light dark; do
               xcrun simctl ui "$UDID" appearance "$APPEARANCE"
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-              rm -f "$CONTAINER/Documents/interaction-ready" "$CONTAINER/Documents/legacy-nav-tapped" "$CONTAINER/Documents/legacy-nav-checks.txt" "$CONTAINER/Documents/tap-now" "$CONTAINER/Documents/scroll-now" "$CONTAINER/Documents/scrolled-now"
+              rm -f "$CONTAINER/Documents/interaction-ready" "$CONTAINER/Documents/legacy-nav-tapped" "$CONTAINER/Documents/legacy-nav-checks.txt" "$CONTAINER/Documents/tap-now" "$CONTAINER/Documents/scroll-now" "$CONTAINER/Documents/scrolled-now" "$CONTAINER/Documents/banner-now" "$CONTAINER/Documents/banner-shown" "$CONTAINER/Documents/dismissed-now" "$CONTAINER/Documents/dismissed-shown"
               xcrun simctl launch "$UDID" "$BID" > /dev/null
               for i in $(seq 1 60); do [ -f "$CONTAINER/Documents/interaction-ready" ] && break; sleep 1; done
               test -f "$CONTAINER/Documents/interaction-ready" || { xcrun simctl io "$UDID" screenshot "evidence/incomplete-$VARIANT-$APPEARANCE.png"; echo "fixture did not appear for $VARIANT $APPEARANCE"; exit 1; }
@@ -62,6 +62,15 @@ jobs:
               test -f "$CONTAINER/Documents/legacy-nav-tapped" || { echo "tap check missing for $VARIANT $APPEARANCE"; exit 1; }
               xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-chat.png"
               cp "$CONTAINER/Documents/legacy-nav-checks.txt" "evidence/legacy-nav-$VARIANT-$APPEARANCE-checks.txt"
+              touch "$CONTAINER/Documents/banner-now"
+              for i in $(seq 1 30); do [ -f "$CONTAINER/Documents/banner-shown" ] && break; sleep 1; done
+              test -f "$CONTAINER/Documents/banner-shown" || { echo "banner check missing for $VARIANT $APPEARANCE"; exit 1; }
+              xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-banner.png"
+              xcrun simctl spawn "$UDID" defaults write "site.federicotaranu.nova.navtest.$VARIANT" "nova.dismissed-release.2026.10.29.8" -bool true
+              touch "$CONTAINER/Documents/dismissed-now"
+              for i in $(seq 1 30); do [ -f "$CONTAINER/Documents/dismissed-shown" ] && break; sleep 1; done
+              test -f "$CONTAINER/Documents/dismissed-shown" || { echo "dismissed check missing for $VARIANT $APPEARANCE"; exit 1; }
+              xcrun simctl io "$UDID" screenshot "evidence/legacy-nav-$VARIANT-$APPEARANCE-dismissed.png"
               python3 -c "import json;c=json.load(open('evidence/legacy-nav-$VARIANT-$APPEARANCE-checks.txt'));assert c.get('surfaceFound') and c.get('tabSwitched') and c.get('scrolledToBottom'),c;print('PASS surface+tap+scroll','$VARIANT','$APPEARANCE',c)"
             done
           done
