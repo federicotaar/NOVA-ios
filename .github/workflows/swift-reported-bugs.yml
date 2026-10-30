@@ -39,7 +39,7 @@ jobs:
           test -f "$CONTAINER/Documents/interaction-ready" || { xcrun simctl io "$UDID" screenshot evidence/incomplete.png; echo "Swift fixture did not appear"; exit 1; }
           xcrun simctl io "$UDID" screenshot evidence/native-segment-rest.png
           cp "$CONTAINER/Documents/reported-bug-checks.json" evidence/
-          python3 -c 'import json;d=json.load(open("evidence/reported-bug-checks.json"));assert len(d)==4 and all(d.values()),d'
+          python3 -c 'import json;d=json.load(open("evidence/reported-bug-checks.json"));assert len(d)==11 and all(d.values()),d'
       - uses: actions/upload-artifact@v4
         with:
           name: NOVA-Swift-reported-rest
@@ -90,7 +90,7 @@ jobs:
           PYRUN
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
           cp "$CONTAINER/Documents/reported-bug-checks.json" evidence/
-          python3 -c 'import json;d=json.load(open("evidence/reported-bug-checks.json"));assert len(d)==4 and all(d.values()),d'
+          python3 -c 'import json;d=json.load(open("evidence/reported-bug-checks.json"));assert len(d)==11 and all(d.values()),d'
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
           find "$HOME/.maestro" /tmp -name 'swift-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
