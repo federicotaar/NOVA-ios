@@ -243,10 +243,10 @@ import UIKit
   let lifecycleBlocked=await NOVASwiftSchoolLifecycle.refresh(background:true)
   checks["lifecycleMissingOwnerBlocked"]=(lifecycleBlocked==false) && defaults.string(forKey:"nova.swift.school.owner")==nil
   try? store.update(owner:owner){root in root["cv"] = .object(["on":.number(1),"name":.string("")])}
-  model.status="";await model.schoolRequest("refresh",store)
+  await model.schoolRequest("refresh",store)
   checks["blankNameRequiresRelink"]=defaults.string(forKey:"nova.swift.school.owner")==nil && !model.status.isEmpty
   defaults.set("other-account",forKey:"nova.swift.school.owner")
-  model.status="";await model.schoolRequest("refresh",store)
+  await model.schoolRequest("refresh",store)
   checks["wrongAccountBlocked"]=defaults.string(forKey:"nova.swift.school.owner")=="other-account" && !model.status.isEmpty
   defaults.set(owner,forKey:"nova.swift.school.owner")
   await model.schoolRequest("logout",store)
