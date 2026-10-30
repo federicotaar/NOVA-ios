@@ -236,7 +236,7 @@ import UIKit
  let model=NOVASwiftServicesModel();NOVASwiftSchoolLifecycle.bind(store)
  Task{@MainActor in
   await model.schoolRequest("refresh",store)
-  checks["missingOwnerRequiresRelink"]=!model.status.isEmpty
+  checks["missingOwnerRequiresRelink"] = !model.status.isEmpty
   checks["missingOwnerNotAdopted"]=defaults.string(forKey:"nova.swift.school.owner")==nil
   checks["missingOwnerKeepsGrades"]=store.archive?.active.object?["cv"]?.object?["on"]?.flag==true
   CredStore.save(uid:"synthetic",pass:"synthetic")
