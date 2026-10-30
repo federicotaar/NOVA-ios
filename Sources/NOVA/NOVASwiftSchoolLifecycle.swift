@@ -10,8 +10,11 @@ import UserNotifications
         guard !refreshing else{return false}
         let store=live ?? NOVASwiftStore()
         guard let archive=store.archive,archive.active.object?["cv"]?.object?["on"]?.flag==true,
-              UserDefaults.standard.string(forKey:"nova.swift.school.owner")==archive.owner,
               let credentials=CredStore.read() else{return false}
+        // Accounts linked before the owner key existed (imported from the web app) adopt it here; a different owner still blocks the refresh.
+        let linkedOwner=UserDefaults.standard.string(forKey:"nova.swift.school.owner")
+        if linkedOwner==nil{UserDefaults.standard.set(archive.owner,forKey:"nova.swift.school.owner")}
+        guard linkedOwner==nil || linkedOwner==archive.owner else{return false}
         if !background,Date().timeIntervalSince(last)<900{return true}
         let owner=archive.owner,session=NOVASession(archive.active),snapshot=archive.active
         refreshing=true;defer{refreshing=false}
