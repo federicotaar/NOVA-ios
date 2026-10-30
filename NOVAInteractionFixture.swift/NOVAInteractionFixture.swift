@@ -226,11 +226,36 @@ import UIKit
  let date=cal.date(from:DateComponents(year:2026,month:10,day:30,hour:0))!
  let tasks:[NOVAJSON]=[.object(["id":.string("a"),"title":.string("Compito del 30"),"due":.string("2026-10-30T08:00"),"done":.number(0)]),.object(["id":.string("b"),"title":.string("Altro giorno"),"due":.string("2026-10-29T08:00")])]
  let oldKey=date.formatted(.iso8601.year().month().day().dateSeparator(.dash))
- let checks:[String:Bool]=["localRomeKey":NOVASwiftTaskDay.key(date,timeZone:tz)=="2026-10-30","oldUTCFilterLosesTask":oldKey != "2026-10-30","romeGetsCorrectTask":NOVASwiftTaskDay.tasks(tasks,on:date,timeZone:tz).map{$0.object?["id"]?.string ?? ""}==["a"],"emptyDayIsEmpty":NOVASwiftTaskDay.tasks(tasks,on:cal.date(byAdding:.day,value:1,to:date)!,timeZone:tz).isEmpty]
- let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("reported-bug-checks.json"))
+ var checks:[String:Bool]=["localRomeKey":NOVASwiftTaskDay.key(date,timeZone:tz)=="2026-10-30","oldUTCFilterLosesTask":oldKey != "2026-10-30","romeGetsCorrectTask":NOVASwiftTaskDay.tasks(tasks,on:date,timeZone:tz).map{$0.object?["id"]?.string ?? ""}==["a"],"emptyDayIsEmpty":NOVASwiftTaskDay.tasks(tasks,on:cal.date(byAdding:.day,value:1,to:date)!,timeZone:tz).isEmpty]
+ let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
  let store=NOVASwiftStore(directory:FileManager.default.temporaryDirectory.appendingPathComponent("reported-bug-fixture"));if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"w\":{\"wx\":0,\"sp\":0,\"task\":0,\"nx\":0},\"tasks\":[{\"id\":\"a\",\"title\":\"Compito del 30\",\"due\":\"2026-10-30T08:00\",\"done\":0},{\"id\":\"b\",\"title\":\"Altro giorno\",\"due\":\"2026-10-29T08:00\",\"done\":0}]}"])}
- try? store.update(owner:store.archive!.owner){root in root["chat"] = .array((0..<12).map{index in .object(["r":.string(index%2==0 ? "user":"assistant"),"c":.string(index%2==0 ? "Esempio sintetico: spiegami questo argomento.":"Risposta sintetica per controllare il contenuto sotto il vetro e la tastiera, senza richieste esterne.")])})}
- let page=UIHostingController(rootView:NOVASwiftDashboard(store:store).preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ let owner=store.archive!.owner,defaults=UserDefaults.standard
+ // Owner-key regressions: blocked guards return before any network request, so no real ClasseViva call happens.
+ CredStore.clear();defaults.removeObject(forKey:"nova.swift.school.owner")
+ try? store.update(owner:owner){root in root["cv"] = .object(["on":.number(1),"name":.string("Studente Demo")])}
+ let model=NOVASwiftServicesModel();NOVASwiftSchoolLifecycle.bind(store)
+ Task{@MainActor in
+  await model.schoolRequest("refresh",store)
+  checks["missingOwnerRequiresRelink"]=!model.status.isEmpty
+  checks["missingOwnerNotAdopted"]=defaults.string(forKey:"nova.swift.school.owner")==nil
+  checks["missingOwnerKeepsGrades"]=store.archive?.active.object?["cv"]?.object?["on"]?.flag==true
+  CredStore.save(uid:"synthetic",pass:"synthetic")
+  let lifecycleBlocked=await NOVASwiftSchoolLifecycle.refresh(background:true)
+  checks["lifecycleMissingOwnerBlocked"]=(lifecycleBlocked==false) && defaults.string(forKey:"nova.swift.school.owner")==nil
+  try? store.update(owner:owner){root in root["cv"] = .object(["on":.number(1),"name":.string("")])}
+  model.status="";await model.schoolRequest("refresh",store)
+  checks["blankNameRequiresRelink"]=defaults.string(forKey:"nova.swift.school.owner")==nil && !model.status.isEmpty
+  defaults.set("other-account",forKey:"nova.swift.school.owner")
+  model.status="";await model.schoolRequest("refresh",store)
+  checks["wrongAccountBlocked"]=defaults.string(forKey:"nova.swift.school.owner")=="other-account" && !model.status.isEmpty
+  defaults.set(owner,forKey:"nova.swift.school.owner")
+  await model.schoolRequest("logout",store)
+  checks["logoutClearsOwnerAndCreds"]=defaults.string(forKey:"nova.swift.school.owner")==nil && CredStore.read()==nil
+  CredStore.clear();defaults.removeObject(forKey:"nova.swift.school.owner")
+  try? JSONSerialization.data(withJSONObject:checks,options:.sortedKeys).write(to:dir.appendingPathComponent("reported-bug-checks.json"))
+  try? store.update(owner:owner){root in root["chat"] = .array((0..<12).map{index in .object(["r":.string(index%2==0 ? "user":"assistant"),"c":.string(index%2==0 ? "Esempio sintetico: spiegami questo argomento.":"Risposta sintetica per controllare il contenuto sotto il vetro e la tastiera, senza richieste esterne.")])})}
+  let page=UIHostingController(rootView:NOVASwiftDashboard(store:store).preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ }
 }
 
 @MainActor func visualSwiftComposerPushReady(_ web:WKWebView,_ attempt:Int){
