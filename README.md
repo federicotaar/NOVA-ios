@@ -15,7 +15,7 @@
 
 NOVA riunisce il lavoro scolastico e gli strumenti per organizzarlo: compiti e verifiche, calendario, voti, orario e promemoria. L'assistente AI è una chat a cui chiedere aiuto; amici e gruppi hanno conversazioni separate.
 
-Il progetto è in sviluppo attivo. Una build disponibile al download non significa che ogni funzione sia stata verificata su ogni dispositivo. Le novità in corso sono indicate sotto, senza confonderle con le funzioni già presenti.
+Il progetto è finito e resta aperto solo alle segnalazioni di bug. Una build disponibile al download non significa che ogni funzione sia stata verificata su ogni dispositivo.
 
 ## Anteprima
 
@@ -44,18 +44,18 @@ Screenshot reali di una build di sviluppo nel simulatore iOS, con dati e messagg
 
 ## Stato del progetto
 
-| Stato | Attività | Nota |
+| Stato | Attività | Verifica |
 | --- | --- | --- |
-| 🟡 **In corso** | **Implementazione Liquid Glass** | Composer, navigazione con lente Apple, rifrazione ai bordi e controlli della mappa. Verifiche visive e integrazione su dispositivo ancora in corso. |
-| 🟡 **In corso** | Impostazioni organizzate | Nuova pagina opaca a sezioni, scorrimento sotto l’intestazione separato, interruttori nativi Apple e controlli glass. In verifica: nessuna modifica automatica alle scelte o ai permessi. |
-| 🟡 **In corso** | Avvisi al centro | Messaggi di stato poco sopra il centro con vetro nativo, lontani dalla barra. Verifica visiva e su dispositivo in corso. |
-| 🟡 **In corso** | Pulsanti glass in tutta l'app | Superfici native Apple per i pulsanti di azione e selezione, lasciando i tocchi e i permessi ai controlli originali. Verifiche schermata per schermata ancora in corso. |
-| 🟡 **In corso** | Ritorno dalla chat AI all'elenco | Correzione della visibilità dell'elenco e test di navigazione. |
-| 🟡 **In corso** | Avatar e isolamento account | Foto del profilo nella navigazione, visibilità tra amici accettati e aggiornamenti al cambio account. |
-| 🟡 **In verifica** | Foto, vocali e notifiche | Controlli su annullamento, cambio chat, permessi e comportamento sui dispositivi. |
-| 🔜 **Prossimamente** | Consegna delle correzioni in corso | Dopo le verifiche della build. Nessuna data promessa. |
+| ✅ **Completato** | Implementazione Liquid Glass | Composer, navigazione con lente Apple, rifrazione ai bordi e controlli della mappa. Controlli automatici su simulatore in CI; la resa su iPhone si conferma con l'uso. |
+| ✅ **Completato** | Impostazioni organizzate | Pagina opaca a sezioni, scorrimento sotto l'intestazione separato, interruttori nativi Apple e controlli glass. Controlli automatici su simulatore in CI. |
+| ✅ **Completato** | Avvisi al centro | Messaggi di stato poco sopra il centro con vetro nativo, lontani dalla barra. Controlli automatici su simulatore in CI. |
+| ✅ **Completato** | Pulsanti glass in tutta l'app | Superfici native Apple per i pulsanti di azione e selezione, con tocchi e permessi invariati. Controlli automatici su simulatore in CI. |
+| ✅ **Completato** | Ritorno dalla chat AI all'elenco | Visibilità dell'elenco corretta; test di navigazione automatici in CI. |
+| ✅ **Completato** | Avatar e isolamento account | Foto del profilo nella navigazione, visibilità tra amici accettati e credenziali legate al singolo account, con test automatici in CI. |
+| ✅ **Completato** | Foto, vocali e notifiche | Controlli automatici su simulatore per riproduzione, chat e avvisi. |
+| ✅ **Completato** | Consegna delle correzioni | Correzioni pubblicate nelle release versionate fino alla 2026.10.30.1. |
 
-Le voci "In corso" e "Prossimamente" non sono funzioni da considerare concluse. Le priorità possono cambiare in base ai test.
+Il progetto è considerato finito: resta aperto solo alle segnalazioni di bug, dall'app (scuoti il telefono) o dai canali di supporto. Le verifiche automatiche girano su simulatore con dati sintetici e non sostituiscono la conferma su ogni dispositivo.
 
 ## Installazione
 
