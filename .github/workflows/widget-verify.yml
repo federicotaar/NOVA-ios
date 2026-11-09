@@ -30,9 +30,15 @@ jobs:
           mkdir -p /tmp/WidgetVerify.app
           SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
           ARCH=$(uname -m)
-          # Copia CI del widget senza @main (il main e' nella fixture).
-          sed '/^@main$/,/^}$/d' Sources/NOVAWidget/NOVAWidget.swift > /tmp/NOVAWidget-nomain.swift
+          # Copia CI del widget senza @main (il main e' nella fixture) e con la famiglia
+          # widget letta da WidgetVerifyFamily.current invece che dall'ambiente SwiftUI
+          # (EnvironmentValues.widgetFamily e' read-only, non iniettabile in un'app).
+          sed -e '/^@main$/,/^}$/d' \
+            -e 's/@Environment(\\.widgetFamily) var family/var family: WidgetFamily { WidgetVerifyFamily.current }/' \
+            Sources/NOVAWidget/NOVAWidget.swift > /tmp/NOVAWidget-nomain.swift
           ! grep -q '@main' /tmp/NOVAWidget-nomain.swift
+          ! grep -q '@Environment' /tmp/NOVAWidget-nomain.swift
+          grep -c 'WidgetVerifyFamily.current' /tmp/NOVAWidget-nomain.swift
           xcrun swiftc -parse-as-library -target "$ARCH-apple-ios17.0-simulator" -sdk "$SDK" \
             /tmp/NOVAWidget-nomain.swift Tests/WidgetVerifyFixture.swift \
             -o /tmp/WidgetVerify.app/WidgetVerify
