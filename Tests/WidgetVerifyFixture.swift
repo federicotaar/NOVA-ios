@@ -48,6 +48,37 @@ private func nonBlackRatio(_ img: UIImage) -> Double {
 }
 
 @MainActor
+private func renderInlineCropped<V: View>(_ view: V, name: String) {
+    WidgetVerifyFamily.current = .accessoryInline
+    let canvas = CGSize(width: 320, height: 120)
+    let hc = UIHostingController(rootView: view.frame(width: 320, height: 24)
+        .ignoresSafeArea().environment(\.colorScheme, .dark))
+    hc.view.bounds = CGRect(origin: .zero, size: canvas)
+    hc.view.backgroundColor = .black
+    let window = UIWindow(frame: CGRect(origin: .zero, size: canvas))
+    window.overrideUserInterfaceStyle = .dark
+    window.rootViewController = hc
+    window.isHidden = false
+    let renderer = UIGraphicsImageRenderer(size: canvas)
+    let img = renderer.image { _ in hc.view.drawHierarchy(in: hc.view.bounds, afterScreenUpdates: true) }
+    let scale = img.scale
+    let cropRect = CGRect(x: 0, y: (canvas.height - 24) / 2 * scale, width: canvas.width * scale, height: 24 * scale)
+    guard let cg = img.cgImage?.cropping(to: cropRect) else { check(false, "render_" + name); window.isHidden = true; return }
+    let cropped = UIImage(cgImage: cg, scale: scale, orientation: .up)
+    let url = docs().appendingPathComponent(name + ".png")
+    do {
+        try cropped.pngData()?.write(to: url)
+        let bytes = (try? Data(contentsOf: url))?.count ?? 0
+        let ratio = nonBlackRatio(cropped)
+        check(bytes > 2500 && ratio > 0.003, "render_" + name)
+        print("RENDER \(name): \(bytes) bytes, nonBlack=\(String(format: "%.4f", ratio))")
+    } catch {
+        check(false, "render_" + name)
+    }
+    window.isHidden = true
+}
+
+@MainActor
 private func renderPNG<V: View>(_ view: V, family: WidgetFamily, size: CGSize, name: String) {
     WidgetVerifyFamily.current = family
     // Dark: le famiglie accessory (lock screen) usano i colori di default (primary/secondary),
@@ -144,12 +175,17 @@ private func runVerification() {
               size: CGSize(width: 360, height: 170), name: "orario-home-medium")
     renderPNG(NOVAOrarioView(entry: populated), family: .accessoryInline,
               size: CGSize(width: 320, height: 24), name: "orario-lock-inline")
-    // Sonda: testo semplice alla stessa taglia, per separare limite dell'harness da ramo inline.
+    // Sonde diagnostiche per il render inline (nero nelle prove precedenti).
     renderPNG(Text("SONDA INLINE 8.10 – 9.10"), family: .accessoryInline,
               size: CGSize(width: 320, height: 24), name: "probe-inline-text")
-    // Variante con canvas piu' alto: il ramo inline non ha frame esplicito.
-    renderPNG(NOVAOrarioView(entry: populated), family: .accessoryInline,
-              size: CGSize(width: 320, height: 48), name: "orario-lock-inline-tall")
+    renderPNG(Rectangle().fill(.red), family: .accessoryInline,
+              size: CGSize(width: 320, height: 24), name: "probe-fill-inline")
+    renderPNG(Text("SONDA 76"), family: .accessoryInline,
+              size: CGSize(width: 320, height: 76), name: "probe-text-76")
+    renderPNG(Text("SONDA BIANCA").foregroundStyle(.white), family: .accessoryInline,
+              size: CGSize(width: 320, height: 24), name: "probe-text-white")
+    // Variante con ritaglio: vista inline in canvas grande, banda centrale estratta.
+    renderInlineCropped(NOVAOrarioView(entry: populated), name: "orario-lock-inline-cropped")
     renderPNG(NOVAOrarioView(entry: populated), family: .accessoryRectangular,
               size: CGSize(width: 170, height: 76), name: "orario-lock-rect")
 
