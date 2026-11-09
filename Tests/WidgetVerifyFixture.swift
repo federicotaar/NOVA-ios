@@ -24,6 +24,29 @@ enum WidgetVerifyFamily {
     static var current: WidgetFamily = .systemMedium
 }
 
+// Quota di pixel non neri: gli stati e le famiglie accessory usano Color.primary/secondary,
+// quindi un render tutto nero segnala un problema reale (o un ambiente di render sbagliato).
+private func nonBlackRatio(_ img: UIImage) -> Double {
+    guard let cg = img.cgImage, let data = cg.dataProvider?.data else { return 0 }
+    let len = CFDataGetLength(data)
+    guard let ptr = CFDataGetBytePtr(data), len > 0 else { return 0 }
+    let bpp = cg.bitsPerPixel / 8
+    let bpr = cg.bytesPerRow
+    var lit = 0, total = 0
+    let step = max(1, (cg.width * cg.height) / 20000)
+    var i = 0
+    while i < cg.width * cg.height {
+        let x = i % cg.width, y = i / cg.width
+        let off = y * bpr + x * bpp
+        if off + 2 < len {
+            if Int(ptr[off]) + Int(ptr[off + 1]) + Int(ptr[off + 2]) > 96 { lit += 1 }
+        }
+        total += 1
+        i += step
+    }
+    return total > 0 ? Double(lit) / Double(total) : 0
+}
+
 @MainActor
 private func renderPNG<V: View>(_ view: V, family: WidgetFamily, size: CGSize, name: String) {
     WidgetVerifyFamily.current = family
@@ -31,6 +54,9 @@ private func renderPNG<V: View>(_ view: V, family: WidgetFamily, size: CGSize, n
     hc.view.bounds = CGRect(origin: .zero, size: size)
     hc.view.backgroundColor = .black
     let window = UIWindow(frame: CGRect(origin: .zero, size: size))
+    // Dark: le famiglie accessory (lock screen) usano i colori di default (primary/secondary),
+    // che il sistema rende chiari sullo sfondo scuro della lock screen.
+    window.overrideUserInterfaceStyle = .dark
     window.rootViewController = hc
     window.isHidden = false
     let renderer = UIGraphicsImageRenderer(size: size)
@@ -39,8 +65,9 @@ private func renderPNG<V: View>(_ view: V, family: WidgetFamily, size: CGSize, n
     do {
         try img.pngData()?.write(to: url)
         let bytes = (try? Data(contentsOf: url))?.count ?? 0
-        check(bytes > 2500, "render_" + name)
-        print("RENDER \(name): \(bytes) bytes")
+        let ratio = nonBlackRatio(img)
+        check(bytes > 2500 && ratio > 0.003, "render_" + name)
+        print("RENDER \(name): \(bytes) bytes, nonBlack=\(String(format: "%.4f", ratio))")
     } catch {
         check(false, "render_" + name)
     }
