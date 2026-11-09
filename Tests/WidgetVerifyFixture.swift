@@ -53,7 +53,9 @@ private func renderPNG<V: View>(_ view: V, family: WidgetFamily, size: CGSize, n
     // Dark: le famiglie accessory (lock screen) usano i colori di default (primary/secondary),
     // che il sistema rende chiari sullo sfondo scuro della lock screen. L'override va nel
     // rootView via colorScheme: quello sulla window non raggiunge in modo affidabile SwiftUI.
-    let hc = UIHostingController(rootView: view.environment(\.colorScheme, .dark))
+    // ignoresSafeArea: i widget non hanno safe area; in una finestra piccola (accessory)
+    // gli inset del simulatore (59pt in alto) azzererebbero lo spazio utile del contenuto.
+    let hc = UIHostingController(rootView: view.ignoresSafeArea().environment(\.colorScheme, .dark))
     hc.view.bounds = CGRect(origin: .zero, size: size)
     hc.view.backgroundColor = .black
     let window = UIWindow(frame: CGRect(origin: .zero, size: size))
