@@ -50,8 +50,8 @@ private func nonBlackRatio(_ img: UIImage) -> Double {
 @MainActor
 private func renderInlineCropped<V: View>(_ view: V, name: String) {
     WidgetVerifyFamily.current = .accessoryInline
-    let canvas = CGSize(width: 320, height: 120)
-    let hc = UIHostingController(rootView: view.frame(width: 320, height: 24)
+    let canvas = CGSize(width: 320, height: 76)
+    let hc = UIHostingController(rootView: VStack(spacing: 0) { view.frame(width: 320, height: 24, alignment: .top); Spacer(minLength: 0) }
         .ignoresSafeArea().environment(\.colorScheme, .dark))
     hc.view.bounds = CGRect(origin: .zero, size: canvas)
     hc.view.backgroundColor = .black
@@ -62,7 +62,7 @@ private func renderInlineCropped<V: View>(_ view: V, name: String) {
     let renderer = UIGraphicsImageRenderer(size: canvas)
     let img = renderer.image { _ in hc.view.drawHierarchy(in: hc.view.bounds, afterScreenUpdates: true) }
     let scale = img.scale
-    let cropRect = CGRect(x: 0, y: (canvas.height - 24) / 2 * scale, width: canvas.width * scale, height: 24 * scale)
+    let cropRect = CGRect(x: 0, y: 0, width: canvas.width * scale, height: 24 * scale)
     guard let cg = img.cgImage?.cropping(to: cropRect) else { check(false, "render_" + name); window.isHidden = true; return }
     let cropped = UIImage(cgImage: cg, scale: scale, orientation: .up)
     let url = docs().appendingPathComponent(name + ".png")
@@ -173,19 +173,10 @@ private func runVerification() {
               size: CGSize(width: 170, height: 170), name: "orario-home-small")
     renderPNG(NOVAOrarioView(entry: populated), family: .systemMedium,
               size: CGSize(width: 360, height: 170), name: "orario-home-medium")
-    renderPNG(NOVAOrarioView(entry: populated), family: .accessoryInline,
-              size: CGSize(width: 320, height: 24), name: "orario-lock-inline")
-    // Sonde diagnostiche per il render inline (nero nelle prove precedenti).
-    renderPNG(Text("SONDA INLINE 8.10 – 9.10"), family: .accessoryInline,
-              size: CGSize(width: 320, height: 24), name: "probe-inline-text")
-    renderPNG(Rectangle().fill(.red), family: .accessoryInline,
-              size: CGSize(width: 320, height: 24), name: "probe-fill-inline")
-    renderPNG(Text("SONDA 76"), family: .accessoryInline,
-              size: CGSize(width: 320, height: 76), name: "probe-text-76")
-    renderPNG(Text("SONDA BIANCA").foregroundStyle(.white), family: .accessoryInline,
-              size: CGSize(width: 320, height: 24), name: "probe-text-white")
-    // Variante con ritaglio: vista inline in canvas grande, banda centrale estratta.
-    renderInlineCropped(NOVAOrarioView(entry: populated), name: "orario-lock-inline-cropped")
+    // Finestre alte meno di ~76pt non renderizzano nulla nel simulatore (visto in CI:
+    // anche un Rectangle pieno resta nero). Render inline in canvas 76pt con la vista
+    // ancorata in alto, poi ritaglio della banda 24pt reale.
+    renderInlineCropped(NOVAOrarioView(entry: populated), name: "orario-lock-inline")
     renderPNG(NOVAOrarioView(entry: populated), family: .accessoryRectangular,
               size: CGSize(width: 170, height: 76), name: "orario-lock-rect")
 
