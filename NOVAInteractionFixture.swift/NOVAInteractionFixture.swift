@@ -299,6 +299,16 @@ import UIKit
  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("release-checks.json"))
  let major=NOVASwiftRelease.select(importantSample,current:"2026.10.27.2")!
  checks["minorDismissalHides"]=candidate.shouldShow(dismissed:true)==false;checks["majorIgnoresDismissal"]=major.shouldShow(dismissed:true);checks["majorGoneAfterUpdate"]=NOVASwiftRelease.select(importantSample,current:"2026.10.27.3")==nil
+ var canonical=sample;canonical[0]["html_url"]="https://github.com/federicotaar/NOVA-ios/releases/tag/v2026.10.27.3";canonical[0]["assets"]=[["name":"NOVA-2026.10.27.3.ipa","size":100,"browser_download_url":"https://github.com/federicotaar/NOVA-ios/releases/download/v2026.10.27.3/NOVA-2026.10.27.3.ipa"]]
+ checks["canonicalOwnerAccepted"]=NOVASwiftRelease.select(canonical,current:"2026.10.27.2")?.version=="2026.10.27.3"
+ var foreign=sample;foreign[0]["html_url"]="https://github.com/example/NOVA-ios/releases/tag/v2026.10.27.3";foreign[0]["assets"]=[["name":"NOVA-2026.10.27.3.ipa","size":100,"browser_download_url":"https://github.com/example/NOVA-ios/releases/download/v2026.10.27.3/NOVA-2026.10.27.3.ipa"]]
+ checks["foreignOwnerRejected"]=NOVASwiftRelease.select(foreign,current:"2026.10.27.2")==nil
+ var foreignRepo=sample;foreignRepo[0]["html_url"]="https://github.com/federicotaar/NOVA-ios-fake/releases/tag/v2026.10.27.3";foreignRepo[0]["assets"]=[["name":"NOVA-2026.10.27.3.ipa","size":100,"browser_download_url":"https://github.com/federicotaar/NOVA-ios-fake/releases/download/v2026.10.27.3/NOVA-2026.10.27.3.ipa"]]
+ checks["foreignRepoRejected"]=NOVASwiftRelease.select(foreignRepo,current:"2026.10.27.2")==nil
+ var foreignAsset=sample;foreignAsset[0]["assets"]=[["name":"NOVA-2026.10.27.3.ipa","size":100,"browser_download_url":"https://github.com/example/NOVA-ios/releases/download/v2026.10.27.3/NOVA-2026.10.27.3.ipa"]]
+ checks["foreignAssetRejected"]=NOVASwiftRelease.select(foreignAsset,current:"2026.10.27.2")==nil
+ var insecure=sample;insecure[0]["html_url"]="http://github.com/federicotaar/NOVA-ios/releases/tag/v2026.10.27.3"
+ checks["insecurePageRejected"]=NOVASwiftRelease.select(insecure,current:"2026.10.27.2")==nil
  try? JSONSerialization.data(withJSONObject:checks).write(to:dir.appendingPathComponent("release-checks.json"))
  let page=UIHostingController(rootView:VStack(spacing:20){NOVASwiftReleaseBanner(release:candidate);NOVASwiftReleaseBanner(release:major);Spacer();Text("Home dimostrativa: nessun blocco dell'app");Spacer()}.preferredColorScheme(.dark));page.overrideUserInterfaceStyle = .dark;page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
