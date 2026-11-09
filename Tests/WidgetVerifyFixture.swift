@@ -18,8 +18,15 @@ private func docs() -> URL {
     FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
 }
 
+// Override della famiglia widget per i render CI: la copia CI del widget sostituisce
+// @Environment(\.widgetFamily) con una lettura di questo valore (vedi widget-verify.yml).
+enum WidgetVerifyFamily {
+    static var current: WidgetFamily = .systemMedium
+}
+
 @MainActor
-private func renderPNG<V: View>(_ view: V, size: CGSize, name: String) {
+private func renderPNG<V: View>(_ view: V, family: WidgetFamily, size: CGSize, name: String) {
+    WidgetVerifyFamily.current = family
     let hc = UIHostingController(rootView: view)
     hc.view.bounds = CGRect(origin: .zero, size: size)
     hc.view.backgroundColor = .black
@@ -101,42 +108,42 @@ private func runVerification() {
     let populated = OrarioEntry(date: now, subject: "INFO", target: now.addingTimeInterval(2400),
                                 barStart: now.addingTimeInterval(-1200), isCurrent: true,
                                 showTimer: true, range: "8.10 – 9.10", room: "LAB", linked: true)
-    renderPNG(NOVAOrarioView(entry: populated).environment(\.widgetFamily, .systemSmall),
+    renderPNG(NOVAOrarioView(entry: populated), family: .systemSmall,
               size: CGSize(width: 170, height: 170), name: "orario-home-small")
-    renderPNG(NOVAOrarioView(entry: populated).environment(\.widgetFamily, .systemMedium),
+    renderPNG(NOVAOrarioView(entry: populated), family: .systemMedium,
               size: CGSize(width: 360, height: 170), name: "orario-home-medium")
-    renderPNG(NOVAOrarioView(entry: populated).environment(\.widgetFamily, .accessoryInline),
+    renderPNG(NOVAOrarioView(entry: populated), family: .accessoryInline,
               size: CGSize(width: 320, height: 24), name: "orario-lock-inline")
-    renderPNG(NOVAOrarioView(entry: populated).environment(\.widgetFamily, .accessoryRectangular),
+    renderPNG(NOVAOrarioView(entry: populated), family: .accessoryRectangular,
               size: CGSize(width: 170, height: 76), name: "orario-lock-rect")
 
     let dayEntry = DayEntry(date: now, slots: slots, linked: true)
-    renderPNG(NOVAOggiView(entry: dayEntry).environment(\.widgetFamily, .systemSmall),
+    renderPNG(NOVAOggiView(entry: dayEntry), family: .systemSmall,
               size: CGSize(width: 170, height: 170), name: "oggi-home-small")
-    renderPNG(NOVAOggiView(entry: dayEntry).environment(\.widgetFamily, .accessoryRectangular),
+    renderPNG(NOVAOggiView(entry: dayEntry), family: .accessoryRectangular,
               size: CGSize(width: 170, height: 76), name: "oggi-lock-rect")
 
     let fineEntry = FineEntry(date: now, target: now.addingTimeInterval(5400), isToday: true,
                               barStart: now.addingTimeInterval(-3600), linked: true)
-    renderPNG(NOVAFineView(entry: fineEntry).environment(\.widgetFamily, .accessoryCircular),
+    renderPNG(NOVAFineView(entry: fineEntry), family: .accessoryCircular,
               size: CGSize(width: 84, height: 84), name: "fine-lock-circular")
-    renderPNG(NOVAFineView(entry: fineEntry).environment(\.widgetFamily, .accessoryRectangular),
+    renderPNG(NOVAFineView(entry: fineEntry), family: .accessoryRectangular,
               size: CGSize(width: 170, height: 76), name: "fine-lock-rect")
 
     // stati espliciti
     let unlinked = OrarioEntry(date: now, subject: "ORARIO", target: now, barStart: now,
                                isCurrent: false, showTimer: false, range: "", linked: false)
-    renderPNG(NOVAOrarioView(entry: unlinked).environment(\.widgetFamily, .systemSmall),
+    renderPNG(NOVAOrarioView(entry: unlinked), family: .systemSmall,
               size: CGSize(width: 170, height: 170), name: "state-unavailable")
     let invalid = OrarioEntry(date: now, subject: "ORARIO", target: now, barStart: now,
                               isCurrent: false, showTimer: false,
                               range: OrarioLogic.emptyRange(lessons: [], dropped: 3), linked: true)
-    renderPNG(NOVAOrarioView(entry: invalid).environment(\.widgetFamily, .systemSmall),
+    renderPNG(NOVAOrarioView(entry: invalid), family: .systemSmall,
               size: CGSize(width: 170, height: 170), name: "state-invalid-data")
     let emptyState = OrarioEntry(date: now, subject: "ORARIO", target: now, barStart: now,
                                  isCurrent: false, showTimer: false,
                                  range: OrarioLogic.emptyRange(lessons: [], dropped: 0), linked: true)
-    renderPNG(NOVAOrarioView(entry: emptyState).environment(\.widgetFamily, .systemSmall),
+    renderPNG(NOVAOrarioView(entry: emptyState), family: .systemSmall,
               size: CGSize(width: 170, height: 170), name: "state-empty")
 
     // --- 5. esito ---
