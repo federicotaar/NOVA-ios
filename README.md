@@ -53,7 +53,7 @@ Screenshot reali di una build di sviluppo nel simulatore iOS, con dati e messagg
 | ✅ **Completato** | Ritorno dalla chat AI all'elenco | Visibilità dell'elenco corretta; test di navigazione automatici in CI. |
 | ✅ **Completato** | Avatar e isolamento account | Foto del profilo nella navigazione, visibilità tra amici accettati e credenziali legate al singolo account, con test automatici in CI. |
 | ✅ **Completato** | Foto, vocali e notifiche | Controlli automatici su simulatore per riproduzione, chat e avvisi. |
-| ✅ **Completato** | Consegna delle correzioni | Correzioni pubblicate nelle release versionate fino alla 2026.10.30.1. |
+| ✅ **Completato** | Consegna delle correzioni | Correzioni pubblicate nelle release versionate fino alla 2026.11.9.1. |
 
 Il progetto è considerato finito: resta aperto solo alle segnalazioni di bug, dall'app (scuoti il telefono) o dai canali di supporto. Le verifiche automatiche girano su simulatore con dati sintetici e non sostituiscono la conferma su ogni dispositivo.
 
@@ -103,3 +103,6 @@ I pulsanti nativi rispettano la dimensione del testo del controllo originale e r
 
 La migrazione include il pulsante Nuova chat, giorni del calendario, azioni dei compiti, scelte a chip, reazioni e pulsanti testuali. Le righe chat con foto e anteprima conservano il contenuto originale: la loro presentazione resta da verificare separatamente. Nessun bersaglio di tocco, conferma o permesso viene sostituito.
 
+
+##2026.11.9.1 Widget orario: tolleranza ai dati non validi
+Segnalazione widget senza orari delle lezioni su Home e blocco schermo: una lezione con orario non valido o campi mancanti poteva azzerare l'intero orario del widget invece di saltare solo quella lezione. Ora il widget ignora la lezione non valida e mostra le altre; se i dati dell'orario mancano o non sono leggibili, il widget lo dichiara invece di sembrare aggiornato. Controlli automatici su simulatore 25/25 con dati sintetici: decodifica con lezioni non valide, payload vuoti o tronchi, stati vuoto e non valido espliciti, entry per Home e blocco schermo, resa PNG di ogni famiglia di widget (run 42614818059). Non confermato che questa fosse la causa della segnalazione: il comportamento si conferma sul dispositivo con questa build. Dati e impostazioni preservati; installare sopra la stessa app senza disinstallare.
