@@ -142,6 +142,12 @@ private func runVerification() {
               size: CGSize(width: 360, height: 170), name: "orario-home-medium")
     renderPNG(NOVAOrarioView(entry: populated), family: .accessoryInline,
               size: CGSize(width: 320, height: 24), name: "orario-lock-inline")
+    // Sonda: testo semplice alla stessa taglia, per separare limite dell'harness da ramo inline.
+    renderPNG(Text("SONDA INLINE 8.10 – 9.10"), family: .accessoryInline,
+              size: CGSize(width: 320, height: 24), name: "probe-inline-text")
+    // Variante con canvas piu' alto: il ramo inline non ha frame esplicito.
+    renderPNG(NOVAOrarioView(entry: populated), family: .accessoryInline,
+              size: CGSize(width: 320, height: 48), name: "orario-lock-inline-tall")
     renderPNG(NOVAOrarioView(entry: populated), family: .accessoryRectangular,
               size: CGSize(width: 170, height: 76), name: "orario-lock-rect")
 
