@@ -43,33 +43,36 @@ enum Orario {
         return ids.filter { seen.insert($0).inserted }
     }
 
-    // Nessun orario di riserva: un file vuoto resta vuoto, un file assente resta non disponibile.
-    static func decode(_ data: Data) -> [Lesson]? {
+    // Una voce corrotta non deve piu' oscurare l'intero orario: le lezioni non valide si saltano
+    // e si contano (dropped), cosi' il dato valido resta visibile e lo stato non valido e' esplicito.
+    // Nil solo se il file non si legge o la radice JSON non e' quella attesa.
+    static func decode(_ data: Data) -> (lessons: [Lesson], dropped: Int)? {
         guard let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let arr = j["lessons"] as? [[String: Any]] else { return nil }
         var out: [Lesson] = []
+        var dropped = 0
         for o in arr {
             guard let d = o["d"] as? Int, let start = o["s"] as? Int, let end = o["e"] as? Int,
                   let name = o["n"] as? String, (2...7).contains(d), start >= 0, end <= 1440,
-                  end > start, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+                  end > start, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { dropped += 1; continue }
             out.append(Lesson(weekday: d, start: start, end: end, subject: name,
                               room: (o["r"] as? String ?? "").trimmingCharacters(in: .whitespaces)))
         }
-        return out
+        return (out, dropped)
     }
 
-    static func load() -> (lessons: [Lesson], linked: Bool) {
+    static func load() -> (lessons: [Lesson], linked: Bool, dropped: Int) {
         for id in groupIDs() {
             guard let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id)?
                 .appendingPathComponent("timetable.json"),
-                  let data = try? Data(contentsOf: u), let lessons = decode(data) else { continue }
+                  let data = try? Data(contentsOf: u), let t = decode(data) else { continue }
             // Risponde all'app: il widget ha letto davvero da questo contenitore.
             if let base = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) {
                 try? "{\"t\":\(Date().timeIntervalSince1970)}".write(to: base.appendingPathComponent("widgetping.json"), atomically: true, encoding: .utf8)
             }
-            return (lessons, true)
+            return (t.lessons, true, t.dropped)
         }
-        return ([], false)
+        return ([], false, 0)
     }
 
     static var lessons: [Lesson] { load().lessons }
@@ -143,8 +146,14 @@ struct OrarioEntry: TimelineEntry {
 }
 
 enum OrarioLogic {
+    // Stato vuoto esplicito: orario assente ("aggiungilo") diverso da orario illeggibile ("non valido").
+    static func emptyRange(lessons: [Lesson], dropped: Int) -> String {
+        lessons.isEmpty ? (dropped > 0 ? "Dati orario non validi" : "Aggiungilo in NOVA") : ""
+    }
+
     static func entry(at now: Date, slots: [Slot]) -> OrarioEntry {
-        let linked = Orario.load().linked
+        let data = Orario.load()
+        let linked = data.linked
         if let cur = slots.first(where: { $0.start <= now && now < $0.end }) {
             return OrarioEntry(date: now, subject: cur.subject, target: cur.end, barStart: cur.start,
                                isCurrent: true, showTimer: true, range: Orario.range(cur), room: cur.room, linked: linked)
@@ -156,7 +165,7 @@ enum OrarioLogic {
                                isCurrent: false, showTimer: !far, range: Orario.range(nxt), room: nxt.room, linked: linked)
         }
         return OrarioEntry(date: now, subject: "ORARIO", target: now, barStart: now,
-                           isCurrent: false, showTimer: false, range: Orario.lessons.isEmpty ? "Aggiungilo in NOVA" : "", linked: linked)
+                           isCurrent: false, showTimer: false, range: emptyRange(lessons: data.lessons, dropped: data.dropped), linked: linked)
     }
 }
 
