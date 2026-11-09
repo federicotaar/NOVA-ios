@@ -50,12 +50,13 @@ private func nonBlackRatio(_ img: UIImage) -> Double {
 @MainActor
 private func renderPNG<V: View>(_ view: V, family: WidgetFamily, size: CGSize, name: String) {
     WidgetVerifyFamily.current = family
-    let hc = UIHostingController(rootView: view)
+    // Dark: le famiglie accessory (lock screen) usano i colori di default (primary/secondary),
+    // che il sistema rende chiari sullo sfondo scuro della lock screen. L'override va nel
+    // rootView via colorScheme: quello sulla window non raggiunge in modo affidabile SwiftUI.
+    let hc = UIHostingController(rootView: view.environment(\.colorScheme, .dark))
     hc.view.bounds = CGRect(origin: .zero, size: size)
     hc.view.backgroundColor = .black
     let window = UIWindow(frame: CGRect(origin: .zero, size: size))
-    // Dark: le famiglie accessory (lock screen) usano i colori di default (primary/secondary),
-    // che il sistema rende chiari sullo sfondo scuro della lock screen.
     window.overrideUserInterfaceStyle = .dark
     window.rootViewController = hc
     window.isHidden = false
