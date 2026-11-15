@@ -1,3 +1,7 @@
+// Chat regression harness: a minimal app hosting the chat UI in a WKWebView
+// with a synthetic fixture injected at document start, reporting outcomes
+// back to Swift through WKScriptMessageHandler. Built and driven on demand by
+// the chat-regression workflow; not part of the shipped app.
 import UIKit
 import WebKit
 import PhotosUI
