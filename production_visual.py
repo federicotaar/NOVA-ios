@@ -1,3 +1,11 @@
+# Production visual harness generator (CI only, manual workflow).
+#
+# Splices test-only hooks into the checked-out sources (settings test keys, a
+# synthetic demo state with a fetch shim, the chat fixture from
+# ChatRegression.swift) and emits the Swift driver that walks the real
+# production UI page by page, saving the production-*.png screenshots the
+# production-visual workflow collects. The patches are applied to the CI
+# checkout in place; runners are disposable, nothing here ships.
 from pathlib import Path
 s=Path('Sources/NOVA/NOVAApp.swift').read_text()+chr(10)+chr(10).join(p.read_text() for p in sorted(Path('Sources/NOVA').glob('*.swift')) if p.name!='NOVAApp.swift')
 h=Path('Sources/NOVA/nova.html');html=h.read_text();html=html.replace(' const syncNative=()=>{syncDashboard();syncGlassButtons();', ' window.__settingsTestKeys=()=>({fields:nativeFields,epoch:settingsEpoch,sync:syncNative,dashboardFields,dashboardEpoch});const syncNative=()=>{syncDashboard();syncGlassButtons();');h.write_text(html)
