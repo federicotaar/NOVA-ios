@@ -15,6 +15,13 @@ Prima di pubblicare log o screenshot, oscura nomi, voti, orario personale,
 posizione e messaggi di altre persone. Non allegare password, chiavi API,
 token di accesso o file di backup dell'account a una issue pubblica.
 
+## Riproduzione minima
+
+Indica il risultato atteso e quello osservato, i passaggi numerati e se il
+problema compare sempre o solo a volte. Se riguarda un widget, specifica
+quale formato e quando l'app è stata aperta l'ultima volta. Usa dati fittizi
+quando bastano a riprodurre il problema.
+
 ## Cosa aspettarsi
 
 - Le verifiche automatiche girano su simulatore con dati sintetici: un bug
