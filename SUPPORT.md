@@ -9,6 +9,12 @@ NOVA è considerato finito: resta aperto solo alle **segnalazioni di bug**.
 2. **GitHub**: apri una issue descrivendo cosa è successo, la versione
    installata (in fondo a Impostazioni) e i passi per riprodurre.
 
+## Privacy nelle segnalazioni
+
+Prima di pubblicare log o screenshot, oscura nomi, voti, orario personale,
+posizione e messaggi di altre persone. Non allegare password, chiavi API,
+token di accesso o file di backup dell'account a una issue pubblica.
+
 ## Cosa aspettarsi
 
 - Le verifiche automatiche girano su simulatore con dati sintetici: un bug
