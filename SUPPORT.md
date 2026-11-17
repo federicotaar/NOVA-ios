@@ -27,5 +27,8 @@ quando bastano a riprodurre il problema.
 - Le verifiche automatiche girano su simulatore con dati sintetici: un bug
   che appare solo su un dispositivo reale va segnalato con più dettagli
   possibile (modello di iPhone, versione iOS).
+- Per un problema dopo un aggiornamento, indica sia la versione precedente
+  sia quella installata. Non disinstallare o cancellare dati solo per provare
+  a riprodurlo: prima conserva le informazioni utili e verifica i salvataggi.
 - Nessuna nuova funzione è in programma: le segnalazioni di bug hanno la
   priorità, le richieste di funzioni vengono lette ma non pianificate.
