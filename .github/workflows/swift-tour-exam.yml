@@ -163,10 +163,10 @@ jobs:
                 id: "swiftExamSubject"
               timeout: 15000
           - takeScreenshot: evidence/exam-editor
-          - tapOn:
-              id: "swiftExamSubject"
+          - tapOn: "Matematica"
           - eraseText: 50
           - inputText: "Scienze"
+          - assertVisible: "Scienze"
           - tapOn:
               id: "swiftExamSave"
           - extendedWaitUntil:
