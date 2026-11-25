@@ -900,3 +900,19 @@ NOVASwiftNavigation.legacyPlainStyle=LEGACYPLAIN
 '''
     s=s.replace('LEGACYPLAIN','true' if os.environ.get("NOVA_LEGACY_NAV_PLAIN")=="1" else 'false')
     p.write_text(s)
+
+if os.environ.get("NOVA_TOUR_INTERACTION")=="1":
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text()
+    assert 'visualSwiftOwnedReady(web,0)' in s, 'Swift tour entry point missing'
+    s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftTourInteractionReady(web,0)',1)
+    s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
+    p.write_text(s)
+
+if os.environ.get("NOVA_GROUP_EXAM")=="1":
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text()
+    assert 'visualSwiftOwnedReady(web,0)' in s, 'Swift exam entry point missing'
+    s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftGroupExamReady(web,0)',1)
+    s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
+    p.write_text(s)
