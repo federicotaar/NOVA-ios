@@ -1,5 +1,19 @@
 import SwiftUI
 
+// Shared exam countdown: one exam per group, set from group info, visible to every member.
+func NOVASwiftExamLine(at:Int,subject:String)->String? {
+    guard at>0 else{return nil}
+    let days=Calendar.current.dateComponents([.day],from:Calendar.current.startOfDay(for:Date()),to:Calendar.current.startOfDay(for:Date(timeIntervalSince1970:Double(at)/1000))).day ?? -1
+    guard days>=0 else{return nil}
+    let when=days==0 ? "oggi":days==1 ? "domani":"tra \(days) giorni"
+    let name=subject.trimmingCharacters(in:.whitespacesAndNewlines)
+    return name.isEmpty ? "Verifica \(when)":"VERIFICA \(name) · \(when)"
+}
+struct NOVASwiftExamChip:View {
+    let at:Int
+    let subject:String
+    var body:some View{if let line=NOVASwiftExamLine(at:at,subject:subject){Label(line,systemImage:"book.fill").font(.caption.bold()).padding(.horizontal,10).padding(.vertical,5).background(Color.accentColor.opacity(0.15),in:Capsule())}}
+}
 @MainActor final class NOVASwiftGroupManagement:ObservableObject {
     @Published private(set) var info:NOVAJSON?
     @Published private(set) var busy=false
@@ -21,6 +35,8 @@ import SwiftUI
     var role:String{info?.object?["role"]?.string ?? ""}
     var isAdmin:Bool{["owner","admin"].contains(role)}
     func allowed(_ key:String)->Bool{info?.object?["settings"]?.object != nil && (isAdmin || info?.object?["settings"]?.object?[key]?.string=="all")}
+    var exam:NOVAJSON?{info?.object?["exam"]}
+    var canSetExam:Bool{isAdmin || info?.object?["settings"]?.object?["send_messages"]?.string=="all"}
 }
 
 @MainActor struct NOVASwiftGroupInfo:View {
@@ -32,10 +48,21 @@ import SwiftUI
     @State private var add=false
     @State private var settings=false
     @State private var section="Membri"
+    @State private var examEdit=false
+    @State private var confirmExamClear=false
     init(id:String,store:NOVASwiftStore,social:NOVASwiftSocial,group:NOVASwiftGroupManagement?=nil){self.id=id;self.store=store;self.social=social;_group=StateObject(wrappedValue:group ?? NOVASwiftGroupManagement())}
     var body:some View {
         NavigationStack{List{
-            Section{VStack(spacing:12){Image(systemName:"person.3.fill").font(.system(size:46)).frame(width:100,height:100).background(.quaternary,in:Circle());Text(group.info?.object?["title"]?.string ?? "Gruppo").font(.title.bold());Text("Gruppo · \(group.info?.object?["members"]?.array.count ?? 0) membri").foregroundStyle(.secondary)}.frame(maxWidth:.infinity).padding(.vertical)}
+            Section{VStack(spacing:12){Image(systemName:"person.3.fill").font(.system(size:46)).frame(width:100,height:100).background(.quaternary,in:Circle());Text(group.info?.object?["title"]?.string ?? "Gruppo").font(.title.bold());Text("Gruppo · \(group.info?.object?["members"]?.array.count ?? 0) membri").foregroundStyle(.secondary);if let exam=group.exam?.object,let at=exam["at"]?.integer,at>0{NOVASwiftExamChip(at:at,subject:exam["subject"]?.string ?? "").accessibilityIdentifier("swiftGroupExamChip")}}.frame(maxWidth:.infinity).padding(.vertical)}
+            Section("Verifica"){
+                if let exam=group.exam?.object,let at=exam["at"]?.integer,at>0{
+                    NOVASwiftExamChip(at:at,subject:exam["subject"]?.string ?? "")
+                    if group.canSetExam{Button("Modifica verifica"){examEdit=true}.accessibilityIdentifier("swiftGroupExamEdit");Button("Rimuovi verifica",role:.destructive){confirmExamClear=true}.disabled(group.busy)}
+                }else if group.canSetExam{
+                    Button("Imposta verifica"){examEdit=true}.accessibilityIdentifier("swiftGroupExamSet")
+                    Text("Tutti nel gruppo vedono il conto alla rovescia in cima al gruppo.").font(.footnote).foregroundStyle(.secondary)
+                }else{Text("Nessuna verifica impostata.").foregroundStyle(.secondary)}
+            }
             Section{HStack{Button("Membri"){section="Membri"}.buttonStyle(.bordered);Spacer();Button("Impostazioni"){settings=true}.buttonStyle(.bordered).accessibilityIdentifier("swiftGroupSettings")}}
             Section("Membri"){
                 if group.allowed("add_members"){Button{add=true}label:{Label("Aggiungi membri",systemImage:"person.badge.plus")}.accessibilityIdentifier("swiftGroupAddMembers")}
@@ -44,8 +71,22 @@ import SwiftUI
                 }
             }
             if !group.status.isEmpty{Section{Text(group.status).font(.footnote).foregroundStyle(.secondary);Button("Riprova"){Task{await group.load(id,store)}}}}
-        }.navigationTitle("Info gruppo").navigationBarTitleDisplayMode(.inline).toolbar{ToolbarItem(placement:.cancellationAction){Button("Chiudi"){dismiss()}}}.sheet(isPresented:$add){NOVASwiftGroupAddMembers(id:id,store:store,social:social,group:group)}.navigationDestination(isPresented:$settings){NOVASwiftGroupSettings(id:id,store:store,group:group)}.task{await group.load(id,store)}.refreshable{await group.load(id,store)}.onChange(of:store.archive?.owner){_,_ in group.invalidate();dismiss()}.onDisappear{if !settings && !add{group.invalidate()}}}
+        }.navigationTitle("Info gruppo").navigationBarTitleDisplayMode(.inline).toolbar{ToolbarItem(placement:.cancellationAction){Button("Chiudi"){dismiss()}}}.sheet(isPresented:$add){NOVASwiftGroupAddMembers(id:id,store:store,social:social,group:group)}.sheet(isPresented:$examEdit){NOVASwiftGroupExamEditor(id:id,store:store,group:group)}.confirmationDialog("Rimuovere la verifica?",isPresented:$confirmExamClear,titleVisibility:.visible){Button("Rimuovi",role:.destructive){Task{await group.change(id,"exam",["subject":.string(""),"at":.number(0)],store)}};Button("Annulla",role:.cancel){}}message:{Text("Il conto alla rovescia sparisce per tutti i membri.")}.navigationDestination(isPresented:$settings){NOVASwiftGroupSettings(id:id,store:store,group:group)}.task{await group.load(id,store)}.refreshable{await group.load(id,store)}.onChange(of:store.archive?.owner){_,_ in group.invalidate();dismiss()}.onDisappear{if !settings && !add{group.invalidate()}}}
     }
+}
+
+@MainActor struct NOVASwiftGroupExamEditor:View {
+    let id:String
+    @ObservedObject var store:NOVASwiftStore
+    @ObservedObject var group:NOVASwiftGroupManagement
+    @Environment(\.dismiss) private var dismiss
+    @State private var subject=""
+    @State private var date=Date().addingTimeInterval(86400)
+    var valid:Bool{!subject.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty}
+    var body:some View{NavigationStack{Form{
+        Section{TextField("Materia (es. Matematica)",text:$subject).accessibilityIdentifier("swiftExamSubject");DatePicker("Data della verifica",selection:$date,displayedComponents:.date).accessibilityIdentifier("swiftExamDate")}
+        Section{Text("Tutti i membri del gruppo vedono il conto alla rovescia in cima al gruppo.").font(.footnote).foregroundStyle(.secondary)}
+    }.navigationTitle("Verifica di gruppo").navigationBarTitleDisplayMode(.inline).toolbar{ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}};ToolbarItem(placement:.confirmationAction){Button("Salva"){Task{if await group.change(id,"exam",["subject":.string(subject.trimmingCharacters(in:.whitespacesAndNewlines)),"at":.number(date.timeIntervalSince1970*1000)],store){dismiss()}}}.disabled(!valid||group.busy).accessibilityIdentifier("swiftExamSave")}}.onAppear{if let exam=group.exam?.object{subject=exam["subject"]?.string ?? "";if let at=exam["at"]?.integer,at>0{date=Date(timeIntervalSince1970:Double(at)/1000)}}}}}
 }
 
 @MainActor struct NOVASwiftGroupAddMembers:View {
