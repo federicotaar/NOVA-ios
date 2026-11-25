@@ -85,7 +85,7 @@ import UserNotifications
         if !status.isEmpty{Text(status).foregroundStyle(.red)}
     }.id(step).transition(pageTransition)}.clipped();HStack{Button("Indietro"){move(step-1)}.disabled(step==0);Spacer();Button(step==titles.count-1 ? "Inizia":"Avanti / Salta"){if step<titles.count-1{move(step+1)}else{finish()}}.buttonStyle(.borderedProminent)}.padding()}.navigationTitle("NOVA").toolbar{Button("Configura dopo"){finish()}}}.onAppear{if owner.isEmpty{owner=store.archive?.owner ?? ""}}.onChange(of:store.archive?.owner){_,new in owner=new ?? "";status=""}}
     func save(_ edit:(inout [String:NOVAJSON])->Void){do{try store.update(owner:owner,edit)}catch{status="Impostazioni non salvate. Riprova."}}
-    func finish(){guard !owner.isEmpty else{return};save{root in root["done"] = .number(1);root["ob"] = .number(2);root["profDone"] = .number(1)};if status.isEmpty{dismiss()}}
+    func finish(){guard !owner.isEmpty else{return};let firstFinish=store.archive?.active.object?["done"]?.flag != true;save{root in root["done"] = .number(1);root["ob"] = .number(2);root["profDone"] = .number(1);if firstFinish{root["tourPending"] = .number(1)}};if status.isEmpty{dismiss()}}
 }
 @MainActor struct NOVASwiftProtectedRoot:View {
     @ObservedObject var store:NOVASwiftStore
@@ -93,12 +93,15 @@ import UserNotifications
     @StateObject private var lock=NOVASwiftDeviceLock.shared
     @StateObject private var releaseCheck=NOVASwiftReleaseCheck()
     @State private var intro=false
+    @State private var tour=false
     var body:some View{ZStack{
         if store.archive?.active.object?["done"]?.flag==true{NOVASwiftShell(store:store)}else{NOVASwiftWelcome(store:store)}
         if intro{NOVASwiftCinematicIntro{endIntro()}.transition(.opacity).allowsHitTesting(true)}
         if lock.locked{ZStack{Color.black.ignoresSafeArea();VStack(spacing:20){Image(systemName:"lock.fill").font(.largeTitle);Text("NOVA è bloccata").font(.title.bold());Button("Sblocca con Face ID o codice"){Task{await lock.unlock()}}.buttonStyle(.borderedProminent).disabled(lock.authenticating);if !lock.status.isEmpty{Text(lock.status).font(.footnote)}}.foregroundStyle(.white).padding()}.zIndex(10)}
     }.safeAreaInset(edge:.top){if !lock.locked,!intro,let release=releaseCheck.newer{NOVASwiftReleaseBanner(release:release)}}
-    .task{await releaseCheck.check()}.modifier(NOVABugReportHost(enabled:!lock.locked)).task{await lock.launch();let root=store.archive?.active.object ?? [:];intro=root["introOff"]?.flag != true && (root["introEvery"]?.flag==true || (root["introSeen"]?.flag != true && root["done"]?.flag != true))}
+    .sheet(isPresented:$tour){NOVASwiftTour(store:store)}
+    .onChange(of:store.archive?.active.object?["tourPending"]?.flag){_,pending in if pending==true{tour=true}}
+    .task{await releaseCheck.check()}.modifier(NOVABugReportHost(enabled:!lock.locked)).task{await lock.launch();let root=store.archive?.active.object ?? [:];intro=root["introOff"]?.flag != true && (root["introEvery"]?.flag==true || (root["introSeen"]?.flag != true && root["done"]?.flag != true));tour=root["tourPending"]?.flag==true}
     .onChange(of:phase){_,value in if value == .background{endIntro()};Task{await lock.sceneChanged(value);if value == .active{await releaseCheck.check()}}}
     }
     private func endIntro(){intro=false;if let owner=store.archive?.owner{try? store.update(owner:owner){$0["introSeen"] = .number(1)}}}
