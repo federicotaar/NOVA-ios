@@ -12,8 +12,8 @@ import SwiftUI
     private let pages:[(icon:String,title:String,detail:String)]=[
         ("house.fill","Tutto il giorno in una schermata","La Home raccoglie meteo, batteria, compiti e prossime verifiche. Scegli tu quali schede vedere dalle impostazioni."),
         ("chart.bar.fill","Voti e compiti dal registro","Collega ClasseViva per vedere voti, medie e compiti. La password resta solo su questo iPhone."),
-        ("bubble.left.and.bubble.right.fill","Chat e gruppi di classe","Scrivi agli amici e crea gruppi con autorizzazioni chiare: tu decidi chi aggiunge membri e chi puo inviare messaggi."),
-        ("map.fill","Mappa e profilo","Condividi la posizione solo quando vuoi tu e spegni quando vuoi. Il profilo con foto, scuola e canzone e tuo.")]
+        ("bubble.left.and.bubble.right.fill","Chat e gruppi di classe","Scrivi agli amici e crea gruppi con autorizzazioni chiare: tu decidi chi aggiunge membri e chi può inviare messaggi."),
+        ("map.fill","Mappa e profilo","Condividi la posizione solo quando vuoi tu e spegni quando vuoi. Il profilo con foto, scuola e canzone è tuo.")]
     private var pageTransition:AnyTransition{reduceMotion ? .opacity:.asymmetric(insertion:.opacity.combined(with:.move(edge:forward ? .trailing:.leading)),removal:.opacity.combined(with:.move(edge:forward ? .leading:.trailing)))}
     private func move(_ target:Int){forward=target>page;withAnimation(reduceMotion ? .easeOut(duration:0.15):.spring(response:0.5,dampingFraction:0.88)){page=max(0,min(pages.count-1,target))}}
     private func finish(){
