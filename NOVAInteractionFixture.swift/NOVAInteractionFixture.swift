@@ -364,8 +364,8 @@ import UIKit
  let store=NOVASwiftStore(directory:folder)
  if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"acct\":{\"email\":\"me@test.invalid\",\"token\":\"synthetic-only\"},\"prof\":{\"username\":\"demo\"},\"tasks\":[],\"w\":{}}"])}
  let evidence=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
- var examState:NOVAJSON=.object(["subject":.string("Matematica"),"at":.number(Date().addingTimeInterval(5*86400).timeIntervalSince1970*1000)])
- let transport:NOVASwiftSocial.Transport={_,path,method,body,_ in
+ var examState: NOVAJSON = .object(["subject":.string("Matematica"),"at":.number(Date().addingTimeInterval(5*86400).timeIntervalSince1970*1000)])
+ let transport: NOVASwiftSocial.Transport = {_,path,method,body,_ in
   if path.hasSuffix("/group/exam"),method=="POST"{if let body=body{try? JSONEncoder().encode(body).write(to:evidence.appendingPathComponent("group-exam-sent.json"))};examState=body ?? .null;return .object(["ok":.bool(true)])}
   return .object(["ok":.bool(true),"id":.string("demo"),"title":.string("Gruppo demo"),"role":.string("owner"),"revision":.number(1),"settings":.object(["add_members":.string("admins"),"send_messages":.string("all"),"edit_settings":.string("admins"),"approval":.bool(false)]),"exam":examState,"members":.array([.object(["username":.string("demo"),"role":.string("owner"),"is_self":.bool(true)])])])
  }
