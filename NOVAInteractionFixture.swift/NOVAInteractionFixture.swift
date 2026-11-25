@@ -347,3 +347,28 @@ import UIKit
  try? JSONSerialization.data(withJSONObject:["checks":checks]).write(to:dir.appendingPathComponent("performance-checks.json"));try? Data().write(to:dir.appendingPathComponent("interaction-ready"))
  }
 }
+
+@MainActor func visualSwiftTourInteractionReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftTourInteractionReady(web,attempt+1)}};return}
+ let directory=FileManager.default.temporaryDirectory.appendingPathComponent("tour-interaction")
+ let store=NOVASwiftStore(directory:directory)
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Studente demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tourPending\":1,\"w\":{},\"tasks\":[],\"tt\":{\"lessons\":[]},\"prof\":{\"username\":\"studente.demo\"}}"])}
+ let page=UIHostingController(rootView:NOVASwiftTour(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ func persist(){let docs=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];if let value=store.archive?.active,let data=try? JSONEncoder().encode(value){try? data.write(to:docs.appendingPathComponent("swift-root-state.json"))};DispatchQueue.main.asyncAfter(deadline:.now()+0.5){persist()}}
+ persist()
+}
+
+@MainActor func visualSwiftGroupExamReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftGroupExamReady(web,attempt+1)}};return}
+ let folder=FileManager.default.temporaryDirectory.appendingPathComponent("exam-interaction")
+ let store=NOVASwiftStore(directory:folder)
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"acct\":{\"email\":\"me@test.invalid\",\"token\":\"synthetic-only\"},\"prof\":{\"username\":\"demo\"},\"tasks\":[],\"w\":{}}"])}
+ let evidence=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+ var examState:NOVAJSON=.object(["subject":.string("Matematica"),"at":.number(Date().addingTimeInterval(5*86400).timeIntervalSince1970*1000)])
+ let transport:NOVASwiftSocial.Transport={_,path,method,body,_ in
+  if path.hasSuffix("/group/exam"),method=="POST"{if let body=body{try? JSONEncoder().encode(body).write(to:evidence.appendingPathComponent("group-exam-sent.json"))};examState=body ?? .null;return .object(["ok":.bool(true)])}
+  return .object(["ok":.bool(true),"id":.string("demo"),"title":.string("Gruppo demo"),"role":.string("owner"),"revision":.number(1),"settings":.object(["add_members":.string("admins"),"send_messages":.string("all"),"edit_settings":.string("admins"),"approval":.bool(false)]),"exam":examState,"members":.array([.object(["username":.string("demo"),"role":.string("owner"),"is_self":.bool(true)])])])
+ }
+ let group=NOVASwiftGroupManagement(transport:transport)
+ let page=UIHostingController(rootView:NOVASwiftGroupInfo(id:"demo",store:store,social:NOVASwiftSocial(),group:group));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
