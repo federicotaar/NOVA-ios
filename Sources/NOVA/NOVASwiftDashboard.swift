@@ -71,9 +71,15 @@ import UIKit
                         }
                     }}
                     if visible("task"){card("Compiti"){
+                        let open=(root["tasks"]?.array ?? []).filter{$0.object?["done"]?.flag != true && $0.object?["kind"]?.string != "test"}
+                        let todayKey=NOVASwiftTaskDay.key(Date()),tomorrowKey=NOVASwiftTaskDay.key(Calendar.current.date(byAdding:.day,value:1,to:Date()) ?? Date())
+                        let overdue=open.filter{let key=NOVASwiftCompiti.dayKey($0);return !key.isEmpty && key<todayKey}
+                        let tomorrow=open.filter{NOVASwiftCompiti.dayKey($0)==tomorrowKey}
+                        if !open.isEmpty{Text(homeworkSummary(open.count,overdue.count,tomorrow.count)).font(.footnote).foregroundStyle(overdue.isEmpty ? .secondary:.red).accessibilityIdentifier("swiftCompitiSummary")}
                         Button("Nuovo compito"){createTask=true}
-                        if (root["tasks"]?.array ?? []).isEmpty{Text("Nessun compito").foregroundStyle(.secondary)}
-                        ForEach(Array((root["tasks"]?.array ?? []).filter{$0.object?["done"]?.flag != true && $0.object?["kind"]?.string != "test" && !($0.object?["id"]?.string ?? "").hasPrefix("cvag")}.enumerated()),id:\.offset){_,task in taskRow(task)}
+                        if open.isEmpty{Text("Nessun compito").foregroundStyle(.secondary)}
+                        ForEach(Array(open.filter{!($0.object?["id"]?.string ?? "").hasPrefix("cvag")}.enumerated()),id:\.offset){_,task in taskRow(task)}
+                        NavigationLink("Tutti i compiti"){NOVASwiftCompiti(store:store)}.accessibilityIdentifier("swiftCompitiAll")
                     }}
                     if visible("nx"){card("Prossime verifiche"){
                         let tests=(root["tasks"]?.array ?? []).filter{($0.object?["kind"]?.string=="test" || ($0.object?["id"]?.string ?? "").hasPrefix("cvag")) && $0.object?["done"]?.flag != true}
@@ -84,7 +90,10 @@ import UIKit
                         HStack{Button{changeMonth(-1)}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Mese precedente");Spacer();Button{changeMonth(1)}label:{Image(systemName:"chevron.right")}.accessibilityLabel("Mese successivo")}
                         calendar
                     }}
-                    card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")").foregroundStyle(.secondary)}
+                    card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")").foregroundStyle(.secondary)
+                        let domani=orarioDomani()
+                        if !domani.isEmpty{Text("Domani: "+domani).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("swiftOrarioDomani")}
+                        NavigationLink("Orario da ClasseViva"){NOVASwiftOrario(store:store)}.accessibilityIdentifier("swiftOrarioLink")}
                     
                     if !status.isEmpty{Text(status).foregroundStyle(.red)}
                 }.padding(20).padding(.bottom,80)
@@ -114,6 +123,8 @@ import UIKit
     }
     func hasTasks(_ date:Date)->Bool{!NOVASwiftTaskDay.tasks(root["tasks"]?.array ?? [],on:date).isEmpty}
     func changeMonth(_ direction:Int){month=Calendar.current.date(byAdding:.month,value:direction,to:month) ?? month}
+    func homeworkSummary(_ open:Int,_ overdue:Int,_ tomorrow:Int)->String{let a="\(open) "+(open==1 ? "aperto":"aperti"),o=overdue==0 ? "" : " · \(overdue) in ritardo",d=tomorrow==0 ? "" : " · \(tomorrow) per domani";return a+o+d}
+    func orarioDomani()->String{let key=NOVASwiftTaskDay.key(Calendar.current.date(byAdding:.day,value:1,to:Date()) ?? Date());let rows=(root["ls"]?.array ?? []).filter{$0.object?["d"]?.string==key}.sorted{($0.object?["b"]?.string ?? "")<($1.object?["b"]?.string ?? "")};return rows.prefix(3).map{($0.object?["s"]?.string ?? "")+" "+NOVASwiftOrario.clock($0.object?["b"]?.string ?? "")}.joined(separator:" · ")}
     func useWeatherPosition(){guard locationOwner==store.archive?.owner,let owner=store.archive?.owner,let coordinate=position.coordinate else{return};let city:NOVAJSON = .object(["name":.string("Posizione attuale"),"lat":.number(coordinate.latitude),"lon":.number(coordinate.longitude)]);Task{await weather.load(city:city);guard store.archive?.owner==owner else{return};let existing=root["city"]?.object;if existing?["name"]?.string=="Posizione attuale",abs((existing?["lat"]?.double ?? 0)-coordinate.latitude)<0.01,abs((existing?["lon"]?.double ?? 0)-coordinate.longitude)<0.01{return};try? store.update(owner:owner){$0["city"] = city}}}
     func findCity(){
         let query=cityQuery.trimmingCharacters(in:.whitespacesAndNewlines),owner=store.archive?.owner ?? ""
@@ -124,6 +135,7 @@ import UIKit
 struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
 @MainActor struct NOVASwiftGrades:View {
     @ObservedObject var store:NOVASwiftStore
+    @State private var pagella=false
     var grades:[NOVAJSON]{store.archive?.active.object?["gr"]?.array ?? []}
     var absences:[NOVAJSON]{store.archive?.active.object?["ab"]?.array ?? []}
     var grouped:[String:[NOVAJSON]]{Dictionary(grouping:grades,by:{$0.object?["subj"]?.string ?? "Materia"})}
@@ -134,7 +146,7 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
             absencesSection
             if grades.isEmpty{Text("Nessun voto numerico salvato.").foregroundStyle(.secondary)}
             ForEach(grouped.keys.sorted(),id:\.self){subject in subjectSection(subject)}
-        }.navigationTitle("Voti")}.environment(\.locale,Locale(identifier:"it_IT"))
+        }.navigationTitle("Voti").toolbar{ToolbarItem(placement:.primaryAction){Button{pagella=true}label:{Image(systemName:"square.and.arrow.up")}.accessibilityIdentifier("swiftPagellaOpen")}}}.sheet(isPresented:$pagella){NOVASwiftPagella(store:store)}.environment(\.locale,Locale(identifier:"it_IT"))
     }
     @ViewBuilder var absencesSection:some View{
         if !absences.isEmpty{
@@ -154,6 +166,7 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
             let total=values.reduce(0,+),average=total/Double(values.count),goal=target(subject),need=goal*Double(values.count+1)-total
             Section(subject){
                 Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) "+(values.count==1 ? "voto":"voti")).font(.title2)
+                trendChart(rows).accessibilityIdentifier("swiftGradeTrend")
                 Text(verdict(average,need,goal)).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("swiftGradeVerdict")
                 Stepper(value:Binding(get:{target(subject)},set:{setTarget(subject,$0)}),in:1...10,step:0.5){Text("Obiettivo: "+target(subject).formatted(.number.precision(.fractionLength(1))))}.accessibilityIdentifier("swiftGradeTarget")
                 ForEach(Array(rows.sorted{($0.object?["date"]?.string ?? "")>($1.object?["date"]?.string ?? "")}.enumerated()),id:\.offset){_,grade in gradeRow(grade)}
@@ -162,7 +175,104 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
     }
     func absenceSummary(_ counts:[String:Int])->String{let a=counts["assenza"] ?? 0,r=counts["ritardo"] ?? 0,u=counts["uscita anticipata"] ?? 0;return "\(a) "+(a==1 ? "assenza":"assenze")+" · \(r) "+(r==1 ? "ritardo":"ritardi")+" · \(u) "+(u==1 ? "uscita anticipata":"uscite anticipate")}
     func verdict(_ average:Double,_ need:Double,_ goal:Double)->String{let g=goal.formatted(.number.precision(.fractionLength(1)));if average>=goal{return need<=1 ? "Sei al sicuro sopra il "+g : "Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al "+g};return need>10 ? "Servono più voti per arrivare al "+g : "Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al "+g}
+    @ViewBuilder func trendChart(_ rows:[NOVAJSON])->some View {
+        let sorted=rows.sorted{($0.object?["date"]?.string ?? "")<($1.object?["date"]?.string ?? "")}
+        var sum=0.0,count=0.0,points:[Double]=[]
+        for row in sorted{if case .number(let n)?=row.object?["v"]{sum+=n;count+=1;points.append(sum/count)}}
+        if points.count>1{
+            let low=points.min() ?? 0,high=points.max() ?? 10,span=max(high-low,0.5)
+            Canvas{context,size in
+                var path=Path()
+                for index in points.indices{let x=size.width*Double(index)/Double(points.count-1),y=size.height*CGFloat(1-(points[index]-low)/span);if index==points.startIndex{path.move(to:CGPoint(x:x,y:y))}else{path.addLine(to:CGPoint(x:x,y:y))}}
+                context.stroke(path,with:.color(.accentColor),lineWidth:2)
+            }.frame(height:36)
+        }
+    }
     func gradeRow(_ grade:NOVAJSON)->some View{VStack(alignment:.leading,spacing:4){HStack{Text(grade.object?["d"]?.string ?? String(grade.object?["v"]?.double ?? 0)).font(.headline);Spacer();Text(grade.object?["date"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};if let kind=grade.object?["k"]?.string,!kind.isEmpty{Text(kind).font(.caption)};if let note=grade.object?["n"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}}}
+}
+
+@MainActor struct NOVASwiftCompiti:View {
+    @ObservedObject var store:NOVASwiftStore
+    @State private var showDone=false
+    @State private var status=""
+    var tasks:[NOVAJSON]{store.archive?.active.object?["tasks"]?.array ?? []}
+    static func dayKey(_ task:NOVAJSON)->String{String((task.object?["due"]?.string ?? "").prefix(10))}
+    static func label(_ key:String)->String{let parser=DateFormatter();parser.locale=Locale(identifier:"en_US_POSIX");parser.dateFormat="yyyy-MM-dd";guard let date=parser.date(from:key) else{return key};let output=DateFormatter();output.locale=Locale(identifier:"it_IT");output.dateFormat="EEEE d MMMM";return output.string(from:date).capitalized}
+    var body:some View {
+        let today=NOVASwiftTaskDay.key(Date()),tomorrow=NOVASwiftTaskDay.key(Calendar.current.date(byAdding:.day,value:1,to:Date()) ?? Date())
+        let open=tasks.filter{$0.object?["done"]?.flag != true && $0.object?["kind"]?.string != "test"}
+        let done=tasks.filter{$0.object?["done"]?.flag==true && $0.object?["kind"]?.string != "test"}
+        let grouped=Dictionary(grouping:open,by:{NOVASwiftCompiti.dayKey($0)})
+        let overdueDays=grouped.keys.filter{!$0.isEmpty && $0<today}.sorted()
+        let futureDays=grouped.keys.filter{$0>tomorrow}.sorted()
+        return List{
+            if open.isEmpty{Text("Nessun compito da fare.").foregroundStyle(.secondary)}
+            if !overdueDays.isEmpty{Section(header:Text("In ritardo").foregroundStyle(.red)){ForEach(overdueDays,id:\.self){day in ForEach(Array((grouped[day] ?? []).enumerated()),id:\.offset){_,task in row(task,red:true)}}}.accessibilityIdentifier("swiftCompitiOverdue")}
+            if !(grouped[today] ?? []).isEmpty{Section("Oggi"){ForEach(Array((grouped[today] ?? []).enumerated()),id:\.offset){_,task in row(task,red:false)}}}
+            if !(grouped[tomorrow] ?? []).isEmpty{Section("Domani"){ForEach(Array((grouped[tomorrow] ?? []).enumerated()),id:\.offset){_,task in row(task,red:false)}}}
+            ForEach(futureDays,id:\.self){day in Section(NOVASwiftCompiti.label(day)){ForEach(Array((grouped[day] ?? []).enumerated()),id:\.offset){_,task in row(task,red:false)}}}
+            if !(grouped[""] ?? []).isEmpty{Section("Senza scadenza"){ForEach(Array((grouped[""] ?? []).enumerated()),id:\.offset){_,task in row(task,red:false)}}}
+            if !done.isEmpty{Section{Toggle("Mostra completati (\(done.count))",isOn:$showDone).accessibilityIdentifier("swiftCompitiShowDone");if showDone{ForEach(Array(done.enumerated()),id:\.offset){_,task in row(task,red:false)}}}}
+            if !status.isEmpty{Text(status).foregroundStyle(.red)}
+        }.navigationTitle("Compiti").environment(\.locale,Locale(identifier:"it_IT"))
+    }
+    @ViewBuilder func row(_ task:NOVAJSON,red:Bool)->some View {
+        let o=task.object ?? [:]
+        HStack(alignment:.top,spacing:12){Button{do{try NOVASwiftTaskActions.mutate(store,owner:store.archive?.owner ?? "",id:o["id"]?.string ?? "")}catch{status="Compito non modificato."}}label:{Image(systemName:o["done"]?.flag==true ? "checkmark.circle.fill":"circle")}.buttonStyle(.plain).accessibilityIdentifier("swiftCompitiToggle");VStack(alignment:.leading,spacing:4){Text(o["title"]?.string ?? "Compito");if let note=o["note"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}};Spacer();Text(NOVASwiftOverview.deadline(o["due"]?.string ?? "")).font(.caption).foregroundStyle(red ? .red:.secondary)}
+    }
+}
+@MainActor struct NOVASwiftOrario:View {
+    @ObservedObject var store:NOVASwiftStore
+    @State private var selected=""
+    var lessons:[NOVAJSON]{store.archive?.active.object?["ls"]?.array ?? []}
+    var days:[String]{Array(Set(lessons.compactMap{$0.object?["d"]?.string})).sorted()}
+    static func clock(_ value:String)->String{let parts=value.split(separator:"T");return parts.count==2 ? String(parts[1]):value}
+    func defaultDay()->String{let today=NOVASwiftTaskDay.key(Date()),tomorrow=NOVASwiftTaskDay.key(Calendar.current.date(byAdding:.day,value:1,to:Date()) ?? Date());return days.contains(today) ? today:days.contains(tomorrow) ? tomorrow:days.first ?? ""}
+    var body:some View {
+        let current=selected.isEmpty ? defaultDay():selected
+        let rows=lessons.filter{$0.object?["d"]?.string==current}.sorted{($0.object?["b"]?.string ?? "")<($1.object?["b"]?.string ?? "")}
+        return List{
+            if lessons.isEmpty{Text("Nessuna lezione importata. Collega ClasseViva e aggiorna.").foregroundStyle(.secondary)}
+            if !days.isEmpty{Section{ScrollView(.horizontal,showsIndicators:false){HStack(spacing:8){ForEach(days,id:\.self){day in Button(NOVASwiftCompiti.label(day)){selected=day}.buttonStyle(.bordered).tint(day==current ? Color.accentColor:Color.secondary).accessibilityIdentifier("swiftOrarioDay")}}}}}
+            Section(current.isEmpty ? "Lezioni":NOVASwiftCompiti.label(current)){
+                if rows.isEmpty{Text("Nessuna lezione per questo giorno.").foregroundStyle(.secondary)}
+                ForEach(Array(rows.enumerated()),id:\.offset){_,lesson in lessonRow(lesson)}
+            }
+        }.navigationTitle("Orario").environment(\.locale,Locale(identifier:"it_IT"))
+    }
+    @ViewBuilder func lessonRow(_ lesson:NOVAJSON)->some View {
+        let o=lesson.object ?? [:]
+        HStack(alignment:.top){VStack(alignment:.leading,spacing:4){Text(o["s"]?.string ?? "Lezione").font(.headline).accessibilityIdentifier("swiftOrarioLesson");if let teacher=o["t"]?.string,!teacher.isEmpty{Text(teacher).font(.footnote).foregroundStyle(.secondary)};if let arg=o["arg"]?.string,!arg.isEmpty{Text(arg).font(.footnote).foregroundStyle(.secondary)}};Spacer();VStack(alignment:.trailing,spacing:4){Text(NOVASwiftOrario.clock(o["b"]?.string ?? "")).font(.subheadline);Text(o["h"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}}
+    }
+}
+@MainActor struct NOVASwiftPagella:View {
+    @ObservedObject var store:NOVASwiftStore
+    @Environment(\.dismiss) var dismiss
+    @State private var status=""
+    var grades:[NOVAJSON]{store.archive?.active.object?["gr"]?.array ?? []}
+    var absences:[NOVAJSON]{store.archive?.active.object?["ab"]?.array ?? []}
+    var grouped:[String:[NOVAJSON]]{Dictionary(grouping:grades,by:{$0.object?["subj"]?.string ?? "Materia"})}
+    func average(_ subject:String)->Double{let values=(grouped[subject] ?? []).compactMap{row -> Double? in if case .number(let n)?=row.object?["v"]{return n};return nil};guard !values.isEmpty else{return 0};return values.reduce(0,+)/Double(values.count)}
+    var subjects:[String]{grouped.keys.sorted()}
+    var overall:Double{let all=subjects.map{average($0)};guard !all.isEmpty else{return 0};return all.reduce(0,+)/Double(all.count)}
+    var body:some View {
+        NavigationStack{ScrollView{VStack(spacing:20){pagellaCard;Button{share()}label:{Label("Condividi immagine",systemImage:"square.and.arrow.up")}.accessibilityIdentifier("swiftPagellaShare");if !status.isEmpty{Text(status).foregroundStyle(.red)}}.padding(20)}.background(Color(uiColor:.systemGroupedBackground)).navigationTitle("Pagella").toolbar{Button("Chiudi"){dismiss()}}}.environment(\.locale,Locale(identifier:"it_IT"))
+    }
+    var pagellaCard:some View {
+        VStack(alignment:.leading,spacing:12){
+            Text("NOVA · Pagella").font(.headline)
+            Text(store.archive?.active.object?["name"]?.string ?? "").font(.subheadline).foregroundStyle(.secondary)
+            Divider()
+            ForEach(subjects,id:\.self){subject in HStack{Text(subject);Spacer();Text(average(subject).formatted(.number.precision(.fractionLength(1)))).font(.headline)}}
+            if subjects.isEmpty{Text("Nessun voto numerico salvato.").foregroundStyle(.secondary)}
+            Divider()
+            HStack{Text("Media generale").font(.headline);Spacer();Text(overall.formatted(.number.precision(.fractionLength(1)))).font(.title2.bold()).accessibilityIdentifier("swiftPagellaOverall")}
+            Text(absenceLine()).font(.footnote).foregroundStyle(.secondary)
+            Text("Dati ClasseViva · "+Date().formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier:"it_IT")))).font(.caption2).foregroundStyle(.secondary)
+        }.padding(24).background(Color(uiColor:.secondarySystemGroupedBackground),in:RoundedRectangle(cornerRadius:24)).accessibilityIdentifier("swiftPagellaCard")
+    }
+    func absenceLine()->String{let counts=Dictionary(grouping:absences,by:{$0.object?["k"]?.string ?? "altro"}).mapValues{$0.count};let a=counts["assenza"] ?? 0,r=counts["ritardo"] ?? 0,u=counts["uscita anticipata"] ?? 0;return "\(a) "+(a==1 ? "assenza":"assenze")+" · \(r) "+(r==1 ? "ritardo":"ritardi")+" · \(u) "+(u==1 ? "uscita anticipata":"uscite anticipate")}
+    func share(){let renderer=ImageRenderer(content:pagellaCard.frame(width:360));renderer.scale=3;guard let image=renderer.uiImage else{status="Immagine non generata.";return};guard let scene=UIApplication.shared.connectedScenes.first as? UIWindowScene,let window=scene.windows.first,let root=window.rootViewController else{status="Condivisione non disponibile.";return};var top=root;while let presented=top.presentedViewController{top=presented};let sheet=UIActivityViewController(activityItems:[image],applicationActivities:nil);if let pop=sheet.popoverPresentationController{pop.sourceView=window;pop.sourceRect=CGRect(x:window.bounds.midX,y:window.bounds.midY,width:0,height:0)};top.present(sheet,animated:true)}
 }
 
 // A due date without a timezone belongs to the local calendar day, never UTC.
