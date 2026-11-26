@@ -393,7 +393,7 @@ import UIKit
         NavigationLink("Stato profilo"){NOVASwiftProfileEditor(store:store)}.accessibilityIdentifier("fixtureMenuProfilo")
     }.navigationTitle("NOVA scuola")}}
 }
-enum NOVASwiftSchoolPoll {
+@MainActor enum NOVASwiftSchoolPoll {
     static let social:NOVASwiftSocial = {
         let transport:NOVASwiftSocial.Transport = {_,path,method,_,_ in
             if path=="chats/demo/messages" && method=="GET"{
