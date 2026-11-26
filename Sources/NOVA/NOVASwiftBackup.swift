@@ -3,7 +3,7 @@ import CoreLocation
 
 // Same private-field allowlist as the existing account backup. Device secrets stay local.
 enum NOVASwiftBackupData {
-    static let fields=["name","theme","sb","hwn","w","tt","tasks","chat","gr","agentMd","aiAct","city","introEvery","introOff","done","ob","ttSeeded","profDone"]
+    static let fields=["name","theme","accent","sb","hwn","w","tt","tasks","chat","gr","saved","agentMd","aiAct","city","introEvery","introOff","done","ob","ttSeeded","profDone"]
     static let profileFields=["username","avatar","study","skills","hobbies","song","badges"]
     static func snapshot(_ active:NOVAJSON)->NOVAJSON {
         let state=active.object ?? [:];var result:[String:NOVAJSON]=[:]
