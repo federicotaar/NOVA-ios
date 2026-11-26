@@ -916,3 +916,40 @@ if os.environ.get("NOVA_GROUP_EXAM")=="1":
     s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftGroupExamReady(web,0)',1)
     s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
     p.write_text(s)
+
+if os.environ.get("NOVA_GRADES_INTERACTION")=="1":
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text()
+    assert 'visualSwiftOwnedReady(web,0)' in s, 'Swift grades entry point missing'
+    s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftGradesReady(web,0)',1)
+    s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
+    p.write_text(s)
+
+if os.environ.get("NOVA_MODERATION_INTERACTION")=="1":
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text()
+    assert 'visualSwiftOwnedReady(web,0)' in s, 'Swift moderation entry point missing'
+    s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftModerationReady(web,0)',1)
+    s+='\n'+Path('NOVAInteractionFixture.swift/NOVAInteractionFixture.swift').read_text()
+    p.write_text(s)
+
+if os.environ.get("NOVA_HOME_INTERACTION")=="1":
+    p=Path('/tmp/NOVAProductionVisual.swift')
+    s=p.read_text()
+    assert 'visualSwiftOwnedReady(web,0)' in s, 'Swift home entry point missing'
+    s=s.replace('visualSwiftOwnedReady(web,0)','visualSwiftHomeBadgesReady(web,0)',1)
+    s+=r'''
+@MainActor func visualSwiftHomeBadgesReady(_ web:WKWebView,_ attempt:Int){
+ web.evaluateJavaScript("!!window.__novaMainReady"){v,e in
+  if v as? Bool != true{if attempt<90{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftHomeBadgesReady(web,attempt+1)}};return}
+  let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+  let homeJS=#"$('#intro')?.remove();$('#ob')?.remove();document.body.classList.remove('ovl');try{S.name='Demo';S.w={wx:0,bat:0,cal:0,task:0,nx:1,gr:0,sp:0};S.acct={email:'demo@test.invalid',token:'synthetic-only'}}catch(e){};window.fetch=function(u){var s=String(u);if(s.indexOf('/chats')>=0)return Promise.resolve(new Response(JSON.stringify({chats:[{id:'g1',type:'group',title:'Gruppo storia',exam_subject:'Storia',exam_at:Date.now()+3*864e5,members:[]}]}),{status:200,headers:{'content-type':'application/json'}}));return Promise.resolve(new Response('{}',{status:200,headers:{'content-type':'application/json'}}))};gxAt=0;show();nxt();"#
+  web.evaluateJavaScript(homeJS){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+2){visualProductionSave(web,"production-home-exam.png")
+   web.evaluateJavaScript("profOpen(0)"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.5){visualProductionSave(web,"production-profile-badges.png")
+    web.evaluateJavaScript("[...document.querySelectorAll('#dBg [data-b]')].find(b=>b.dataset.b=='Sportivo')?.click()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-profile-badge-picked.png");try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
+   }}
+  }}
+ }
+}
+'''
+    p.write_text(s)
