@@ -806,6 +806,17 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     func text(_ key:String,_ fallback:String="")->Binding<String>{Binding(get:{store.archive?.active.object?[key]?.string ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .string(value)}}catch{self.error="Modifica non salvata"}})}
     func flag(_ key:String,_ fallback:Bool=false)->Binding<Bool>{Binding(get:{store.archive?.active.object?[key]?.flag ?? fallback},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){$0[key] = .number(value ? 1:0)}}catch{self.error="Modifica non salvata"}})}
     func widget(_ key:String)->Binding<Bool>{Binding(get:{store.archive?.active.object?["w"]?.object?[key]?.flag ?? true},set:{value in do{try store.update(owner:store.archive?.owner ?? ""){root in var widgets=root["w"]?.object ?? [:];widgets[key] = .number(value ? 1:0);root["w"] = .object(widgets)}}catch{self.error="Modifica non salvata"}})}
+    @ViewBuilder var infoSection:some View{Section("Informazioni"){Button("Segnala un bug"){NotificationCenter.default.post(name:.novaBugReport,object:nil)};NavigationLink("Termini, privacy e licenze (bozza)"){NOVASwiftLegal()}}}
+    @ViewBuilder var privacySection:some View{
+Section("Privacy"){
+                NavigationLink("Blocco app e notifiche"){NOVASwiftDeviceSettings()}
+                Toggle("Avvisi automatici compiti",isOn:Binding(get:{store.archive?.active.object?["hwn"]?.flag ?? true},set:{on in do{try store.update(owner:store.archive?.owner ?? ""){$0["hwn"] = .number(on ? 1:0)};UserDefaults.standard.set(on,forKey:"nova.hwn");if !on{Task{let center=UNUserNotificationCenter.current();let pending=await center.pendingNotificationRequests();center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("hw.")||$0.hasPrefix("plan.")})}}}catch{self.error="Scelta non salvata."}}))
+                Toggle("Diagnostica errori",isOn:flag("diag",true))
+                Text("Consenti solo tipo generico di errore e versione dell’app, senza messaggi, credenziali o contenuti del profilo.").font(.footnote).foregroundStyle(.secondary)
+                NavigationLink("Notifiche sociali ntfy"){NOVASwiftSocialNotificationSettings(store:store)}
+                Text("La migrazione non attiva la posizione, Fantasma, notifiche o accessi ai servizi. I permessi e i segreti esistenti restano invariati.")
+            }
+    }
     var body:some View {
         NavigationStack{Form{
             Section("Il tuo account"){
@@ -832,15 +843,8 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                 TextEditor(text:text("agentMd")).frame(minHeight:100)
                 Text("Chiedi prima mostra la conferma per ogni azione. Sempre può aggiungere compiti e promemoria o aprire schermate senza chiedere; Mai disattiva le nuove azioni.").font(.footnote).foregroundStyle(.secondary)
             }
-            Section("Informazioni"){Button("Segnala un bug"){NotificationCenter.default.post(name:.novaBugReport,object:nil)};NavigationLink("Termini, privacy e licenze (bozza)"){NOVASwiftLegal()}}
-            Section("Privacy"){
-                NavigationLink("Blocco app e notifiche"){NOVASwiftDeviceSettings()}
-                Toggle("Avvisi automatici compiti",isOn:Binding(get:{store.archive?.active.object?["hwn"]?.flag ?? true},set:{on in do{try store.update(owner:store.archive?.owner ?? ""){$0["hwn"] = .number(on ? 1:0)};UserDefaults.standard.set(on,forKey:"nova.hwn");if !on{Task{let center=UNUserNotificationCenter.current();let pending=await center.pendingNotificationRequests();center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("hw.")||$0.hasPrefix("plan.")})}}}catch{self.error="Scelta non salvata."}}))
-                Toggle("Diagnostica errori",isOn:flag("diag",true))
-                Text("Consenti solo tipo generico di errore e versione dell’app, senza messaggi, credenziali o contenuti del profilo.").font(.footnote).foregroundStyle(.secondary)
-                NavigationLink("Notifiche sociali ntfy"){NOVASwiftSocialNotificationSettings(store:store)}
-                Text("La migrazione non attiva la posizione, Fantasma, notifiche o accessi ai servizi. I permessi e i segreti esistenti restano invariati.")
-            }
+            infoSection
+            privacySection
             if !error.isEmpty{Text(error).foregroundStyle(.red)}
         }.navigationTitle("Impostazioni").environment(\.locale,Locale(identifier:"it_IT"))}
         .confirmationDialog("Attivare Sempre? L’assistente potrà aggiungere compiti e promemoria e aprire schermate senza chiedere ogni volta.",isPresented:$confirmAlways,titleVisibility:.visible){Button("Attiva Sempre"){do{try store.update(owner:store.archive?.owner ?? ""){$0["aiAct"] = .string("always")}}catch{self.error="Scelta non salvata."}};Button("Annulla",role:.cancel){}}
