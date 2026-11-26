@@ -45,26 +45,33 @@ import UIKit
     @State private var assistantTask:NOVAJSON?
     var dailyRange:String {let daily=weather.value?.object?["daily"]?.object ?? [:];let low=daily["temperature_2m_min"]?.array.first?.double ?? 0;let high=daily["temperature_2m_max"]?.array.first?.double ?? 0;return "Min "+String(Int(low.rounded()))+"° · Max "+String(Int(high.rounded()))+"°"}
     func visible(_ key:String)->Bool {root["w"]?.object?[key]?.flag ?? true}
+    var openHomeTasks:[NOVAJSON]{(root["tasks"]?.array ?? []).filter{$0.object?["done"]?.flag != true && $0.object?["kind"]?.string != "test"}}
+    var overdueHomeTasks:[NOVAJSON]{let todayKey=NOVASwiftTaskDay.key(Date());return openHomeTasks.filter{let key=NOVASwiftCompiti.dayKey($0);return !key.isEmpty && key<todayKey}}
+    var tomorrowHomeTasks:[NOVAJSON]{let tomorrowKey=NOVASwiftTaskDay.key(Calendar.current.date(byAdding:.day,value:1,to:Date()) ?? Date());return openHomeTasks.filter{NOVASwiftCompiti.dayKey($0)==tomorrowKey}}
+    @ViewBuilder var meteoCard:some View {
+        if visible("wx"){card("Meteo"){
+            if let c=weather.value?.object?["current"]?.object {
+                let wxTemp=c["temperature_2m"]?.integer ?? 0
+                Text("\(wxTemp)°").font(.system(size:42,weight:.semibold))
+                let wxCity=root["city"]?.object?["name"]?.string ?? ""
+                let wxDesc=NOVASwiftWeather.description(c["weather_code"]?.integer ?? 0)
+                Text(wxCity+" · "+wxDesc).foregroundStyle(.secondary)
+            }
+            if !weather.status.isEmpty{Text(weather.status).foregroundStyle(.secondary)}
+            if weather.value != nil{Text(dailyRange).font(.footnote)}
+            Button("Usa la mia posizione"){locationOwner=store.archive?.owner ?? "";position.read()}
+            if !position.status.isEmpty{Text(position.status).font(.footnote).foregroundStyle(.secondary)}
+            HStack{TextField("Città",text:$cityQuery).textInputAutocapitalization(.words);Button("Cerca"){findCity()}.disabled(searching||cityQuery.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}
+            if !cityError.isEmpty{Text(cityError).font(.footnote).foregroundStyle(.red)}
+        }}
+    }
     var body:some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment:.leading,spacing:20){
                     HStack{Text("Ciao "+(root["name"]?.string ?? "")).font(.largeTitle.bold());Spacer();Button{settings=true}label:{Image(systemName:"gearshape")}.accessibilityLabel("Impostazioni")}
                     TimelineView(.periodic(from:.now,by:60)){context in VStack(alignment:.leading){Text(context.date,style:.time).font(.system(size:54,weight:.bold,design:.rounded));Text(context.date,format:.dateTime.weekday(.wide).day().month(.wide)).foregroundStyle(.secondary)}}
-                    if visible("wx"){card("Meteo"){
-                        if let c=weather.value?.object?["current"]?.object {
-                            Text("\(c["temperature_2m"]?.integer ?? 0)°").font(.system(size:42,weight:.semibold))
-                            let wxCity=root["city"]?.object?["name"]?.string ?? ""
-                            let wxDesc=NOVASwiftWeather.description(c["weather_code"]?.integer ?? 0)
-                            Text(wxCity+" · "+wxDesc).foregroundStyle(.secondary)
-                        }
-                        if !weather.status.isEmpty{Text(weather.status).foregroundStyle(.secondary)}
-                        if weather.value != nil{Text(dailyRange).font(.footnote)}
-                        Button("Usa la mia posizione"){locationOwner=store.archive?.owner ?? "";position.read()}
-                        if !position.status.isEmpty{Text(position.status).font(.footnote).foregroundStyle(.secondary)}
-                        HStack{TextField("Città",text:$cityQuery).textInputAutocapitalization(.words);Button("Cerca"){findCity()}.disabled(searching||cityQuery.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)}
-                        if !cityError.isEmpty{Text(cityError).font(.footnote).foregroundStyle(.red)}
-                    }}
+                    meteoCard
                     if visible("sp"){card("Spotify"){NOVASwiftMusicCard()}}
                     if visible("bat"){card("Batteria"){
                         TimelineView(.periodic(from:.now,by:60)){_ in
@@ -73,10 +80,9 @@ import UIKit
                         }
                     }}
                     if visible("task"){card("Compiti"){
-                        let open=(root["tasks"]?.array ?? []).filter{$0.object?["done"]?.flag != true && $0.object?["kind"]?.string != "test"}
-                        let todayKey=NOVASwiftTaskDay.key(Date()),tomorrowKey=NOVASwiftTaskDay.key(Calendar.current.date(byAdding:.day,value:1,to:Date()) ?? Date())
-                        let overdue=open.filter{let key=NOVASwiftCompiti.dayKey($0);return !key.isEmpty && key<todayKey}
-                        let tomorrow=open.filter{NOVASwiftCompiti.dayKey($0)==tomorrowKey}
+                        let open=openHomeTasks
+                        let overdue=overdueHomeTasks
+                        let tomorrow=tomorrowHomeTasks
                         if !open.isEmpty{Text(homeworkSummary(open.count,overdue.count,tomorrow.count)).font(.footnote).foregroundStyle(overdue.isEmpty ? .secondary:.red).accessibilityIdentifier("swiftCompitiSummary")}
                         Button("Nuovo compito"){createTask=true}
                         if open.isEmpty{Text("Nessun compito").foregroundStyle(.secondary)}
