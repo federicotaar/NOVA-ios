@@ -138,11 +138,18 @@ jobs:
           FLOW
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
           export MAESTRO_DRIVER_STARTUP_TIMEOUT=240000
-          python3 - <<'PYRUN'
-          import subprocess
-          try: subprocess.run(['maestro','test','/tmp/moderation.yaml'],timeout=360,check=True)
-          except subprocess.TimeoutExpired: raise SystemExit('UI driver exceeded 360s; acceptance incomplete')
-          PYRUN
+          set +e
+          maestro test /tmp/moderation.yaml > /tmp/maestro-run.log 2>&1
+          RC=$?
+          set -e
+          cat /tmp/maestro-run.log
+          if [ "$RC" -ne 0 ]; then
+            mkdir -p evidence/maestro-debug
+            cp -R "$HOME/.maestro/tests" evidence/maestro-debug/tests 2>/dev/null || true
+            find "$HOME/Library/Logs/DiagnosticReports" -name '*.ips' -newermt '-15 minutes' -exec cp {} evidence/maestro-debug/ \; 2>/dev/null || true
+            xcrun simctl io "$UDID" screenshot evidence/moderation-fail.png || true
+            exit "$RC"
+          fi
           find "$HOME/.maestro" /tmp -name 'moderation-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
@@ -150,7 +157,7 @@ jobs:
           name: NOVA-Swift-moderation
           include-hidden-files: true
           path: |
-            evidence/*.png
+            evidence/**
             evidence/*.json
             /tmp/**/*.png
             /Users/runner/.maestro/**/*.png
