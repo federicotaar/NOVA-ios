@@ -751,18 +751,8 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                     if !own,o["deleted"]?.flag != true{Button("Segnala"){reportMessage=message;reportText="";reportOpen=true};Button("Blocca",role:.destructive){blockName=social.senders[o["sender"]?.string ?? ""]?.string ?? "";blockOpen=true}}}
                 }
     }
-    var body:some View {
-        VStack(spacing:0){
-            ScrollView{LazyVStack(alignment:.leading,spacing:6){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
-                messageRow(message)
-            }}.padding().padding(.bottom,80)}.refreshable{await social.refresh(store)}
-            if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
-            if !modNote.isEmpty{Text(modNote).font(.caption).foregroundStyle(.secondary).padding(.horizontal)}
-            if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
-            if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store,replyTo:replyID){photoDraft=nil;replyMessage=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
-            if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
-        }.frame(maxWidth:.infinity,maxHeight:.infinity)
-        .safeAreaInset(edge:.bottom,spacing:0){VStack(spacing:8){
+    @ViewBuilder private var composerArea:some View {
+        VStack(spacing:8){
             if let reply=replyMessage{HStack(spacing:10){NOVASwiftReplyQuote(author:"Rispondi a "+replyAuthor(reply),preview:NOVASwiftReply.preview(reply),own:false);Spacer(minLength:0);Button{replyMessage=nil}label:{Image(systemName:"xmark.circle.fill").font(.title3).foregroundStyle(.secondary).frame(width:44,height:44)}.buttonStyle(.plain).accessibilityLabel("Annulla risposta")}.padding(.leading,12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:16)).accessibilityIdentifier("swiftReplyDraft")}
             if voice.recording || voice.draft != nil{NOVASwiftVoiceDraftPanel(recording:voice.recording,busy:social.sending,status:voice.status,stop:{voice.finish()},discard:{voice.cancel()},send:{guard let data=voice.draft else{return};Task{if await social.media(data,mime:"audio/mp4",kind:"voice",store,replyTo:replyID){voice.cancel();replyMessage=nil}}})}
             else if !voice.status.isEmpty{Text(voice.status).font(.caption).foregroundStyle(.secondary)}
@@ -778,7 +768,19 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                 }.padding(.horizontal,14).padding(.vertical,8).modifier(NOVASwiftAssistantGlass(circle:false))
             }.modifier(NOVASwiftComposerGlassGroup(composerBoundary:true))
             }.padding(.horizontal,12).padding(.vertical,8)
-        }.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);if let chat=social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object,let exam=chat["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:chat["exam_subject"]?.string ?? ""){Text(line).font(.caption2).foregroundStyle(.tint).accessibilityIdentifier("swiftHeaderExamChip")}else{Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
+    }
+    var body:some View {
+        VStack(spacing:0){
+            ScrollView{LazyVStack(alignment:.leading,spacing:6){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
+                messageRow(message)
+            }}.padding().padding(.bottom,80)}.refreshable{await social.refresh(store)}
+            if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
+            if !modNote.isEmpty{Text(modNote).font(.caption).foregroundStyle(.secondary).padding(.horizontal)}
+            if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
+            if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store,replyTo:replyID){photoDraft=nil;replyMessage=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
+            if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
+        }.frame(maxWidth:.infinity,maxHeight:.infinity)
+        .safeAreaInset(edge:.bottom,spacing:0){composerArea}.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);if let chat=social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object,let exam=chat["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:chat["exam_subject"]?.string ?? ""){Text(line).font(.caption2).foregroundStyle(.tint).accessibilityIdentifier("swiftHeaderExamChip")}else{Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .alert("Segnala a NOVA",isPresented:$reportOpen){TextField("Motivo (facoltativo)",text:$reportText);Button("Invia segnalazione"){if let message=reportMessage,let sender=message.object?["sender"]?.string,let name=social.senders[sender]?.string{let reason=reportText;Task{modNote = await social.moderate(name,path:"report",reason:reason,store) ? "Segnalazione inviata.":"Segnalazione non inviata. Riprova."}}};Button("Annulla",role:.cancel){}}message:{Text("La segnalazione arriva a chi gestisce NOVA con il motivo che hai scritto. L'utente segnalato non viene avvisato.")}
