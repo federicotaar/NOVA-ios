@@ -976,6 +976,7 @@ enum ClasseViva {
                 let name = (first + " " + last).trimmingCharacters(in: .whitespaces)
                 let events = await fetchEvents(token: token, studentID: studentID, pair: pair)
                 let grades = await gradesItems(token: token, studentID: studentID, pair: pair)
+                let absences = await absencesItems(token: token, studentID: studentID, pair: pair)
                 if sideEffects {
                 // Condivide compiti/verifiche col widget calendario del mese (pallini rossi/blu).
                 // Gira anche negli aggiornamenti in background, quindi il widget resta fresco.
@@ -1009,7 +1010,7 @@ enum ClasseViva {
                 }
                 await HomeNotifs.process(events, background: background)
                 }
-                return ["ok": 1, "name": name, "events": events, "grades": grades]
+                return ["ok": 1, "name": name, "events": events, "grades": grades, "absences": absences]
             } catch {
                 return ["ok": 0, "err": "rete", "info": error.localizedDescription]
             }
@@ -1110,6 +1111,26 @@ enum ClasseViva {
                             "d": e["displayValue"] as? String ?? String(v),
                             "n": clean(e["notesForFamily"] as? String ?? "", 200),
                             "k": e["componentDesc"] as? String ?? ""])
+            }
+            return out
+        } catch { return [] }
+    }
+
+    // Assenze dal registro (/absences): tipo, data, giustificazione.
+    private static func absencesItems(token: String, studentID: String, pair: Int) async -> [[String: Any]] {
+        do {
+            let (data, status) = try await call("/students/\(studentID)/absences", token: token, pair: pair)
+            guard status == 200,
+                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let ev = j["events"] as? [[String: Any]] else { return [] }
+            var out: [[String: Any]] = []
+            for e in ev {
+                guard let date = e["evtDate"] as? String, date.count >= 10 else { continue }
+                let code = e["evtCode"] as? String ?? ""
+                let kind = code == "ABA0001" ? "assenza" : code == "ABA0002" ? "uscita anticipata" : code == "ABA0003" ? "ritardo" : "altro"
+                let id = (e["evtId"] as? Int).map { "a\($0)" } ?? "a\(date)\(code)"
+                out.append(["id": id, "d": String(date.prefix(10)), "k": kind,
+                            "j": (e["isJustified"] as? Bool ?? false) ? 1 : 0])
             }
             return out
         } catch { return [] }
