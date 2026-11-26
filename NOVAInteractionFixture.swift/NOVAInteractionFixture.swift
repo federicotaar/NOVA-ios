@@ -441,5 +441,5 @@ import UIKit
   return .object(["ok":.bool(true)])
  }
  let social=NOVASwiftSocial(transport:transport)
- let page=UIHostingController(rootView:NOVASwiftConversation(store:store,social:social,id:"demo",title:"Chat demo"));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];Task{await social.open("demo",store);try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
+ let page=UIHostingController(rootView:NavigationStack{NOVASwiftConversation(store:store,social:social,id:"demo",title:"Chat demo")});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];Task{await social.open("demo",store);try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
 }
