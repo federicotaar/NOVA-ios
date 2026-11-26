@@ -372,3 +372,25 @@ import UIKit
  let group=NOVASwiftGroupManagement(transport:transport)
  let page=UIHostingController(rootView:NOVASwiftGroupInfo(id:"demo",store:store,social:NOVASwiftSocial(),group:group));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
+
+@MainActor func visualSwiftGradesReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftGradesReady(web,attempt+1)}};return}
+ let directory=FileManager.default.temporaryDirectory.appendingPathComponent("grades-interaction")
+ let store=NOVASwiftStore(directory:directory)
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"gr\":[{\"id\":1,\"subj\":\"Matematica\",\"date\":\"2026-11-03\",\"v\":5.5,\"d\":\"5,5\",\"n\":\"Verifica scritta\",\"k\":\"Scritto\"},{\"id\":2,\"subj\":\"Matematica\",\"date\":\"2026-11-10\",\"v\":6.5,\"d\":\"6,5\",\"n\":\"Interrogazione\",\"k\":\"Orale\"},{\"id\":3,\"subj\":\"Italiano\",\"date\":\"2026-11-05\",\"v\":7,\"d\":\"7\",\"n\":\"Tema\",\"k\":\"Scritto\"}],\"ab\":[{\"id\":\"a1\",\"d\":\"2026-11-12\",\"k\":\"assenza\",\"j\":0},{\"id\":\"a2\",\"d\":\"2026-11-20\",\"k\":\"ritardo\",\"j\":1}],\"tasks\":[],\"w\":{}}"])}
+ let page=UIHostingController(rootView:NOVASwiftGrades(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
+
+@MainActor func visualSwiftModerationReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftModerationReady(web,attempt+1)}};return}
+ let directory=FileManager.default.temporaryDirectory.appendingPathComponent("moderation-interaction")
+ let store=NOVASwiftStore(directory:directory)
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"acct\":{\"email\":\"me@test.invalid\",\"token\":\"synthetic-only\"},\"prof\":{\"username\":\"me.demo\"},\"tasks\":[],\"w\":{}}"])}
+ let transport:NOVASwiftSocial.Transport = {_,path,method,body,_ in
+  if path.hasSuffix("/messages"),method=="GET"{return .object(["ok":.bool(true),"messages":.array([.object(["id":.number(1),"sender":.string("friend@test.invalid"),"kind":.string("text"),"body":.string("Messaggio dimostrativo di un amico"),"ts":.number(1)])]),"senders":.object(["friend@test.invalid":.string("amico.demo")]),"reactions":.object([:])])}
+  if path.hasSuffix("/typing"){return .object(["ok":.bool(true),"typing":.array([])])}
+  return .object(["ok":.bool(true)])
+ }
+ let social=NOVASwiftSocial(transport:transport)
+ let page=UIHostingController(rootView:NOVASwiftConversation(store:store,social:social,id:"demo",title:"Chat demo"));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];Task{await social.open("demo",store);try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
+}
