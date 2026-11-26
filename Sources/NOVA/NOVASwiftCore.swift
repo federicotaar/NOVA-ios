@@ -517,7 +517,7 @@ extension NOVAJSON {
             }
             Section("Username"){TextField("Username",text:field("username")).textInputAutocapitalization(.never).autocorrectionDisabled()}
             Section("Su di te"){
-                TextField("Stato",text:field("stato"));TextField("Dove studi",text:field("study"));TextField("Punti forti",text:field("skills"));TextField("Hobby",text:field("hobbies"))
+                TextField("Stato",text:field("stato")).accessibilityIdentifier("swiftProfileStato");TextField("Dove studi",text:field("study"));TextField("Punti forti",text:field("skills"));TextField("Hobby",text:field("hobbies"))
             }
             if draft["song"]?.object==nil{Section("La tua canzone"){Button("Scegli canzone"){songPicker=true}}}
             if let song=draft["song"]?.object{Section("La tua canzone"){NOVASwiftSongCard(song:.object(song));Button("Cambia canzone"){songPicker=true}}}
@@ -567,6 +567,7 @@ extension NOVAJSON {
     @Published private(set) var messages:[NOVAJSON]=[]
     @Published private(set) var friends:[NOVAJSON]=[]
     @Published private(set) var reactions:[String:NOVAJSON]=[:]
+    @Published private(set) var polls:[String:NOVAJSON]=[:]
     @Published private(set) var senders:[String:NOVAJSON]=[:]
     @Published private(set) var typing:[String]=[]
     @Published private(set) var status=""
@@ -578,7 +579,7 @@ extension NOVAJSON {
     private let transport:Transport
     init(transport:Transport?=nil){let source:Transport=transport ?? {owner,path,method,body,query in try await NOVAAccountService(session:owner).request(path,method:method,body:body,query:query)};self.transport={owner,path,method,body,query in let result=try await source(owner,path,method,body,query);if result.object?["ok"]?.flag==false{throw NOVAServiceError.invalidResponse};return result}}
     func reset(){close();chats=[];friends=[];session=nil}
-    func close(){generation+=1;activeChat=nil;messages=[];reactions=[:];senders=[:];typing=[];status="";sending=false}
+    func close(){generation+=1;activeChat=nil;messages=[];reactions=[:];polls=[:];senders=[:];typing=[];status="";sending=false}
     private func current(_ store:NOVASwiftStore,_ owner:NOVASession,_ epoch:Int,_ id:String?=nil)->Bool{generation==epoch && store.archive.flatMap({NOVASession($0.active)})==owner && (id==nil || activeChat==id)}
     func loadChats(_ store:NOVASwiftStore) async {
         guard let active=store.archive?.active,let owner=NOVASession(active) else{chats=[];status="Accedi al tuo account NOVA.";return}
@@ -618,7 +619,7 @@ extension NOVAJSON {
             // Another device may have cleared this account's copy while this screen was open.
             if let boundary=result.object?["cleared_through"]?.integer,boundary>0{messages.removeAll{($0.object?["id"]?.integer ?? 0)<=boundary}}
             if let quotes=result.object?["quote_refresh"]?.object{for i in messages.indices{guard var row=messages[i].object,let source=row["reply_to"]?.integer,source>0 else{continue};row["reply"] = quotes[String(source)] ?? .object(["deleted":.bool(true)]);messages[i] = .object(row)}}
-            for message in result.object?["messages"]?.array ?? []{if let index=messages.firstIndex(where:{$0.object?["id"]==message.object?["id"]}){messages[index]=message}else{messages.append(message)}};if let updated=result.object?["reactions"]?.object{reactions=updated};if let updated=result.object?["senders"]?.object{senders.merge(updated){_,new in new}};status=""
+            for message in result.object?["messages"]?.array ?? []{if let index=messages.firstIndex(where:{$0.object?["id"]==message.object?["id"]}){messages[index]=message}else{messages.append(message)}};if let updated=result.object?["reactions"]?.object{reactions=updated};if let updated=result.object?["polls"]?.object{polls=updated};if let updated=result.object?["senders"]?.object{senders.merge(updated){_,new in new}};status=""
             // Opening a visible conversation has the same receipt semantics as the existing app.
             if let last=messages.last?.object?["id"]{_ = try? await transport(owner,"chats/"+id+"/read","POST",.object(["last_msg_id":last]),[])}
             guard current(store,owner,epoch,id) else{return}
@@ -631,6 +632,17 @@ extension NOVAJSON {
         guard !sending,let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return false}
         let epoch=generation;sending=true;defer{if current(store,owner,epoch,id){sending=false}}
         do{_ = try await transport(owner,"chats/"+id+"/messages","POST",body,[]);guard current(store,owner,epoch,id) else{return false};await refresh(store);return true}catch{if current(store,owner,epoch,id){status="Messaggio non inviato. La bozza resta conservata."};return false}
+    }
+    func sendPoll(_ question:String,options:[String],_ store:NOVASwiftStore) async -> Bool {
+        let q=question.trimmingCharacters(in:.whitespacesAndNewlines)
+        let opts=options.map{$0.trimmingCharacters(in:.whitespacesAndNewlines)}.filter{!$0.isEmpty}
+        guard !q.isEmpty,opts.count>=2,opts.count<=6,let raw=NOVASwiftPoll.body(q,opts) else{return false}
+        return await sendBody(.object(["kind":.string("poll"),"body":.string(raw)]),store)
+    }
+    func vote(_ message:NOVAJSON,option:Int,_ store:NOVASwiftStore) async {
+        guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner,let messageID=message.object?["id"] else{return}
+        let epoch=generation,key=messageID.string ?? String(messageID.integer)
+        do{_ = try await transport(owner,"messages/"+key+"/vote","POST",.object(["option":.number(Double(option))]),[]);guard current(store,owner,epoch,id) else{return};await refresh(store)}catch{if current(store,owner,epoch,id){status="Voto non registrato. Riprova."}}
     }
     func media(_ data:Data,mime:String,kind:String,_ store:NOVASwiftStore,replyTo:Int?=nil) async -> Bool {
         guard !sending,data.count>=500,data.count<=900000,["image/jpeg","audio/mp4"].contains(mime),let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return false}
@@ -706,6 +718,39 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     }
     func unsave(_ o:[String:NOVAJSON]){guard let owner=store.archive?.owner else{return};try? store.update(owner:owner){root in var saved=root["saved"]?.array ?? [];saved.removeAll{$0.object?["chat"]?.string==o["chat"]?.string && $0.object?["key"]?.string==o["key"]?.string};root["saved"] = .array(saved)}}
 }
+enum NOVASwiftPoll {
+    static func parse(_ body:String)->(question:String,options:[String]) {
+        guard let data=body.data(using:.utf8),let obj=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any],let q=obj["q"] as? String,let opts=obj["o"] as? [String] else{return ("",[])}
+        return (q,opts)
+    }
+    static func body(_ question:String,_ options:[String])->String? {
+        guard let data=try? JSONSerialization.data(withJSONObject:["q":question,"o":options]) else{return nil}
+        return String(data:data,encoding:.utf8)
+    }
+}
+@MainActor struct NOVASwiftPollBubble:View {
+    let message:NOVAJSON
+    let own:Bool
+    @ObservedObject var social:NOVASwiftSocial
+    let vote:(Int)->Void
+    var body:some View {
+        let o=message.object ?? [:]
+        let key=o["id"].map{$0.string ?? String($0.integer)} ?? ""
+        let payload=NOVASwiftPoll.parse(o["body"]?.string ?? "")
+        let data=social.polls[key]?.object ?? [:]
+        let votes=data["votes"]?.object ?? [:]
+        let total=data["total"]?.integer ?? 0
+        let mine=data["my_vote"]?.integer
+        VStack(alignment:.leading,spacing:6){
+            if !payload.question.isEmpty{Text(payload.question).font(.headline)}
+            ForEach(Array(payload.options.enumerated()),id:\.offset){i,opt in
+                let count=votes[String(i)]?.integer ?? 0
+                Button{vote(i)}label:{HStack(spacing:6){Text(opt).lineLimit(2);Spacer(minLength:8);if mine==i{Image(systemName:"checkmark.circle.fill").font(.caption)};if count>0{Text("\(count)").font(.caption)}}}.buttonStyle(.plain)
+            }
+            Text(total==1 ? "1 voto":"\(total) voti").font(.caption2).foregroundStyle(own ? Color.white.opacity(0.8):Color.secondary)
+        }.accessibilityIdentifier("swiftPollBubble")
+    }
+}
 @MainActor struct NOVASwiftConversation:View {
     @ObservedObject var store:NOVASwiftStore
     @ObservedObject var social:NOVASwiftSocial
@@ -734,6 +779,9 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     @State private var modNote=""
     @State private var searchOpen=false
     @State private var searchText=""
+    @State private var pollOpen=false
+    @State private var pollQuestion=""
+    @State private var pollOptions=["","",""]
     @StateObject private var voice=NOVASwiftVoice()
     @StateObject private var playback=NOVASwiftVoicePlayback()
     var replyID:Int?{replyMessage.flatMap{NOVASwiftReply.identifier($0)}}
@@ -741,7 +789,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     func replyAuthor(_ message:NOVAJSON)->String{let sender=message.object?["sender"]?.string ?? "";return sender==store.archive?.active.object?["acct"]?.object?["email"]?.string ? "Tu":social.senders[sender]?.string ?? "Messaggio"}
     func mediaURL(_ key:String)->URL? {let url=key.hasPrefix("/") ? URL(string:"https://api.federicotaranu.site"+key):URL(string:key);return url?.scheme=="https" ? url:nil}
     var visibleMessages:[NOVAJSON]{let query=searchText.trimmingCharacters(in:.whitespacesAndNewlines).lowercased();guard searchOpen,!query.isEmpty else{return social.messages};return social.messages.filter{($0.object?["body"]?.string ?? "").lowercased().contains(query)}}
-    func saveMessage(_ message:NOVAJSON){guard let owner=store.archive?.owner else{return};let o=message.object ?? [:];let key=o["id"].map{$0.string ?? String($0.integer)} ?? "";guard !key.isEmpty else{return};let body=o["kind"]?.string=="image" ? "[Foto]":o["kind"]?.string=="voice" ? "[Vocale]":o["body"]?.string ?? "";do{try store.update(owner:owner){root in var saved=root["saved"]?.array ?? [];if !saved.contains(where:{$0.object?["chat"]?.string==id && $0.object?["key"]?.string==key}){saved.append(.object(["chat":.string(id),"chatTitle":.string(title),"key":.string(key),"body":.string(body),"from":.string(social.senders[o["sender"]?.string ?? ""]?.string ?? ""),"ts":.number(Date().timeIntervalSince1970)]));if saved.count>200{saved=Array(saved.suffix(200))}};root["saved"] = .array(saved)}}catch{}}
+    func saveMessage(_ message:NOVAJSON){guard let owner=store.archive?.owner else{return};let o=message.object ?? [:];let key=o["id"].map{$0.string ?? String($0.integer)} ?? "";guard !key.isEmpty else{return};let body=o["kind"]?.string=="image" ? "[Foto]":o["kind"]?.string=="voice" ? "[Vocale]":o["kind"]?.string=="poll" ? "[Sondaggio]":o["body"]?.string ?? "";do{try store.update(owner:owner){root in var saved=root["saved"]?.array ?? [];if !saved.contains(where:{$0.object?["chat"]?.string==id && $0.object?["key"]?.string==key}){saved.append(.object(["chat":.string(id),"chatTitle":.string(title),"key":.string(key),"body":.string(body),"from":.string(social.senders[o["sender"]?.string ?? ""]?.string ?? ""),"ts":.number(Date().timeIntervalSince1970)]));if saved.count>200{saved=Array(saved.suffix(200))}};root["saved"] = .array(saved)}}catch{}}
     @ViewBuilder private func messageRow(_ message:NOVAJSON)->some View {
                 let o=message.object ?? [:],own=o["sender"]?.string==store.archive?.active.object?["acct"]?.object?["email"]?.string
                 HStack(alignment:.bottom,spacing:0){
@@ -754,7 +802,8 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                             if o["kind"]?.string=="image"{NOVASwiftPrivateImage(url:url,store:store).frame(maxWidth:230,maxHeight:260).clipShape(RoundedRectangle(cornerRadius:14))}
                             if o["kind"]?.string=="voice"{HStack{Button{playback.play(url,store)}label:{Label("Ascolta vocale",systemImage:"play.fill")};Button{playback.stop()}label:{Image(systemName:"stop.fill")}.accessibilityLabel("Ferma vocale")}}
                         }
-                        if let text=o["body"]?.string,!text.isEmpty{NOVASwiftMessageText(text:text,own:own)}
+                        if o["kind"]?.string=="poll"{NOVASwiftPollBubble(message:message,own:own,social:social,vote:{opt in Task{await social.vote(message,option:opt,store)}})}
+                        if o["kind"]?.string != "poll",let text=o["body"]?.string,!text.isEmpty{NOVASwiftMessageText(text:text,own:own)}
                         if o["edited"]?.flag==true{Text("modificato").font(.caption2).foregroundStyle(.secondary)}
                         let key=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                         let reactions=social.reactions[key]?.array ?? []
@@ -803,7 +852,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
             if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store,replyTo:replyID){photoDraft=nil;replyMessage=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
             if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
         }.frame(maxWidth:.infinity,maxHeight:.infinity)
-        let chrome=base.safeAreaInset(edge:.bottom,spacing:0){composerArea}.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);if let chat=social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object,let exam=chat["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:chat["exam_subject"]?.string ?? ""){Text(line).font(.caption2).foregroundStyle(.tint).accessibilityIdentifier("swiftHeaderExamChip")}else{Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){HStack(spacing:16){Button{searchOpen.toggle();if !searchOpen{searchText=""}}label:{Image(systemName:"magnifyingglass")}.accessibilityLabel("Cerca nella chat").accessibilityIdentifier("swiftChatSearchOpen");if composerFocused{Button("Fine tastiera"){composerFocused=false}}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
+        let chrome=base.safeAreaInset(edge:.bottom,spacing:0){composerArea}.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.sheet(isPresented:$pollOpen){NavigationStack{Form{Section("Domanda"){TextField("Cosa vuoi chiedere?",text:$pollQuestion).accessibilityIdentifier("swiftPollQuestionField")};Section("Opzioni"){ForEach(0..<4,id:\.self){i in TextField("Opzione \(i+1)",text:Binding(get:{i<pollOptions.count ? pollOptions[i]:""},set:{v in while pollOptions.count<=i{pollOptions.append("")};pollOptions[i]=v})).accessibilityIdentifier("swiftPollOption\(i)")}}}.navigationTitle("Nuovo sondaggio").navigationBarTitleDisplayMode(.inline).toolbar{ToolbarItem(placement:.cancellationAction){Button("Annulla"){pollOpen=false}};ToolbarItem(placement:.confirmationAction){Button("Crea"){let q=pollQuestion,opts=pollOptions;Task{if await social.sendPoll(q,options:opts,store){pollOpen=false;pollQuestion="";pollOptions=["","",""]}}}.disabled(social.sending)}}}.environment(\.locale,Locale(identifier:"it_IT"))}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);if let chat=social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object,let exam=chat["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:chat["exam_subject"]?.string ?? ""){Text(line).font(.caption2).foregroundStyle(.tint).accessibilityIdentifier("swiftHeaderExamChip")}else{Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){HStack(spacing:16){Button{searchOpen.toggle();if !searchOpen{searchText=""}}label:{Image(systemName:"magnifyingglass")}.accessibilityLabel("Cerca nella chat").accessibilityIdentifier("swiftChatSearchOpen");Button{composerFocused=false;pollOpen=true}label:{Image(systemName:"chart.bar")}.accessibilityLabel("Crea sondaggio").accessibilityIdentifier("swiftPollOpen");if composerFocused{Button("Fine tastiera"){composerFocused=false}}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         let dialogs=chrome.alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .alert("Segnala a NOVA",isPresented:$reportOpen){TextField("Motivo (facoltativo)",text:$reportText);Button("Invia segnalazione"){if let message=reportMessage,let sender=message.object?["sender"]?.string,let name=social.senders[sender]?.string{let reason=reportText;Task{modNote = await social.moderate(name,path:"report",reason:reason,store) ? "Segnalazione inviata.":"Segnalazione non inviata. Riprova."}}};Button("Annulla",role:.cancel){}}message:{Text("La segnalazione arriva a chi gestisce NOVA con il motivo che hai scritto. L'utente segnalato non viene avvisato.")}
