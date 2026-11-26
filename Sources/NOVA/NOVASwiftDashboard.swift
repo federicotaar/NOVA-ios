@@ -65,44 +65,64 @@ import UIKit
             if !cityError.isEmpty{Text(cityError).font(.footnote).foregroundStyle(.red)}
         }}
     }
+    @ViewBuilder private var homeHeader:some View {
+        HStack{Text("Ciao "+(root["name"]?.string ?? "")).font(.largeTitle.bold());Spacer();Button{settings=true}label:{Image(systemName:"gearshape")}.accessibilityLabel("Impostazioni")}
+    }
+    @ViewBuilder private var homeClock:some View {
+        TimelineView(.periodic(from:.now,by:60)){context in VStack(alignment:.leading){Text(context.date,style:.time).font(.system(size:54,weight:.bold,design:.rounded));Text(context.date,format:.dateTime.weekday(.wide).day().month(.wide)).foregroundStyle(.secondary)}}
+    }
+    @ViewBuilder private var batteriaCard:some View {
+        if visible("bat"){card("Batteria"){
+            TimelineView(.periodic(from:.now,by:60)){_ in
+                let device=UIDevice.current
+                HStack{Image(systemName:device.batteryState == .charging || device.batteryState == .full ? "battery.100percent.bolt":"battery.100percent");Text(device.batteryLevel<0 ? "Livello non disponibile":"\(Int(device.batteryLevel*100))%");Spacer();Text(device.batteryState == .charging || device.batteryState == .full ? "In carica":"Non in carica").foregroundStyle(.secondary)}
+            }
+        }}
+    }
+    @ViewBuilder private var compitiCard:some View {
+        if visible("task"){card("Compiti"){
+            let open=openHomeTasks
+            let overdue=overdueHomeTasks
+            let tomorrow=tomorrowHomeTasks
+            if !open.isEmpty{Text(homeworkSummary(open.count,overdue.count,tomorrow.count)).font(.footnote).foregroundStyle(overdue.isEmpty ? .secondary:.red).accessibilityIdentifier("swiftCompitiSummary")}
+            Button("Nuovo compito"){createTask=true}
+            if open.isEmpty{Text("Nessun compito").foregroundStyle(.secondary)}
+            ForEach(Array(open.filter{!($0.object?["id"]?.string ?? "").hasPrefix("cvag")}.enumerated()),id:\.offset){_,task in taskRow(task)}
+            NavigationLink("Tutti i compiti"){NOVASwiftCompiti(store:store)}.accessibilityIdentifier("swiftCompitiAll")
+        }}
+    }
+    @ViewBuilder private var verificheCard:some View {
+        if visible("nx"){card("Prossime verifiche"){
+            let tests=(root["tasks"]?.array ?? []).filter{($0.object?["kind"]?.string=="test" || ($0.object?["id"]?.string ?? "").hasPrefix("cvag")) && $0.object?["done"]?.flag != true}
+            if tests.isEmpty{Text("Nessuna verifica salvata.").foregroundStyle(.secondary)}
+            ForEach(Array(tests.enumerated()),id:\.offset){_,task in taskRow(task)}
+        }}
+    }
+    @ViewBuilder private var calendarioCard:some View {
+        if visible("cal"){card(month.formatted(.dateTime.month(.wide).year().locale(Locale(identifier:"it_IT")))){
+            HStack{Button{changeMonth(-1)}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Mese precedente");Spacer();Button{changeMonth(1)}label:{Image(systemName:"chevron.right")}.accessibilityLabel("Mese successivo")}
+            calendar
+        }}
+    }
+    @ViewBuilder private var orarioCard:some View {
+        card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")").foregroundStyle(.secondary)
+            let domani=orarioDomani()
+            if !domani.isEmpty{Text("Domani: "+domani).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("swiftOrarioDomani")}
+            NavigationLink("Orario da ClasseViva"){NOVASwiftOrario(store:store)}.accessibilityIdentifier("swiftOrarioLink")}
+    }
     var body:some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment:.leading,spacing:20){
-                    HStack{Text("Ciao "+(root["name"]?.string ?? "")).font(.largeTitle.bold());Spacer();Button{settings=true}label:{Image(systemName:"gearshape")}.accessibilityLabel("Impostazioni")}
-                    TimelineView(.periodic(from:.now,by:60)){context in VStack(alignment:.leading){Text(context.date,style:.time).font(.system(size:54,weight:.bold,design:.rounded));Text(context.date,format:.dateTime.weekday(.wide).day().month(.wide)).foregroundStyle(.secondary)}}
+                    homeHeader
+                    homeClock
                     meteoCard
                     if visible("sp"){card("Spotify"){NOVASwiftMusicCard()}}
-                    if visible("bat"){card("Batteria"){
-                        TimelineView(.periodic(from:.now,by:60)){_ in
-                            let device=UIDevice.current
-                            HStack{Image(systemName:device.batteryState == .charging || device.batteryState == .full ? "battery.100percent.bolt":"battery.100percent");Text(device.batteryLevel<0 ? "Livello non disponibile":"\(Int(device.batteryLevel*100))%");Spacer();Text(device.batteryState == .charging || device.batteryState == .full ? "In carica":"Non in carica").foregroundStyle(.secondary)}
-                        }
-                    }}
-                    if visible("task"){card("Compiti"){
-                        let open=openHomeTasks
-                        let overdue=overdueHomeTasks
-                        let tomorrow=tomorrowHomeTasks
-                        if !open.isEmpty{Text(homeworkSummary(open.count,overdue.count,tomorrow.count)).font(.footnote).foregroundStyle(overdue.isEmpty ? .secondary:.red).accessibilityIdentifier("swiftCompitiSummary")}
-                        Button("Nuovo compito"){createTask=true}
-                        if open.isEmpty{Text("Nessun compito").foregroundStyle(.secondary)}
-                        ForEach(Array(open.filter{!($0.object?["id"]?.string ?? "").hasPrefix("cvag")}.enumerated()),id:\.offset){_,task in taskRow(task)}
-                        NavigationLink("Tutti i compiti"){NOVASwiftCompiti(store:store)}.accessibilityIdentifier("swiftCompitiAll")
-                    }}
-                    if visible("nx"){card("Prossime verifiche"){
-                        let tests=(root["tasks"]?.array ?? []).filter{($0.object?["kind"]?.string=="test" || ($0.object?["id"]?.string ?? "").hasPrefix("cvag")) && $0.object?["done"]?.flag != true}
-                        if tests.isEmpty{Text("Nessuna verifica salvata.").foregroundStyle(.secondary)}
-                        ForEach(Array(tests.enumerated()),id:\.offset){_,task in taskRow(task)}
-                    }}
-                    if visible("cal"){card(month.formatted(.dateTime.month(.wide).year().locale(Locale(identifier:"it_IT")))){
-                        HStack{Button{changeMonth(-1)}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Mese precedente");Spacer();Button{changeMonth(1)}label:{Image(systemName:"chevron.right")}.accessibilityLabel("Mese successivo")}
-                        calendar
-                    }}
-                    card("Il tuo orario"){Button("Modifica orario"){timetable=true};Text("\(root["tt"]?.object?["lessons"]?.array.count ?? 0) \((root["tt"]?.object?["lessons"]?.array.count ?? 0)==1 ? "lezione salvata":"lezioni salvate")").foregroundStyle(.secondary)
-                        let domani=orarioDomani()
-                        if !domani.isEmpty{Text("Domani: "+domani).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("swiftOrarioDomani")}
-                        NavigationLink("Orario da ClasseViva"){NOVASwiftOrario(store:store)}.accessibilityIdentifier("swiftOrarioLink")}
-                    
+                    batteriaCard
+                    compitiCard
+                    verificheCard
+                    calendarioCard
+                    orarioCard
                     if !status.isEmpty{Text(status).foregroundStyle(.red)}
                 }.padding(20).padding(.bottom,80)
             }.background(Color(uiColor:.systemGroupedBackground)).navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
