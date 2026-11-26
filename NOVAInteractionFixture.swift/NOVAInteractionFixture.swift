@@ -388,13 +388,32 @@ import UIKit
         NavigationLink("Orario"){NOVASwiftOrario(store:store)}.accessibilityIdentifier("fixtureMenuOrario")
         NavigationLink("Pagella"){NOVASwiftPagella(store:store)}.accessibilityIdentifier("fixtureMenuPagella")
         NavigationLink("Messaggi salvati"){NOVASwiftSavedMessages(store:store)}.accessibilityIdentifier("fixtureMenuSalvati")
+        NavigationLink("Medie degli amici"){NOVASwiftGrades(store:store)}.accessibilityIdentifier("fixtureMenuMedie")
+        NavigationLink("Sondaggio"){NOVASwiftConversation(store:store,social:NOVASwiftSchoolPoll.social,id:"demo",title:"Gruppo demo")}.accessibilityIdentifier("fixtureMenuSondaggio")
+        NavigationLink("Stato profilo"){NOVASwiftProfileEditor(store:store)}.accessibilityIdentifier("fixtureMenuProfilo")
     }.navigationTitle("NOVA scuola")}}
+}
+enum NOVASwiftSchoolPoll {
+    static let social:NOVASwiftSocial = {
+        let transport:NOVASwiftSocial.Transport = {_,path,method,_,_ in
+            if path=="chats/demo/messages" && method=="GET"{
+                return .object(["ok":.bool(true),
+                                "messages":.array([.object(["id":.number(42),"sender":.string("friend@test.invalid"),"kind":.string("poll"),"body":.string("{\"q\":\"Uscita sabato?\",\"o\":[\"Cinema\",\"Pizza\",\"Studio compiti\"]}"),"ts":.number(1)])]),
+                                "senders":.object(["friend@test.invalid":.string("amico.demo")]),
+                                "reactions":.object([:]),
+                                "polls":.object(["42":.object(["votes":.object(["0":.number(2),"2":.number(1)]),"total":.number(3),"my_vote":.number(0)])])])
+            }
+            if path=="chats/demo/typing"{return .object(["ok":.bool(true),"typing":.array([])])}
+            return .object(["ok":.bool(true)])
+        }
+        return NOVASwiftSocial(transport:transport)
+    }()
 }
 @MainActor func visualSwiftSchoolReady(_ web:WKWebView,_ attempt:Int){
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftSchoolReady(web,attempt+1)}};return}
  let directory=FileManager.default.temporaryDirectory.appendingPathComponent("school-interaction")
  let store=NOVASwiftStore(directory:directory)
- if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tasks\":[],\"w\":{}}"])}
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tasks\":[],\"w\":{},\"acct\":{\"email\":\"demo@test.invalid\",\"token\":\"synthetic-only\"},\"shareGrades\":1,\"prof\":{\"username\":\"demo\",\"stato\":\"Esame di maturità in arrivo\"}}"])}
  let df=DateFormatter();df.locale=Locale(identifier:"en_US_POSIX");df.dateFormat="yyyy-MM-dd"
  let cal=Calendar.current
  func day(_ offset:Int)->String{df.string(from:cal.date(byAdding:.day,value:offset,to:Date()) ?? Date())}
@@ -407,6 +426,7 @@ import UIKit
   state["ab"] = .array([.object(["id":.string("a1"),"d":.string("2026-11-12"),"k":.string("assenza"),"j":.number(0)]),.object(["id":.string("a2"),"d":.string("2026-11-20"),"k":.string("ritardo"),"j":.number(1)])])
   state["saved"] = .array([.object(["chat":.string("demo"),"chatTitle":.string("Chat demo"),"key":.string("1"),"body":.string("Messaggio dimostrativo di un amico"),"from":.string("amico.demo"),"ts":.number(1)])])
  }
+ NOVASwiftGradeShare.fixtureShares=[.object(["username":.string("amico.demo"),"data":.object(["overall":.number(7.25),"subjects":.array([.object(["name":.string("Matematica"),"avg":.number(7.5)])])]),"updated_at":.string("2026-11-25T18:00:00Z")])]
  let page=UIHostingController(rootView:NOVASwiftSchoolMenu(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
 
