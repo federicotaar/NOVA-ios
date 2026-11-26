@@ -133,9 +133,38 @@ import UIKit
     }
 }
 struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
+enum NOVASwiftGradeShare {
+    // CI fixtures only: when set, the grades screen shows these rows and skips the network.
+    static var fixtureShares:[NOVAJSON]?
+    static func payload(_ grades:[NOVAJSON])->NOVAJSON? {
+        let grouped=Dictionary(grouping:grades,by:{$0.object?["subj"]?.string ?? "Materia"})
+        var subjects:[NOVAJSON]=[];var avgs:[Double]=[]
+        for subject in grouped.keys.sorted(){
+            let values=(grouped[subject] ?? []).compactMap{row -> Double? in if case .number(let n)?=row.object?["v"]{return n};return nil}
+            guard !values.isEmpty else{continue}
+            let avg=values.reduce(0,+)/Double(values.count);avgs.append(avg)
+            subjects.append(.object(["name":.string(subject),"avg":.number(avg)]))
+        }
+        guard !avgs.isEmpty else{return nil}
+        return .object(["overall":.number(avgs.reduce(0,+)/Double(avgs.count)),"subjects":.array(subjects)])
+    }
+    static func upload(_ store:NOVASwiftStore) async {
+        if fixtureShares != nil{return}
+        guard let archive=store.archive,let session=NOVASession(archive.active) else{return}
+        guard let data=payload(archive.active.object?["gr"]?.array ?? []) else{return}
+        _ = try? await NOVAAccountService(session:session).request("grades/share",method:"PUT",body:.object(["data":data]))
+    }
+    static func remove(_ store:NOVASwiftStore) async {
+        guard let archive=store.archive,let session=NOVASession(archive.active) else{return}
+        _ = try? await NOVAAccountService(session:session).request("grades/share",method:"DELETE")
+    }
+    static func sharedDate(_ iso:String)->String{let parser=ISO8601DateFormatter();guard let date=parser.date(from:iso) else{return ""};return date.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier:"it_IT")))}
+}
 @MainActor struct NOVASwiftGrades:View {
     @ObservedObject var store:NOVASwiftStore
     @State private var pagella=false
+    @State private var shares:[NOVAJSON]=[]
+    var shareOn:Bool{store.archive?.active.object?["shareGrades"]?.flag==true}
     var grades:[NOVAJSON]{store.archive?.active.object?["gr"]?.array ?? []}
     var absences:[NOVAJSON]{store.archive?.active.object?["ab"]?.array ?? []}
     var grouped:[String:[NOVAJSON]]{Dictionary(grouping:grades,by:{$0.object?["subj"]?.string ?? "Materia"})}
@@ -146,7 +175,13 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
             absencesSection
             if grades.isEmpty{Text("Nessun voto numerico salvato.").foregroundStyle(.secondary)}
             ForEach(grouped.keys.sorted(),id:\.self){subject in subjectSection(subject)}
-        }.navigationTitle("Voti").toolbar{ToolbarItem(placement:.primaryAction){Button{pagella=true}label:{Image(systemName:"square.and.arrow.up")}.accessibilityIdentifier("swiftPagellaOpen")}}}.sheet(isPresented:$pagella){NOVASwiftPagella(store:store)}.environment(\.locale,Locale(identifier:"it_IT"))
+            if shareOn{
+                Section("Medie degli amici"){
+                    if shares.isEmpty{Text("Nessun amico condivide la media al momento.").foregroundStyle(.secondary).accessibilityIdentifier("swiftGradeSharesEmpty")}
+                    ForEach(Array(shares.enumerated()),id:\.offset){_,share in let data=share.object?["data"]?.object ?? [:];HStack{Text("@"+(share.object?["username"]?.string ?? ""));Spacer();if let date=share.object?["updated_at"]?.string,!NOVASwiftGradeShare.sharedDate(date).isEmpty{Text(NOVASwiftGradeShare.sharedDate(date)).font(.caption).foregroundStyle(.secondary)};Text((data["overall"]?.double ?? 0).formatted(.number.precision(.fractionLength(1)))).font(.headline)}.accessibilityIdentifier("swiftGradeShareRow")}
+                }
+            }
+        }.navigationTitle("Voti").task{await loadShares()}.toolbar{ToolbarItem(placement:.primaryAction){Button{pagella=true}label:{Image(systemName:"square.and.arrow.up")}.accessibilityIdentifier("swiftPagellaOpen")}}}.sheet(isPresented:$pagella){NOVASwiftPagella(store:store)}.environment(\.locale,Locale(identifier:"it_IT"))
     }
     @ViewBuilder var absencesSection:some View{
         if !absences.isEmpty{
@@ -158,6 +193,13 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
                 ForEach(Array(absences.sorted{($0.object?["d"]?.string ?? "")>($1.object?["d"]?.string ?? "")}.prefix(5).enumerated()),id:\.offset){_,row in HStack{Text(row.object?["k"]?.string ?? "").font(.subheadline);Spacer();if row.object?["j"]?.flag==true{Image(systemName:"checkmark.circle.fill").foregroundStyle(.green).imageScale(.small)};Text(row.object?["d"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}}
             }
         }
+    }
+    func loadShares() async {
+        if let fixture=NOVASwiftGradeShare.fixtureShares{shares=shareOn ? fixture:[];return}
+        guard let archive=store.archive,let session=NOVASession(archive.active) else{shares=[];return}
+        if shareOn{await NOVASwiftGradeShare.upload(store)}
+        guard shareOn else{shares=[];return}
+        if let result=try? await NOVAAccountService(session:session).request("grades/share"),let list=result.object?["shares"]?.array{shares=list}else{shares=[]}
     }
     @ViewBuilder func subjectSection(_ subject:String)->some View{
         let rows=grouped[subject] ?? []
@@ -175,10 +217,14 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
     }
     func absenceSummary(_ counts:[String:Int])->String{let a=counts["assenza"] ?? 0,r=counts["ritardo"] ?? 0,u=counts["uscita anticipata"] ?? 0;return "\(a) "+(a==1 ? "assenza":"assenze")+" · \(r) "+(r==1 ? "ritardo":"ritardi")+" · \(u) "+(u==1 ? "uscita anticipata":"uscite anticipate")}
     func verdict(_ average:Double,_ need:Double,_ goal:Double)->String{let g=goal.formatted(.number.precision(.fractionLength(1)));if average>=goal{return need<=1 ? "Sei al sicuro sopra il "+g : "Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al "+g};return need>10 ? "Servono più voti per arrivare al "+g : "Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al "+g}
-    @ViewBuilder func trendChart(_ rows:[NOVAJSON])->some View {
+    func trendPoints(_ rows:[NOVAJSON])->[Double] {
         let sorted=rows.sorted{($0.object?["date"]?.string ?? "")<($1.object?["date"]?.string ?? "")}
         var sum=0.0,count=0.0,points:[Double]=[]
         for row in sorted{if case .number(let n)?=row.object?["v"]{sum+=n;count+=1;points.append(sum/count)}}
+        return points
+    }
+    @ViewBuilder func trendChart(_ rows:[NOVAJSON])->some View {
+        let points=trendPoints(rows)
         if points.count>1{
             let low=points.min() ?? 0,high=points.max() ?? 10,span=max(high-low,0.5)
             Canvas{context,size in
