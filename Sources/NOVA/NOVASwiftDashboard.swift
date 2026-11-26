@@ -340,7 +340,7 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
             ForEach(subjects,id:\.self){subject in HStack{Text(subject);Spacer();Text(average(subject).formatted(.number.precision(.fractionLength(1)))).font(.headline)}}
             if subjects.isEmpty{Text("Nessun voto numerico salvato.").foregroundStyle(.secondary)}
             Divider()
-            HStack{Text("Media generale").font(.headline);Spacer();Text(overall.formatted(.number.precision(.fractionLength(1)))).font(.title2.bold()).accessibilityIdentifier("swiftPagellaOverall")}
+            HStack{Text("Media generale").font(.headline);Spacer();Text(overall.formatted(.number.precision(.fractionLength(1)))).font(.title2.bold())}.accessibilityIdentifier("swiftPagellaOverall")
             Text(absenceLine()).font(.footnote).foregroundStyle(.secondary)
             Text("Dati ClasseViva · "+Date().formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier:"it_IT")))).font(.caption2).foregroundStyle(.secondary)
         }.padding(24).background(Color(uiColor:.secondarySystemGroupedBackground),in:RoundedRectangle(cornerRadius:24)).accessibilityIdentifier("swiftPagellaCard")
