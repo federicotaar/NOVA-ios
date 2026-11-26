@@ -84,7 +84,7 @@ import UIKit
             let open=openHomeTasks
             let overdue=overdueHomeTasks
             let tomorrow=tomorrowHomeTasks
-            if !open.isEmpty{Text(homeworkSummary(open.count,overdue.count,tomorrow.count)).font(.footnote).foregroundStyle(overdue.isEmpty ? .secondary:.red).accessibilityIdentifier("swiftCompitiSummary")}
+            if !open.isEmpty{Text(homeworkSummary(open.count,overdue.count,tomorrow.count)).font(.footnote).foregroundStyle(overdue.isEmpty ? Color.secondary:Color.red).accessibilityIdentifier("swiftCompitiSummary")}
             Button("Nuovo compito"){createTask=true}
             if open.isEmpty{Text("Nessun compito").foregroundStyle(.secondary)}
             ForEach(Array(open.filter{!($0.object?["id"]?.string ?? "").hasPrefix("cvag")}.enumerated()),id:\.offset){_,task in taskRow(task)}
