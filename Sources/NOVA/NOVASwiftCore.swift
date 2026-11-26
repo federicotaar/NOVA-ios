@@ -679,6 +679,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     var body:some View {
         NavigationStack{List{
             NavigationLink("Assistente AI"){NOVASwiftAssistant(store:store,embedded:true)}
+            NavigationLink("Messaggi salvati"){NOVASwiftSavedMessages(store:store)}.accessibilityIdentifier("swiftSavedOpen")
             ForEach(Array(social.chats.enumerated()),id:\.offset){_,chat in
                 let o=chat.object ?? [:],id=o["id"].map{$0.string ?? String($0.integer)} ?? ""
                 NavigationLink{NOVASwiftConversation(store:store,social:social,id:id,title:o["title"]?.string ?? "Chat")}label:{VStack(alignment:.leading){Text(o["title"]?.string ?? "Chat");if let last=o["last"]?.object{Text(last["body"]?.string ?? "Allegato").font(.caption).foregroundStyle(.secondary)};if let exam=o["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:o["exam_subject"]?.string ?? ""){Text(line).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftChatExamChip")}}}
@@ -688,6 +689,22 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
             if !social.status.isEmpty{Text(social.status).foregroundStyle(.secondary)}
         }.confirmationDialog("Eliminare questa chat solo per te?",isPresented:$clearConfirm,titleVisibility:.visible){Button("Elimina per me",role:.destructive){guard let candidate=clearCandidate,let raw=candidate.object?["id"] else{return};let id=raw.string ?? String(raw.integer);clearing=true;Task{_ = await social.clearChat(id,store);clearing=false}};Button("Annulla",role:.cancel){clearCandidate=nil}}message:{Text("La cronologia verra rimossa dal tuo account, non da quello degli altri. Un nuovo messaggio fara riapparire la chat senza la vecchia cronologia.")}.navigationTitle("Chat").toolbar{Button{create=true}label:{Image(systemName:"plus")}.accessibilityLabel("Nuova chat")}.sheet(isPresented:$create){NOVASwiftChatCreation(store:store,social:social)}.refreshable{await social.loadChats(store)}.task{await social.loadChats(store)}.onChange(of:store.archive?.owner){_,_ in social.reset();Task{await social.loadChats(store)}}}
     }
+}
+@MainActor struct NOVASwiftSavedMessages:View {
+    @ObservedObject var store:NOVASwiftStore
+    var saved:[NOVAJSON]{Array((store.archive?.active.object?["saved"]?.array ?? []).reversed())}
+    var body:some View {
+        List{
+            if saved.isEmpty{Text("Nessun messaggio salvato. Tieni premuto un messaggio e tocca Salva.").foregroundStyle(.secondary)}
+            ForEach(Array(saved.enumerated()),id:\.offset){_,item in savedRow(item)}
+        }.navigationTitle("Messaggi salvati").environment(\.locale,Locale(identifier:"it_IT"))
+    }
+    @ViewBuilder func savedRow(_ item:NOVAJSON)->some View {
+        let o=item.object ?? [:]
+        VStack(alignment:.leading,spacing:4){Text(o["body"]?.string ?? "").accessibilityIdentifier("swiftSavedRow");HStack(spacing:4){Text(o["chatTitle"]?.string ?? "");if let from=o["from"]?.string,!from.isEmpty{Text("· "+from)}}.font(.caption).foregroundStyle(.secondary)}
+        .swipeActions(edge:.trailing){Button(role:.destructive){unsave(o)}label:{Label("Rimuovi",systemImage:"trash")}.accessibilityIdentifier("swiftSavedRemove")}
+    }
+    func unsave(_ o:[String:NOVAJSON]){guard let owner=store.archive?.owner else{return};try? store.update(owner:owner){root in var saved=root["saved"]?.array ?? [];saved.removeAll{$0.object?["chat"]?.string==o["chat"]?.string && $0.object?["key"]?.string==o["key"]?.string};root["saved"] = .array(saved)}}
 }
 @MainActor struct NOVASwiftConversation:View {
     @ObservedObject var store:NOVASwiftStore
@@ -715,12 +732,16 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     @State private var blockName=""
     @State private var blockOpen=false
     @State private var modNote=""
+    @State private var searchOpen=false
+    @State private var searchText=""
     @StateObject private var voice=NOVASwiftVoice()
     @StateObject private var playback=NOVASwiftVoicePlayback()
     var replyID:Int?{replyMessage.flatMap{NOVASwiftReply.identifier($0)}}
     func selectReply(_ message:NOVAJSON){guard NOVASwiftReply.identifier(message) != nil,message.object?["deleted"]?.flag != true else{return};replyMessage=message;if !voice.recording && voice.draft==nil{composerFocused=true}}
     func replyAuthor(_ message:NOVAJSON)->String{let sender=message.object?["sender"]?.string ?? "";return sender==store.archive?.active.object?["acct"]?.object?["email"]?.string ? "Tu":social.senders[sender]?.string ?? "Messaggio"}
     func mediaURL(_ key:String)->URL? {let url=key.hasPrefix("/") ? URL(string:"https://api.federicotaranu.site"+key):URL(string:key);return url?.scheme=="https" ? url:nil}
+    var visibleMessages:[NOVAJSON]{let query=searchText.trimmingCharacters(in:.whitespacesAndNewlines).lowercased();guard searchOpen,!query.isEmpty else{return social.messages};return social.messages.filter{($0.object?["body"]?.string ?? "").lowercased().contains(query)}}
+    func saveMessage(_ message:NOVAJSON){guard let owner=store.archive?.owner else{return};let o=message.object ?? [:];let key=o["id"].map{$0.string ?? String($0.integer)} ?? "";guard !key.isEmpty else{return};let body=o["kind"]?.string=="image" ? "[Foto]":o["kind"]?.string=="voice" ? "[Vocale]":o["body"]?.string ?? "";do{try store.update(owner:owner){root in var saved=root["saved"]?.array ?? [];if !saved.contains(where:{$0.object?["chat"]?.string==id && $0.object?["key"]?.string==key){saved.append(.object(["chat":.string(id),"chatTitle":.string(title),"key":.string(key),"body":.string(body),"from":.string(social.senders[o["sender"]?.string ?? ""]?.string ?? ""),"ts":.number(Date().timeIntervalSince1970)]));if saved.count>200{saved=Array(saved.suffix(200))}};root["saved"] = .array(saved)}}catch{}}
     @ViewBuilder private func messageRow(_ message:NOVAJSON)->some View {
                 let o=message.object ?? [:],own=o["sender"]?.string==store.archive?.active.object?["acct"]?.object?["email"]?.string
                 HStack(alignment:.bottom,spacing:0){
@@ -747,6 +768,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                 .contextMenu{
                     if o["deleted"]?.flag != true{Button("Rispondi"){selectReply(message)}}
                     if o["deleted"]?.flag != true{ForEach(["👍","❤️","😂","😮","🎉"],id:\.self){emoji in Button(emoji){Task{await social.action(message,operation:"react",value:emoji,store)}}}
+                    if o["deleted"]?.flag != true{Button("Salva"){saveMessage(message)}}
                     if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}
                     if !own,o["deleted"]?.flag != true{Button("Segnala"){reportMessage=message;reportText="";reportOpen=true};Button("Blocca",role:.destructive){blockName=social.senders[o["sender"]?.string ?? ""]?.string ?? "";blockOpen=true}}}
                 }
@@ -771,7 +793,8 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     }
     var body:some View {
         let base=VStack(spacing:0){
-            ScrollView{LazyVStack(alignment:.leading,spacing:6){ForEach(Array(social.messages.enumerated()),id:\.offset){_,message in
+            if searchOpen{HStack(spacing:8){Image(systemName:"magnifyingglass").foregroundStyle(.secondary);TextField("Cerca nella chat",text:$searchText).accessibilityIdentifier("swiftChatSearch");if !searchText.isEmpty{Text("\(visibleMessages.count)").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftChatSearchCount")};Button{searchOpen=false;searchText=""}label:{Image(systemName:"xmark.circle.fill").foregroundStyle(.secondary)}.accessibilityLabel("Chiudi ricerca")}.padding(.horizontal,12).padding(.vertical,8).background(.regularMaterial)}
+            ScrollView{LazyVStack(alignment:.leading,spacing:6){ForEach(Array(visibleMessages.enumerated()),id:\.offset){_,message in
                 messageRow(message)
             }}.padding().padding(.bottom,80)}.refreshable{await social.refresh(store)}
             if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
@@ -780,7 +803,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
             if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store,replyTo:replyID){photoDraft=nil;replyMessage=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
             if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
         }.frame(maxWidth:.infinity,maxHeight:.infinity)
-        let chrome=base.safeAreaInset(edge:.bottom,spacing:0){composerArea}.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);if let chat=social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object,let exam=chat["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:chat["exam_subject"]?.string ?? ""){Text(line).font(.caption2).foregroundStyle(.tint).accessibilityIdentifier("swiftHeaderExamChip")}else{Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
+        let chrome=base.safeAreaInset(edge:.bottom,spacing:0){composerArea}.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);if let chat=social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object,let exam=chat["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:chat["exam_subject"]?.string ?? ""){Text(line).font(.caption2).foregroundStyle(.tint).accessibilityIdentifier("swiftHeaderExamChip")}else{Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){HStack(spacing:16){Button{searchOpen.toggle();if !searchOpen{searchText=""}}label:{Image(systemName:"magnifyingglass")}.accessibilityLabel("Cerca nella chat").accessibilityIdentifier("swiftChatSearchOpen");if composerFocused{Button("Fine tastiera"){composerFocused=false}}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         let dialogs=chrome.alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
         .alert("Segnala a NOVA",isPresented:$reportOpen){TextField("Motivo (facoltativo)",text:$reportText);Button("Invia segnalazione"){if let message=reportMessage,let sender=message.object?["sender"]?.string,let name=social.senders[sender]?.string{let reason=reportText;Task{modNote = await social.moderate(name,path:"report",reason:reason,store) ? "Segnalazione inviata.":"Segnalazione non inviata. Riprova."}}};Button("Annulla",role:.cancel){}}message:{Text("La segnalazione arriva a chi gestisce NOVA con il motivo che hai scritto. L'utente segnalato non viene avvisato.")}
@@ -835,6 +858,7 @@ Section("Privacy"){
             }
             Section("Aspetto"){
                 Picker("Tema",selection:text("theme","auto")){Text("Auto").tag("auto");Text("Chiaro").tag("light");Text("Scuro").tag("dark")}
+                Picker("Colore",selection:text("accent","blu")){Text("Blu").tag("blu");Text("Viola").tag("viola");Text("Verde").tag("verde");Text("Arancione").tag("arancione");Text("Rosa").tag("rosa")}.accessibilityIdentifier("swiftAccentPicker")
                 Toggle("Intro disattivata",isOn:flag("introOff"));Toggle("Intro a ogni avvio",isOn:flag("introEvery"));Button("Rivedi presentazione"){replayWelcome=true};Button("Tour dell'app"){tour=true}.accessibilityIdentifier("swiftSettingsTour")
             }
             Section("Schermata Home"){
@@ -881,13 +905,14 @@ struct NOVASwiftHideTabsKey:PreferenceKey{static var defaultValue:Bool{false};st
     @State private var hideTabs=false
     @Environment(\.scenePhase) private var scenePhase
     var colorScheme:ColorScheme? {let theme=store.archive?.active.object?["theme"]?.string;return theme=="dark" ? .dark:theme=="light" ? .light:nil}
+    var accentColor:Color {switch store.archive?.active.object?["accent"]?.string {case "viola":return .purple;case "verde":return .green;case "arancione":return .orange;case "rosa":return .pink;default:return .blue}}
     var body:some View {
         Group{switch selectedTab{case 1:NOVASwiftGrades(store:store);case 2:NOVASwiftChatList(store:store,social:chatSocial);case 3:NOVASwiftMap(store:store,model:mapModel);case 4:NOVASwiftProfile(store:store);default:NOVASwiftDashboard(store:store)}}
         .safeAreaInset(edge:.top){if groupAlerts.notice{HStack{Button{selectedTab=2;groupAlerts.dismiss()}label:{Label("Nuovo messaggio nel gruppo",systemImage:"bubble.left.and.bubble.right.fill").font(.subheadline)};Spacer();Button{groupAlerts.dismiss()}label:{Image(systemName:"xmark")}.accessibilityLabel("Chiudi avviso")}.padding(12).background(.regularMaterial,in:RoundedRectangle(cornerRadius:16)).padding(.horizontal,12).accessibilityIdentifier("swiftGroupIncomingBanner")}}
         .task(id:"\(scenePhase)-\(store.archive?.owner ?? "")-\(store.archive?.active.object?["acct"]?.object?["token"]?.string ?? "")"){guard deviceServices else{return};groupAlerts.reset();guard scenePhase == .active else{return};while !Task.isCancelled{await groupAlerts.check(store);try? await Task.sleep(for:.seconds(10));if Task.isCancelled{return}}}
         .onPreferenceChange(NOVASwiftHideTabsKey.self){hideTabs=$0}
         .safeAreaInset(edge:.bottom){if !hideTabs{NOVASwiftNavigation(selected:$selectedTab,avatar:store.archive?.active.object?["prof"]?.object?["avatar"]?.string ?? "").frame(maxWidth:420).frame(height:58).padding(.horizontal,18).padding(.bottom,8)}}
-        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).environment(\.locale,Locale(identifier:"it_IT")).onAppear{guard deviceServices else{return};sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftLiveLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in guard deviceServices else{return};if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{if deviceServices{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}}
+        .onReceive(NotificationCenter.default.publisher(for:Notification.Name("NOVASwiftOpenPage"))){notice in guard notice.userInfo?["owner"] as? String==store.archive?.owner,let page=notice.userInfo?["page"] as? String,let tab=["home":0,"voti":1,"chat":2,"profilo":4][page] else{return};selectedTab=tab}.preferredColorScheme(colorScheme).tint(accentColor).environment(\.locale,Locale(identifier:"it_IT")).onAppear{guard deviceServices else{return};sync.bind(store);NOVASwiftBackgroundLocation.shared.bind(store);NOVASwiftLiveLocation.shared.bind(store);NOVASwiftSchoolLifecycle.bind(store);Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}.onChange(of:scenePhase){_,phase in guard deviceServices else{return};if phase == .active{Task{_ = await NOVASwiftSchoolLifecycle.refresh()}}else if phase == .background{BGHandler.schedule()}}.onDisappear{if deviceServices{sync.stop();NOVASwiftBackgroundLocation.shared.unbind()}}
     }
 }
 
