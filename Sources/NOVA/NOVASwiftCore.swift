@@ -652,6 +652,20 @@ extension NOVAJSON {
         do{_ = try await transport(owner,"messages/"+key+"/"+operation,"POST",body,[]);guard current(store,owner,epoch,id) else{return};await refresh(store)}catch{if current(store,owner,epoch,id){status="Modifica non confermata. Riprova."}}
     }
     func signalTyping(_ store:NOVASwiftStore) async {guard let id=activeChat,let owner=session,store.archive.flatMap({NOVASession($0.active)})==owner else{return};_ = try? await transport(owner,"chats/"+id+"/typing","POST",.object([:]),[])}
+    @Published private(set) var blocks:[String]=[]
+    func loadBlocks(_ store:NOVASwiftStore) async {
+        guard let active=store.archive?.active,let owner=NOVASession(active) else{return};let epoch=generation
+        do{let result=try await transport(owner,"blocks","GET",nil,[]);guard current(store,owner,epoch) else{return};blocks=(result.object?["blocks"]?.array ?? []).compactMap{$0.object?["username"]?.string}}catch{}
+    }
+    func moderate(_ username:String,path:String,reason:String="",_ store:NOVASwiftStore) async -> Bool {
+        guard let active=store.archive?.active,let owner=NOVASession(active),!username.isEmpty else{return false}
+        var body:[String:NOVAJSON]=["username":.string(username)]
+        if !reason.isEmpty{body["reason"] = .string(reason)}
+        do{_ = try await transport(owner,path,"POST",.object(body),[]);return true}catch{return false}
+    }
+    func unblock(_ username:String,_ store:NOVASwiftStore) async {
+        if await moderate(username,path:"unblock",store){await loadBlocks(store)}
+    }
 }
 enum NOVASwiftServerCapabilities { static let groupManagement=true; static let selfClear=true } // Reviewed release capability; coordinate server rollout before delivery.
 @MainActor struct NOVASwiftChatList:View {
@@ -695,6 +709,12 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     @State private var editOpen=false
     @State private var deleteMessage:NOVAJSON?
     @State private var deleteOpen=false
+    @State private var reportMessage:NOVAJSON?
+    @State private var reportOpen=false
+    @State private var reportText=""
+    @State private var blockName=""
+    @State private var blockOpen=false
+    @State private var modNote=""
     @StateObject private var voice=NOVASwiftVoice()
     @StateObject private var playback=NOVASwiftVoicePlayback()
     var replyID:Int?{replyMessage.flatMap{NOVASwiftReply.identifier($0)}}
@@ -727,7 +747,8 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                 .contextMenu{
                     if o["deleted"]?.flag != true{Button("Rispondi"){selectReply(message)}}
                     if o["deleted"]?.flag != true{ForEach(["👍","❤️","😂","😮","🎉"],id:\.self){emoji in Button(emoji){Task{await social.action(message,operation:"react",value:emoji,store)}}}
-                    if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}}
+                    if own{if o["kind"]?.string=="text"{Button("Modifica"){editMessage=message;editText=o["body"]?.string ?? "";editOpen=true}};Button("Elimina",role:.destructive){deleteMessage=message;deleteOpen=true}}
+                    if !own,o["deleted"]?.flag != true{Button("Segnala"){reportMessage=message;reportText="";reportOpen=true};Button("Blocca",role:.destructive){blockName=social.senders[o["sender"]?.string ?? ""]?.string ?? "";blockOpen=true}}}
                 }
     }
     var body:some View {
@@ -736,6 +757,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
                 messageRow(message)
             }}.padding().padding(.bottom,80)}.refreshable{await social.refresh(store)}
             if !social.typing.isEmpty{Text(social.typing.joined(separator:", ")+(social.typing.count==1 ? " sta scrivendo…":" stanno scrivendo…")).font(.caption).foregroundStyle(.secondary)}
+            if !modNote.isEmpty{Text(modNote).font(.caption).foregroundStyle(.secondary).padding(.horizontal)}
             if !social.status.isEmpty{Text(social.status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
             if let data=photoDraft,let image=UIImage(data:data){HStack{Image(uiImage:image).resizable().scaledToFit().frame(height:90);Button("Invia foto"){Task{if await social.media(data,mime:"image/jpeg",kind:"image",store,replyTo:replyID){photoDraft=nil;replyMessage=nil}}}.disabled(social.sending);Button("Elimina",role:.destructive){photoDraft=nil}}.padding()}
             if !playback.status.isEmpty{Text(playback.status).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("swiftVoicePlaybackStatus")}
@@ -759,6 +781,8 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
         }.sheet(isPresented:$groupInfo){NOVASwiftGroupInfo(id:id,store:store,social:social)}.navigationTitle(title).navigationBarTitleDisplayMode(.inline).navigationBarBackButtonHidden(true).toolbar{ToolbarItem(placement:.principal){if NOVASwiftServerCapabilities.groupManagement && social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object?["type"]?.string=="group"{Button{composerFocused=false;groupInfo=true}label:{VStack(spacing:2){Text(title).font(.headline);if let chat=social.chats.first(where:{$0.object?["id"].map{$0.string ?? String($0.integer)}==id})?.object,let exam=chat["exam_at"],exam.integer>0,let line=NOVASwiftExamLine(at:exam.integer,subject:chat["exam_subject"]?.string ?? ""){Text(line).font(.caption2).foregroundStyle(.tint).accessibilityIdentifier("swiftHeaderExamChip")}else{Text("Info gruppo").font(.caption2).foregroundStyle(.secondary)}}}.accessibilityIdentifier("swiftGroupTitle")}};ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}};ToolbarItem(placement:.topBarLeading){Button{dismiss()}label:{Image(systemName:"chevron.left")}.accessibilityLabel("Torna alle chat").accessibilityIdentifier("swiftChatBack")}}.preference(key:NOVASwiftHideTabsKey.self,value:true)
         .alert("Modifica messaggio",isPresented:$editOpen){TextField("Messaggio",text:$editText);Button("Salva"){if let message=editMessage{Task{await social.action(message,operation:"edit",value:editText,store)}}};Button("Annulla",role:.cancel){}}
         .confirmationDialog("Eliminare questo messaggio?",isPresented:$deleteOpen,titleVisibility:.visible){Button("Elimina",role:.destructive){if let message=deleteMessage{Task{await social.action(message,operation:"delete",store)}}};Button("Annulla",role:.cancel){}}
+        .alert("Segnala a NOVA",isPresented:$reportOpen){TextField("Motivo (facoltativo)",text:$reportText);Button("Invia segnalazione"){if let message=reportMessage,let sender=message.object?["sender"]?.string,let name=social.senders[sender]?.string{let reason=reportText;Task{modNote = await social.moderate(name,path:"report",reason:reason,store) ? "Segnalazione inviata.":"Segnalazione non inviata. Riprova."}}};Button("Annulla",role:.cancel){}}message:{Text("La segnalazione arriva a chi gestisce NOVA con il motivo che hai scritto. L'utente segnalato non viene avvisato.")}
+        .confirmationDialog("Bloccare @"+blockName+"?",isPresented:$blockOpen,titleVisibility:.visible){Button("Blocca",role:.destructive){let name=blockName;Task{modNote = await social.moderate(name,path:"block",store) ? "Utente bloccato.":"Blocco non riuscito. Riprova."}};Button("Annulla",role:.cancel){}}message:{Text("Non vedrai più i suoi messaggi e nelle chat private non potrete più scrivervi. Puoi sbloccarlo da Impostazioni > Utenti bloccati.")}
         .task{await social.open(id,store)}
         .task(id:phase){while !Task.isCancelled{try? await Task.sleep(for:.seconds(4));guard !Task.isCancelled else{return};if phase == .active{await social.refresh(store)}}}
 #if DEBUG
@@ -786,6 +810,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
         NavigationStack{Form{
             Section("Il tuo account"){
                 NavigationLink("Amici, richieste e profili"){NOVASwiftPeopleView(store:store)}
+                NavigationLink("Utenti bloccati"){NOVASwiftBlocked(store:store)}
                 Button("Modifica profilo"){profile=true}
                 NavigationLink("Gestisci account"){NOVASwiftAccountManagement(store:store)}
                 NavigationLink("Backup account"){NOVASwiftBackup(store:store)}
@@ -826,6 +851,16 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     }
 }
 struct NOVASwiftHideTabsKey:PreferenceKey{static var defaultValue:Bool{false};static func reduce(value:inout Bool,nextValue:()->Bool){value = value || nextValue()}}
+@MainActor struct NOVASwiftBlocked:View {
+    @ObservedObject var store:NOVASwiftStore
+    @StateObject private var social=NOVASwiftSocial()
+    var body:some View {
+        List{
+            if social.blocks.isEmpty{Text("Nessun utente bloccato.").foregroundStyle(.secondary)}
+            ForEach(social.blocks,id:\.self){name in HStack{Text("@"+name);Spacer();Button("Sblocca"){Task{await social.unblock(name,store)}}}}
+        }.navigationTitle("Utenti bloccati").task{await social.loadBlocks(store)}
+    }
+}
 @MainActor struct NOVASwiftShell:View {
     @ObservedObject var store:NOVASwiftStore
     let chatSocial:NOVASwiftSocial?
