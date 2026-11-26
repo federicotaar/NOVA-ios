@@ -54,7 +54,9 @@ import UIKit
                     if visible("wx"){card("Meteo"){
                         if let c=weather.value?.object?["current"]?.object {
                             Text("\(c["temperature_2m"]?.integer ?? 0)°").font(.system(size:42,weight:.semibold))
-                            Text((root["city"]?.object?["name"]?.string ?? "")+" · "+NOVASwiftWeather.description(c["weather_code"]?.integer ?? 0)).foregroundStyle(.secondary)
+                            let wxCity=root["city"]?.object?["name"]?.string ?? ""
+                            let wxDesc=NOVASwiftWeather.description(c["weather_code"]?.integer ?? 0)
+                            Text(wxCity+" · "+wxDesc).foregroundStyle(.secondary)
                         }
                         if !weather.status.isEmpty{Text(weather.status).foregroundStyle(.secondary)}
                         if weather.value != nil{Text(dailyRange).font(.footnote)}
@@ -133,7 +135,7 @@ import UIKit
     }
 }
 struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
-enum NOVASwiftGradeShare {
+@MainActor enum NOVASwiftGradeShare {
     // CI fixtures only: when set, the grades screen shows these rows and skips the network.
     static var fixtureShares:[NOVAJSON]?
     static func payload(_ grades:[NOVAJSON])->NOVAJSON? {
