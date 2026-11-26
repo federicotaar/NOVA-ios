@@ -125,26 +125,42 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
 @MainActor struct NOVASwiftGrades:View {
     @ObservedObject var store:NOVASwiftStore
     var grades:[NOVAJSON]{store.archive?.active.object?["gr"]?.array ?? []}
+    var absences:[NOVAJSON]{store.archive?.active.object?["ab"]?.array ?? []}
     var grouped:[String:[NOVAJSON]]{Dictionary(grouping:grades,by:{$0.object?["subj"]?.string ?? "Materia"})}
+    func target(_ subject:String)->Double{store.archive?.active.object?["targets"]?.object?[subject]?.double ?? 6}
+    func setTarget(_ subject:String,_ value:Double){if let owner=store.archive?.owner{try? store.update(owner:owner){root in var map=root["targets"]?.object ?? [:];map[subject] = .number(value);root["targets"] = .object(map)}}}
     var body:some View {
         NavigationStack{List{
+            absencesSection
             if grades.isEmpty{Text("Nessun voto numerico salvato.").foregroundStyle(.secondary)}
             ForEach(grouped.keys.sorted(),id:\.self){subject in subjectSection(subject)}
         }.navigationTitle("Voti")}.environment(\.locale,Locale(identifier:"it_IT"))
+    }
+    @ViewBuilder var absencesSection:some View{
+        if !absences.isEmpty{
+            let counts=Dictionary(grouping:absences,by:{$0.object?["k"]?.string ?? "altro"}).mapValues{$0.count}
+            let pending=absences.filter{$0.object?["j"]?.flag != true && $0.object?["k"]?.string=="assenza"}.count
+            Section("Assenze"){
+                Text("\(counts["assenza"] ?? 0) assenze · \(counts["ritardo"] ?? 0) ritardi · \(counts["uscita anticipata"] ?? 0) uscite anticipate").font(.headline).accessibilityIdentifier("swiftGradesAbsences")
+                if pending>0{Text("\(pending) ancora da giustificare").font(.caption).foregroundStyle(.orange)}
+                ForEach(Array(absences.sorted{($0.object?["d"]?.string ?? "")>($1.object?["d"]?.string ?? "")}.prefix(5).enumerated()),id:\.offset){_,row in HStack{Text(row.object?["k"]?.string ?? "").font(.subheadline);Spacer();if row.object?["j"]?.flag==true{Image(systemName:"checkmark.circle.fill").foregroundStyle(.green).imageScale(.small)};Text(row.object?["d"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}}
+            }
+        }
     }
     @ViewBuilder func subjectSection(_ subject:String)->some View{
         let rows=grouped[subject] ?? []
         let values=rows.compactMap{row -> Double? in if case .number(let n)?=row.object?["v"]{return n};return nil}
         if !values.isEmpty{
-            let total=values.reduce(0,+),average=total/Double(values.count),need=6*Double(values.count+1)-total
+            let total=values.reduce(0,+),average=total/Double(values.count),goal=target(subject),need=goal*Double(values.count+1)-total
             Section(subject){
                 Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) voti").font(.title2)
-                Text(target(average,need)).font(.footnote).foregroundStyle(.secondary)
+                Text(verdict(average,need,goal)).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("swiftGradeVerdict")
+                Stepper(value:Binding(get:{target(subject)},set:{setTarget(subject,$0)}),in:1...10,step:0.5){Text("Obiettivo: "+target(subject).formatted(.number.precision(.fractionLength(1))))}.accessibilityIdentifier("swiftGradeTarget")
                 ForEach(Array(rows.sorted{($0.object?["date"]?.string ?? "")>($1.object?["date"]?.string ?? "")}.enumerated()),id:\.offset){_,grade in gradeRow(grade)}
             }
         }
     }
-    func target(_ average:Double,_ need:Double)->String{if average>=6{return need<=1 ? "Sei al sicuro":"Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al 6"};return need>10 ? "Servono piu voti per arrivare al 6":"Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al 6"}
+    func verdict(_ average:Double,_ need:Double,_ goal:Double)->String{let g=goal.formatted(.number.precision(.fractionLength(1)));if average>=goal{return need<=1 ? "Sei al sicuro sopra il "+g : "Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al "+g};return need>10 ? "Servono più voti per arrivare al "+g : "Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al "+g}
     func gradeRow(_ grade:NOVAJSON)->some View{VStack(alignment:.leading,spacing:4){HStack{Text(grade.object?["d"]?.string ?? String(grade.object?["v"]?.double ?? 0)).font(.headline);Spacer();Text(grade.object?["date"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};if let kind=grade.object?["k"]?.string,!kind.isEmpty{Text(kind).font(.caption)};if let note=grade.object?["n"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}}}
 }
 
