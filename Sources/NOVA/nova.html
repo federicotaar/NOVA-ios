@@ -30,11 +30,22 @@ h1{font-size:clamp(20px,3.6vw,26px);margin:2px 0 0;font-weight:600;letter-spacin
 .sm{height:30px;padding:0 11px!important;font-size:13px!important;border-radius:8px!important}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .grid{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.grid .card{animation:cardIn .45s cubic-bezier(.16,1,.3,1) both}
+.grid .card:nth-child(2){animation-delay:.05s}
+.grid .card:nth-child(3){animation-delay:.1s}
+.grid .card:nth-child(4){animation-delay:.15s}
+.grid .card:nth-child(5){animation-delay:.2s}
+.grid .card:nth-child(6){animation-delay:.25s}
 .grid>section{grid-column:1/-1}
 .mini{display:contents}
 .mini>section{grid-column:span 1}
 @media(min-width:860px){.grid{grid-template-columns:repeat(12,1fr)}#wClock{grid-column:span 6}#wWx,#wBat{grid-column:span 3}#wNx{grid-column:span 12}#wTask{grid-column:span 7}#wCal{grid-column:span 5}#wGr,#wSp{grid-column:span 6}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.bgs{display:flex;flex-wrap:wrap;gap:8px}
+.bgc{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;background:transparent;color:var(--fg);transition:background .18s ease,color .18s ease,border-color .18s ease,transform .12s ease}
+.bgc:active{transform:scale(.94)}
+.bgc.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .lb{display:flex;align-items:center;justify-content:space-between;min-height:24px;margin-bottom:10px;font-size:12.5px;font-weight:600;color:var(--mut)}
 .lb>span:first-child{display:inline-flex;align-items:center;gap:7px}
 .lb svg{width:15px;height:15px}
@@ -78,6 +89,7 @@ ul{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto}
 .nxn{font-size:34px;font-weight:600;letter-spacing:-.03em;min-width:54px;line-height:1}
 .nxn small{display:block;font-size:11px;font-weight:600;letter-spacing:0;color:var(--mut);margin-top:4px}
 .nxt{flex:1;min-width:0}.nxt b{display:block;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nxt span{font-size:12.5px;color:var(--mut)}
+#gxB{margin-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}#gxB:empty{display:none}.gxr{display:flex;align-items:baseline;gap:10px;padding-top:8px}.gxr b{font-weight:550;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gxr span{font-size:12.5px;color:var(--mut);white-space:nowrap}
 .avg{display:flex;align-items:baseline;gap:10px}
 .avg .big{font-size:40px}
 .gl{display:flex;flex-direction:column;margin-top:8px}
@@ -109,6 +121,7 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var
 .seg button,.chips button{flex:1;font-size:13.5px;padding:9px 10px;white-space:nowrap}
 .btn.pri,.btn.tgl[aria-pressed="true"],.seg button[aria-pressed="true"],.chips button[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:active{transform:scale(.96)}
 .btn:disabled{opacity:.5}
 .sep{height:1px;background:var(--line);margin:2px 0}
 #toast{position:fixed;left:50%;top:43%;bottom:auto;transform:translate(-50%,calc(-50% + 12px));opacity:0;pointer-events:none;background:var(--fg);color:var(--bg);padding:11px 16px;border-radius:10px;font-size:14px;font-weight:550;max-width:calc(100% - 32px);transition:.25s;z-index:99}
@@ -416,7 +429,7 @@ html.native-dashboard-active header,html.native-dashboard-active #pgDash{opacity
   <section class="card" id="wWx"><div class="lb"><span>Meteo</span></div><div id="wxB"></div></section>
   <section class="card" id="wBat"><div class="lb"><span>Batteria</span></div><div id="batB"></div></section>
  </div>
- <section class="card" id="wNx"><div class="nx" id="nxB"></div></section>
+ <section class="card" id="wNx"><div class="nx" id="nxB"></div><div id="gxB"></div></section>
  <section class="card" id="wTask"><div class="lb"><span id="tkL"></span><span style="display:flex;gap:6px"><button class="btn sm" id="bCv" hidden></button><button class="btn sm" id="bAdd"></button></span></div><ul id="tl"></ul></section>
  <section class="card" id="wCal"><div class="lb"><span id="calT"></span><span class="cmh"><button class="ico" id="cmP" aria-label="Mese precedente"></button><button class="ico" id="cmN" aria-label="Mese successivo"></button></span></div><div class="cal" id="calG"></div></section>
  <section class="card" id="wSp"><div class="lb"><span id="spL"></span></div><div id="spB"></div></section>
@@ -488,6 +501,7 @@ html.native-dashboard-active header,html.native-dashboard-active #pgDash{opacity
  <label class="fl">Dove studi<input id="dSt" maxlength="60" placeholder="Es. ITI Copernico, Bologna"></label>
  <label class="fl">Punti forti<input id="dSk" maxlength="80" placeholder="Es. informatica, calcio, meme"></label>
  <label class="fl">Hobby<input id="dHb" maxlength="80" placeholder="Es. calcio, disegno, gaming"></label>
+ <div class="fl">Badge<div id="dBg" class="bgs"></div><small>Compaiono sul tuo profilo e li vedono gli amici. Massimo 3.</small></div>
  <div class="fl">La tua canzone<div id="dSo"></div>
   <div id="dSoS" hidden><input id="dSoQ" placeholder="Cerca canzone o artista" autocomplete="off"><div id="dSoL"></div><small>Anteprime di 30 secondi dal catalogo Deezer, gratis e senza account.</small></div></div>
  <small class="err" id="dE"></small>
@@ -1094,7 +1108,11 @@ function when(t){const d=new Date(t.due),n=new Date(),k=Math.round((dd0(t.due.sl
 function tasks(){const td=dstr(new Date()),L=S.tasks.filter(t=>kindOf(t)!=='test'||t.due.slice(0,10)>=td).sort((a,b)=>a.done-b.done||new Date(a.due)-new Date(b.due)||RK[a.pr]-RK[b.pr]);
  $('#tkL').innerHTML=ic('book')+'Compiti';
  $('#tl').innerHTML=L.length?L.map(t=>{const w=when(t),v=kindOf(t)==='test';return `<li class="t${t.done?' dn':''}" data-id="${t.id}"><button class="ck" data-a="ck" aria-label="${t.done?'Riapri':'Completa'}">${ic('ck')}</button><div class="tx" data-a="op"><b>${esc(t.title)}</b><span class="${t.done?'':w.cls}">${v?'<i class="tg v">Verifica</i>':''}${t.subj&&!v?esc(t.subj)+' · ':''}${w.txt}</span></div><button class="x" data-a="rm" aria-label="Elimina">${ic('tr')}</button></li>`}).join(''):'<li class="empty">Nessun compito. Tocca Nuovo per aggiungerne uno.</li>'}
-function nxt(){const td=dstr(new Date()),t=S.tasks.filter(t=>kindOf(t)==='test'&&!t.done&&t.due.slice(0,10)>=td).sort((a,b)=>a.due<b.due?-1:1)[0],el=$('#nxB');
+let gxAt=0;
+async function gx(){const el=$('#gxB');if(!el)return;if(!S.acct?.token){el.innerHTML='';return}const n=Date.now();if(n-gxAt<3e5)return;gxAt=n;
+ try{const r=await api('/chats','GET'),td=dstr(new Date());const ex=(r.chats||[]).filter(c=>c.exam_subject&&c.exam_at&&c.exam_at>=dd0(td).getTime()).sort((a,b)=>a.exam_at-b.exam_at).slice(0,3);
+ el.innerHTML=ex.length?ex.map(c=>{const k=Math.round((dd0(dstr(new Date(c.exam_at)))-dd0(td))/864e5);return `<div class="gxr"><b>${esc(c.exam_subject)}</b><span>${esc(c.title||'Gruppo')} · ${k===0?'oggi':k===1?'domani':'tra '+k+' giorni'}</span></div>`}).join(''):''}catch(e){gxAt=0}}
+function nxt(){gx();const td=dstr(new Date()),t=S.tasks.filter(t=>kindOf(t)==='test'&&!t.done&&t.due.slice(0,10)>=td).sort((a,b)=>a.due<b.due?-1:1)[0],el=$('#nxB');
  if(!t){el.onclick=null;el.innerHTML=`<div class="nxn" style="color:var(--mut)">—<small>VERIFICHE</small></div><div class="nxt"><b>Nessuna verifica in arrivo</b><span>Quelle del registro compaiono qui</span></div>`;return}
  const k=Math.round((dd0(t.due.slice(0,10))-dd0(td))/864e5);
  el.onclick=()=>openDay(t.due.slice(0,10),t.id);
@@ -1456,15 +1474,22 @@ function unWire(inp,st,onOk){const re=/^[a-z0-9_.]{3,20}$/;let t=null;
 function dSoDraw(){const s=dTmp.song,box=$('#dSo');
  box.innerHTML=s?'<div class="pfSong" style="margin:0"><img src="'+s.art+'"><div style="flex:1;min-width:0"><b>Canzone preferita</b><div>'+esc(s.t)+'</div><small class="mut">'+esc(s.a)+'</small></div><button class="btn sm" id="dSoC">Cambia</button></div>':'<button class="btn" id="dSoC">Scegli la tua canzone</button>';
  $('#dSoC').onclick=()=>{const w=$('#dSoS');w.hidden=!w.hidden;if(!w.hidden)$('#dSoQ').focus()}}
-function profOpen(one){profOne=!!one;dTmp=Object.assign({username:'',avatar:'',study:'',skills:'',hobbies:'',song:null},S.prof);
+const BADGES=['Secchione','Sportivo','Creativo','Musica','Gaming','Organizzato','Mattiniero','Notturno'];
+function bgDraw(){const el=$('#dBg');if(!el)return;const cur=dTmp.badges||[];
+ el.innerHTML=BADGES.map(b=>`<button type="button" class="bgc${cur.includes(b)?' on':''}" data-b="${esc(b)}">${esc(b)}</button>`).join('')+cur.filter(b=>!BADGES.includes(b)).map(b=>`<span class="bgc on" title="Assegnato da NOVA">${esc(b)}</span>`).join('')}
+function profOpen(one){profOne=!!one;dTmp=Object.assign({username:'',avatar:'',study:'',skills:'',hobbies:'',song:null,badges:[]},S.prof);
  $('#dAv').innerHTML=dTmp.avatar?'<img src="'+dTmp.avatar+'">':(S.name?esc(S.name[0].toUpperCase()):ic('user'));
  $('#dU').value=dTmp.username;$('#dSt').value=dTmp.study;$('#dSk').value=dTmp.skills;$('#dHb').value=dTmp.hobbies||'';
+ bgDraw();
  $('#dSoS').hidden=true;$('#dSoQ').value='';$('#dSoL').innerHTML='';
  dSoDraw();$('#dE').textContent='';$('#dC').style.visibility=one?'hidden':'visible';
  unWire($('#dU'),$('#dUs'));
  avPick($('#dAvF'),d=>{dTmp.avatar=d;$('#dAv').innerHTML='<img src="'+d+'">'});
  songWire($('#dSoQ'),$('#dSoL'),it=>{dTmp.song=it;dSoDraw();$('#dSoS').hidden=true});
  sheet();$('#dProf').showModal()}
+$('#dBg').onclick=e=>{const b=e.target.closest('[data-b]');if(!b)return;const v=b.dataset.b;let cur=[...(dTmp.badges||[])];
+ if(cur.includes(v))cur=cur.filter(x=>x!==v);else{if(cur.length>=3){toast('Massimo 3 badge');return}cur.push(v)}
+ dTmp.badges=cur;bgDraw();haptic('light')};
 
 function introBtn(){const b=$('#bIntro'),on=!S.introOff;b.setAttribute('aria-pressed',on);b.textContent='Intro all\'avvio: '+(on?'attiva':'spenta')}
 async function fidSetupUI(){const row=$('#fidRow'),b=$('#bFid');if(!row||!b)return;
