@@ -99,9 +99,20 @@ jobs:
           set -e
           UDID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v if "iPhone" in x["name"]))')
           defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool NO
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
-          xcrun simctl install "$UDID" /tmp/ChatTest.app
+          ok=0
+          for t in 1 2 3; do
+            xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
+            if xcrun simctl bootstatus "$UDID" -b; then ok=1; break; fi
+            xcrun simctl shutdown "$UDID" >/dev/null 2>&1 || true
+            sleep 10
+          done
+          test "$ok" = 1 || { echo "Simulator did not boot after retries"; exit 1; }
+          inst=0
+          for t in 1 2 3; do
+            if xcrun simctl install "$UDID" /tmp/ChatTest.app; then inst=1; break; fi
+            sleep 15
+          done
+          test "$inst" = 1 || { echo "Install failed after retries"; exit 1; }
           mkdir -p evidence
           xcrun simctl launch "$UDID" site.federicotaranu.nova.chattest
           CONTAINER=$(xcrun simctl get_app_container "$UDID" site.federicotaranu.nova.chattest data)
