@@ -141,7 +141,7 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
             let counts=Dictionary(grouping:absences,by:{$0.object?["k"]?.string ?? "altro"}).mapValues{$0.count}
             let pending=absences.filter{$0.object?["j"]?.flag != true && $0.object?["k"]?.string=="assenza"}.count
             Section("Assenze"){
-                Text("\(counts["assenza"] ?? 0) assenze · \(counts["ritardo"] ?? 0) ritardi · \(counts["uscita anticipata"] ?? 0) uscite anticipate").font(.headline).accessibilityIdentifier("swiftGradesAbsences")
+                Text(absenceSummary(counts)).font(.headline).accessibilityIdentifier("swiftGradesAbsences")
                 if pending>0{Text("\(pending) ancora da giustificare").font(.caption).foregroundStyle(.orange)}
                 ForEach(Array(absences.sorted{($0.object?["d"]?.string ?? "")>($1.object?["d"]?.string ?? "")}.prefix(5).enumerated()),id:\.offset){_,row in HStack{Text(row.object?["k"]?.string ?? "").font(.subheadline);Spacer();if row.object?["j"]?.flag==true{Image(systemName:"checkmark.circle.fill").foregroundStyle(.green).imageScale(.small)};Text(row.object?["d"]?.string ?? "").font(.caption).foregroundStyle(.secondary)}}
             }
@@ -153,13 +153,14 @@ struct NOVASwiftSelectedDay:Identifiable {let date:Date;var id:Date{date}}
         if !values.isEmpty{
             let total=values.reduce(0,+),average=total/Double(values.count),goal=target(subject),need=goal*Double(values.count+1)-total
             Section(subject){
-                Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) voti").font(.title2)
+                Text(average.formatted(.number.precision(.fractionLength(1)))+" · \(values.count) "+(values.count==1 ? "voto":"voti")).font(.title2)
                 Text(verdict(average,need,goal)).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("swiftGradeVerdict")
                 Stepper(value:Binding(get:{target(subject)},set:{setTarget(subject,$0)}),in:1...10,step:0.5){Text("Obiettivo: "+target(subject).formatted(.number.precision(.fractionLength(1))))}.accessibilityIdentifier("swiftGradeTarget")
                 ForEach(Array(rows.sorted{($0.object?["date"]?.string ?? "")>($1.object?["date"]?.string ?? "")}.enumerated()),id:\.offset){_,grade in gradeRow(grade)}
             }
         }
     }
+    func absenceSummary(_ counts:[String:Int])->String{let a=counts["assenza"] ?? 0,r=counts["ritardo"] ?? 0,u=counts["uscita anticipata"] ?? 0;return "\(a) "+(a==1 ? "assenza":"assenze")+" · \(r) "+(r==1 ? "ritardo":"ritardi")+" · \(u) "+(u==1 ? "uscita anticipata":"uscite anticipate")}
     func verdict(_ average:Double,_ need:Double,_ goal:Double)->String{let g=goal.formatted(.number.precision(.fractionLength(1)));if average>=goal{return need<=1 ? "Sei al sicuro sopra il "+g : "Puoi scendere fino a "+need.formatted(.number.precision(.fractionLength(1)))+" e restare al "+g};return need>10 ? "Servono più voti per arrivare al "+g : "Serve almeno "+need.formatted(.number.precision(.fractionLength(1)))+" per arrivare al "+g}
     func gradeRow(_ grade:NOVAJSON)->some View{VStack(alignment:.leading,spacing:4){HStack{Text(grade.object?["d"]?.string ?? String(grade.object?["v"]?.double ?? 0)).font(.headline);Spacer();Text(grade.object?["date"]?.string ?? "").font(.caption).foregroundStyle(.secondary)};if let kind=grade.object?["k"]?.string,!kind.isEmpty{Text(kind).font(.caption)};if let note=grade.object?["n"]?.string,!note.isEmpty{Text(note).font(.footnote).foregroundStyle(.secondary)}}}
 }
