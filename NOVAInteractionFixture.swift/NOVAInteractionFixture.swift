@@ -381,6 +381,35 @@ import UIKit
  let page=UIHostingController(rootView:NOVASwiftGrades(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
 
+@MainActor struct NOVASwiftSchoolMenu:View {
+    @ObservedObject var store:NOVASwiftStore
+    var body:some View {NavigationStack{List{
+        NavigationLink("Compiti"){NOVASwiftCompiti(store:store)}.accessibilityIdentifier("fixtureMenuCompiti")
+        NavigationLink("Orario"){NOVASwiftOrario(store:store)}.accessibilityIdentifier("fixtureMenuOrario")
+        NavigationLink("Pagella"){NOVASwiftPagella(store:store)}.accessibilityIdentifier("fixtureMenuPagella")
+        NavigationLink("Messaggi salvati"){NOVASwiftSavedMessages(store:store)}.accessibilityIdentifier("fixtureMenuSalvati")
+    }.navigationTitle("NOVA scuola")}}
+}
+@MainActor func visualSwiftSchoolReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftSchoolReady(web,attempt+1)}};return}
+ let directory=FileManager.default.temporaryDirectory.appendingPathComponent("school-interaction")
+ let store=NOVASwiftStore(directory:directory)
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"light\",\"tasks\":[],\"w\":{}}"])}
+ let df=DateFormatter();df.locale=Locale(identifier:"en_US_POSIX");df.dateFormat="yyyy-MM-dd"
+ let cal=Calendar.current
+ func day(_ offset:Int)->String{df.string(from:cal.date(byAdding:.day,value:offset,to:Date()) ?? Date())}
+ func task(_ id:String,_ title:String,_ offset:Int,_ done:Int)->NOVAJSON{.object(["id":.string(id),"title":.string(title),"note":.string("Storia · Prof. Demo"),"due":.string(day(offset)+"T08:00"),"pr":.string("media"),"rem":.number(0),"done":.number(Double(done)),"fired":.number(0),"src":.string("cv"),"kind":.string("hw")])}
+ func lesson(_ id:String,_ offset:Int,_ begin:String,_ hour:String,_ subj:String,_ teacher:String,_ arg:String)->NOVAJSON{.object(["id":.string(id),"d":.string(day(offset)),"b":.string(day(offset)+"T"+begin),"e":.string(day(offset)+"T"+begin),"h":.string(hour),"s":.string(subj),"t":.string(teacher),"arg":.string(arg)])}
+ try? store.update(owner:store.archive!.owner){state in
+  state["tasks"] = .array([task("t1","Ripassare il capitolo 4",-2,0),task("t2","Esercizi pagina 88",0,0),task("t3","Relazione di laboratorio",1,0),task("t4","Ricerca facoltativa",4,0),task("t5","Compito già finito",-1,1)])
+  state["ls"] = .array([lesson("l1",0,"08:10","1^ ora","Informatica","Prof. Demo","SwiftUI"),lesson("l2",1,"08:10","1^ ora","Informatica","Prof. Demo","Protocolli"),lesson("l3",1,"09:10","2^ ora","Matematica","Prof.ssa Demo","Derivate")])
+  state["gr"] = .array([.object(["id":.string("g1"),"subj":.string("Matematica"),"date":.string("2026-11-03"),"v":.number(5.5),"d":.string("5,5"),"n":.string("Verifica scritta"),"k":.string("Scritto")]),.object(["id":.string("g2"),"subj":.string("Matematica"),"date":.string("2026-11-10"),"v":.number(6.5),"d":.string("6,5"),"n":.string("Interrogazione"),"k":.string("Orale")]),.object(["id":.string("g3"),"subj":.string("Italiano"),"date":.string("2026-11-05"),"v":.number(7),"d":.string("7"),"n":.string("Tema"),"k":.string("Scritto")])])
+  state["ab"] = .array([.object(["id":.string("a1"),"d":.string("2026-11-12"),"k":.string("assenza"),"j":.number(0)]),.object(["id":.string("a2"),"d":.string("2026-11-20"),"k":.string("ritardo"),"j":.number(1)])])
+  state["saved"] = .array([.object(["chat":.string("demo"),"chatTitle":.string("Chat demo"),"key":.string("1"),"body":.string("Messaggio dimostrativo di un amico"),"from":.string("amico.demo"),"ts":.number(1)])])
+ }
+ let page=UIHostingController(rootView:NOVASwiftSchoolMenu(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
+
 @MainActor func visualSwiftModerationReady(_ web:WKWebView,_ attempt:Int){
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftModerationReady(web,attempt+1)}};return}
  let directory=FileManager.default.temporaryDirectory.appendingPathComponent("moderation-interaction")
