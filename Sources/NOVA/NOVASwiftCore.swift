@@ -517,7 +517,7 @@ extension NOVAJSON {
             }
             Section("Username"){TextField("Username",text:field("username")).textInputAutocapitalization(.never).autocorrectionDisabled()}
             Section("Su di te"){
-                TextField("Dove studi",text:field("study"));TextField("Punti forti",text:field("skills"));TextField("Hobby",text:field("hobbies"))
+                TextField("Stato",text:field("stato"));TextField("Dove studi",text:field("study"));TextField("Punti forti",text:field("skills"));TextField("Hobby",text:field("hobbies"))
             }
             if draft["song"]?.object==nil{Section("La tua canzone"){Button("Scegli canzone"){songPicker=true}}}
             if let song=draft["song"]?.object{Section("La tua canzone"){NOVASwiftSongCard(song:.object(song));Button("Cambia canzone"){songPicker=true}}}
@@ -543,14 +543,14 @@ extension NOVAJSON {
         let username=(draft["username"]?.string ?? "").trimmingCharacters(in:.whitespacesAndNewlines).lowercased()
         guard username.range(of:"^[a-z0-9_.]{3,20}$",options:.regularExpression) != nil else{status="Username: 3-20 caratteri, lettere minuscole, numeri, punto e trattino basso.";return}
         var profile=draft;profile["username"] = .string(username)
-        guard (profile["study"]?.string?.count ?? 0)<=60,(profile["skills"]?.string?.count ?? 0)<=80,(profile["hobbies"]?.string?.count ?? 0)<=80 else{status="Accorcia i campi del profilo prima di salvare.";return}
+        guard (profile["stato"]?.string?.count ?? 0)<=120,(profile["study"]?.string?.count ?? 0)<=60,(profile["skills"]?.string?.count ?? 0)<=80,(profile["hobbies"]?.string?.count ?? 0)<=80 else{status="Accorcia i campi del profilo prima di salvare.";return}
         if !token.isEmpty {
             saving=true;defer{saving=false}
             let expected=NOVASession(store.archive!.active)!
             do{
                 var body:[String:NOVAJSON]=[:]
                 body["username"] = .string(username)
-                for key in ["study","skills","hobbies","avatar"] { body[key] = profile[key] ?? .string("") }
+                for key in ["stato","study","skills","hobbies","avatar"] { body[key] = profile[key] ?? .string("") }
                 body["song"] = profile["song"] ?? .null
                 body["badges"] = profile["badges"] ?? .array([])
                 body["ntfy_topic"] = profile["ntfy"] ?? .string("")
@@ -741,7 +741,7 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
     func replyAuthor(_ message:NOVAJSON)->String{let sender=message.object?["sender"]?.string ?? "";return sender==store.archive?.active.object?["acct"]?.object?["email"]?.string ? "Tu":social.senders[sender]?.string ?? "Messaggio"}
     func mediaURL(_ key:String)->URL? {let url=key.hasPrefix("/") ? URL(string:"https://api.federicotaranu.site"+key):URL(string:key);return url?.scheme=="https" ? url:nil}
     var visibleMessages:[NOVAJSON]{let query=searchText.trimmingCharacters(in:.whitespacesAndNewlines).lowercased();guard searchOpen,!query.isEmpty else{return social.messages};return social.messages.filter{($0.object?["body"]?.string ?? "").lowercased().contains(query)}}
-    func saveMessage(_ message:NOVAJSON){guard let owner=store.archive?.owner else{return};let o=message.object ?? [:];let key=o["id"].map{$0.string ?? String($0.integer)} ?? "";guard !key.isEmpty else{return};let body=o["kind"]?.string=="image" ? "[Foto]":o["kind"]?.string=="voice" ? "[Vocale]":o["body"]?.string ?? "";do{try store.update(owner:owner){root in var saved=root["saved"]?.array ?? [];if !saved.contains(where:{$0.object?["chat"]?.string==id && $0.object?["key"]?.string==key){saved.append(.object(["chat":.string(id),"chatTitle":.string(title),"key":.string(key),"body":.string(body),"from":.string(social.senders[o["sender"]?.string ?? ""]?.string ?? ""),"ts":.number(Date().timeIntervalSince1970)]));if saved.count>200{saved=Array(saved.suffix(200))}};root["saved"] = .array(saved)}}catch{}}
+    func saveMessage(_ message:NOVAJSON){guard let owner=store.archive?.owner else{return};let o=message.object ?? [:];let key=o["id"].map{$0.string ?? String($0.integer)} ?? "";guard !key.isEmpty else{return};let body=o["kind"]?.string=="image" ? "[Foto]":o["kind"]?.string=="voice" ? "[Vocale]":o["body"]?.string ?? "";do{try store.update(owner:owner){root in var saved=root["saved"]?.array ?? [];if !saved.contains(where:{$0.object?["chat"]?.string==id && $0.object?["key"]?.string==key}){saved.append(.object(["chat":.string(id),"chatTitle":.string(title),"key":.string(key),"body":.string(body),"from":.string(social.senders[o["sender"]?.string ?? ""]?.string ?? ""),"ts":.number(Date().timeIntervalSince1970)]));if saved.count>200{saved=Array(saved.suffix(200))}};root["saved"] = .array(saved)}}catch{}}
     @ViewBuilder private func messageRow(_ message:NOVAJSON)->some View {
                 let o=message.object ?? [:],own=o["sender"]?.string==store.archive?.active.object?["acct"]?.object?["email"]?.string
                 HStack(alignment:.bottom,spacing:0){
@@ -838,6 +838,8 @@ enum NOVASwiftServerCapabilities { static let groupManagement=true; static let s
 Section("Privacy"){
                 NavigationLink("Blocco app e notifiche"){NOVASwiftDeviceSettings()}
                 Toggle("Avvisi automatici compiti",isOn:Binding(get:{store.archive?.active.object?["hwn"]?.flag ?? true},set:{on in do{try store.update(owner:store.archive?.owner ?? ""){$0["hwn"] = .number(on ? 1:0)};UserDefaults.standard.set(on,forKey:"nova.hwn");if !on{Task{let center=UNUserNotificationCenter.current();let pending=await center.pendingNotificationRequests();center.removePendingNotificationRequests(withIdentifiers:pending.map(\.identifier).filter{$0.hasPrefix("hw.")||$0.hasPrefix("plan.")})}}}catch{self.error="Scelta non salvata."}}))
+                Toggle("Condividi le mie medie con gli amici",isOn:Binding(get:{store.archive?.active.object?["shareGrades"]?.flag==true},set:{on in do{try store.update(owner:store.archive?.owner ?? ""){$0["shareGrades"] = .number(on ? 1:0)}}catch{self.error="Scelta non salvata.";return};Task{if on{await NOVASwiftGradeShare.upload(store)}else{await NOVASwiftGradeShare.remove(store)}}})).accessibilityIdentifier("swiftShareGradesToggle")
+                Text("Se attiva, i tuoi amici che condividono vedono la tua media generale e per materia, aggiornata quando apri i voti. Disattivala per cancellarla subito dal server.").font(.footnote).foregroundStyle(.secondary)
                 Toggle("Diagnostica errori",isOn:flag("diag",true))
                 Text("Consenti solo tipo generico di errore e versione dell’app, senza messaggi, credenziali o contenuti del profilo.").font(.footnote).foregroundStyle(.secondary)
                 NavigationLink("Notifiche sociali ntfy"){NOVASwiftSocialNotificationSettings(store:store)}
