@@ -977,6 +977,7 @@ enum ClasseViva {
                 let events = await fetchEvents(token: token, studentID: studentID, pair: pair)
                 let grades = await gradesItems(token: token, studentID: studentID, pair: pair)
                 let absences = await absencesItems(token: token, studentID: studentID, pair: pair)
+                let lessons = await lessonsItems(token: token, studentID: studentID, pair: pair)
                 if sideEffects {
                 // Condivide compiti/verifiche col widget calendario del mese (pallini rossi/blu).
                 // Gira anche negli aggiornamenti in background, quindi il widget resta fresco.
@@ -1009,8 +1010,9 @@ enum ClasseViva {
                     _ = TT.saveHomework(hjson)
                 }
                 await HomeNotifs.process(events, background: background)
+                await HomeNotifs.processGrades(grades, background: background)
                 }
-                return ["ok": 1, "name": name, "events": events, "grades": grades, "absences": absences]
+                return ["ok": 1, "name": name, "events": events, "grades": grades, "absences": absences, "lessons": lessons]
             } catch {
                 return ["ok": 0, "err": "rete", "info": error.localizedDescription]
             }
@@ -1136,6 +1138,38 @@ enum ClasseViva {
         } catch { return [] }
     }
 
+    // Lezioni dal registro (/lessons): materia, prof, ora e argomento. Le aule non
+    // arrivano da questo endpoint: quelle restano nell'orario manuale.
+    private static func lessonsItems(token: String, studentID: String, pair: Int) async -> [[String: Any]] {
+        let now = Date()
+        guard let start = Calendar.current.date(byAdding: .day, value: -1, to: now),
+              let end = Calendar.current.date(byAdding: .day, value: 14, to: now) else { return [] }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMdd"
+        do {
+            let (data, status) = try await call("/students/\(studentID)/lessons/\(f.string(from: start))/\(f.string(from: end))", token: token, pair: pair)
+            guard status == 200,
+                  let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let items = j["lessons"] as? [[String: Any]] else { return [] }
+            var out: [[String: Any]] = []
+            for e in items {
+                guard let date = e["evtDate"] as? String, date.count >= 10 else { continue }
+                let id = (e["evtId"] as? Int).map { "l\($0)" } ?? "l\(date)\(e["classHour"] as? String ?? "")"
+                let begin = e["evtDatetimeBegin"] as? String ?? ""
+                let finish = e["evtDatetimeEnd"] as? String ?? ""
+                out.append(["id": id, "d": String(date.prefix(10)),
+                            "b": begin.count >= 16 ? String(begin.prefix(16)) : begin,
+                            "e": finish.count >= 16 ? String(finish.prefix(16)) : finish,
+                            "h": e["classHour"] as? String ?? "",
+                            "s": (e["subjectDesc"] as? String ?? "").capitalized,
+                            "t": (e["authorName"] as? String ?? "").capitalized,
+                            "arg": clean(e["lessonArg"] as? String ?? "", 140)])
+            }
+            return out
+        } catch { return [] }
+    }
+
     static func backgroundRefresh() async -> Bool {
         guard let c = CredStore.read() else { return false }
         let r = await loginFlow(uid: c.uid, pass: c.pass, ident: nil, save: false, background: true)
@@ -1182,6 +1216,33 @@ enum BGHandler {
 
 enum HomeNotifs {
     static var enabled: Bool { UserDefaults.standard.object(forKey: "nova.hwn") as? Bool ?? true }
+
+    // Voti nuovi: stessa logica dei compiti. Al primo avvio registra gli id senza
+    // avvisare, poi manda una notifica solo per i voti mai visti. Massimo 3 per sync.
+    @MainActor static func processGrades(_ grades: [[String: Any]], background: Bool, valid:()->Bool = {true}) async {
+        guard valid() else{return}
+        let ud = UserDefaults.standard
+        let ids = Set(grades.compactMap { $0["id"] as? String })
+        let known = Set(ud.stringArray(forKey: "nova.knownGrades") ?? [])
+        let fresh = grades.filter { !known.contains($0["id"] as? String ?? "") }
+        ud.set(Array(ids), forKey: "nova.knownGrades")
+        guard enabled, !known.isEmpty, !fresh.isEmpty else { return }
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard valid(), settings.authorizationStatus == .authorized else { return }
+        let c = UNMutableNotificationContent()
+        let identifier = "gr.new.\(UUID().uuidString)"
+        c.title = fresh.count == 1 ? "NOVA · Nuovo voto" : "NOVA · \(fresh.count) voti nuovi"
+        c.body = fresh.prefix(3).map { g in
+            let subj = g["subj"] as? String ?? ""
+            let disp = g["d"] as? String ?? ""
+            return subj.isEmpty ? disp : subj + " " + disp
+        }.joined(separator: "\n")
+        c.sound = .default
+        try? await center.add(UNNotificationRequest(identifier: identifier, content: c,
+                                                    trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)))
+        guard valid() else { center.removePendingNotificationRequests(withIdentifiers: [identifier]); return }
+    }
 
     @MainActor static func process(_ events: [[String: Any]], background: Bool, valid:()->Bool = {true}) async {
         guard valid() else{return}
