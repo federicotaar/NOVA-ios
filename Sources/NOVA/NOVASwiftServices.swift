@@ -11,7 +11,7 @@ import SwiftUI
                 if let index=tasks.firstIndex(where:{$0.object?["id"]?.string==id}){if var old=tasks[index].object,old["src"]?.string=="cv"{old.merge(fields){_,new in new};tasks[index] = .object(old)}}else{fields.merge(["id":.string(id),"pr":.string("media"),"rem":.number(0),"done":.number(0),"fired":.number(0),"src":.string("cv")]){old,_ in old};tasks.append(.object(fields))}
             }
             if !events.isEmpty{tasks=tasks.filter{$0.object?["src"]?.string != "cv" || seen.contains($0.object?["id"]?.string ?? "") || $0.object?["done"]?.flag==true}}
-            root["tasks"] = .array(tasks);if let grades=response.object?["grades"]{root["gr"] = grades};root["cv"] = .object(["on":.number(1),"name":response.object?["name"] ?? .string("")])
+            root["tasks"] = .array(tasks);if let grades=response.object?["grades"]{root["gr"] = grades};if let absences=response.object?["absences"]{root["ab"] = absences};root["cv"] = .object(["on":.number(1),"name":response.object?["name"] ?? .string("")])
         }
     }
 }
