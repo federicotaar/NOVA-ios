@@ -155,6 +155,49 @@ jobs:
                 id: "swiftSavedRow"
               timeout: 30000
           - takeScreenshot: evidence/salvati
+          - tapOn: "NOVA scuola"
+          - tapOn:
+              id: "fixtureMenuMedie"
+          - scrollUntilVisible:
+              element:
+                id: "swiftGradeShareRow"
+              direction: DOWN
+              timeout: 30000
+          - takeScreenshot: evidence/medie
+          - tapOn: "NOVA scuola"
+          - tapOn:
+              id: "fixtureMenuSondaggio"
+          - extendedWaitUntil:
+              visible:
+                id: "swiftPollBubble"
+              timeout: 30000
+          - takeScreenshot: evidence/sondaggio
+          - tapOn:
+              id: "swiftPollOpen"
+          - extendedWaitUntil:
+              visible:
+                id: "swiftPollQuestionField"
+              timeout: 30000
+          - tapOn:
+              id: "swiftPollQuestionField"
+          - inputText: "Gita a maggio?"
+          - tapOn:
+              id: "swiftPollOption0"
+          - inputText: "Mare"
+          - tapOn:
+              id: "swiftPollOption1"
+          - inputText: "Montagna"
+          - takeScreenshot: evidence/sondaggio-nuovo
+          - tapOn: "Annulla"
+          - tapOn:
+              id: "swiftChatBack"
+          - tapOn:
+              id: "fixtureMenuProfilo"
+          - extendedWaitUntil:
+              visible:
+                id: "swiftProfileStato"
+              timeout: 30000
+          - takeScreenshot: evidence/profilo-stato
           FLOW
           UDID=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(x["udid"] for v in d["devices"].values() for x in v))')
           export MAESTRO_DRIVER_STARTUP_TIMEOUT=240000
@@ -169,7 +212,7 @@ jobs:
             xcrun simctl io "$UDID" screenshot evidence/school-fail.png || true
             exit "$RC"
           fi
-          find "$HOME/.maestro" /tmp \( -name 'compiti*.png' -o -name 'orario*.png' -o -name 'pagella*.png' -o -name 'salvati*.png' \) -exec cp {} evidence/ \; 2>/dev/null || true
+          find "$HOME/.maestro" /tmp \( -name 'compiti*.png' -o -name 'orario*.png' -o -name 'pagella*.png' -o -name 'salvati*.png' -o -name 'medie*.png' -o -name 'sondaggio*.png' -o -name 'profilo*.png' \) -exec cp {} evidence/ \; 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
