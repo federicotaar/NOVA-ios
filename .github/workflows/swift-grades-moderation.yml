@@ -293,6 +293,10 @@ jobs:
               timeout: 10000
           - takeScreenshot: evidence/moderation-report
           - tapOn: "Annulla"
+          - extendedWaitUntil:
+              visible:
+                id: "swiftChatSearchOpen"
+              timeout: 10000
           - tapOn:
               id: "swiftChatSearchOpen"
           - extendedWaitUntil:
