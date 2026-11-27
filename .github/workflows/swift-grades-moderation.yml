@@ -369,8 +369,8 @@ jobs:
           for i in $(seq 1 90); do [ -f "$CONTAINER/Documents/interaction-ready" ] && break; sleep 1; done
           test -f "$CONTAINER/Documents/interaction-ready" || { xcrun simctl io "$UDID" screenshot evidence/incomplete.png; echo "Home fixture did not finish"; exit 1; }
           cp "$CONTAINER/Documents/production-home-exam.png" "$CONTAINER/Documents/production-profile-badges.png" "$CONTAINER/Documents/production-profile-badge-picked.png" evidence/
-          cp "$CONTAINER/Documents/production-accent.png" evidence/ || true
-          cp "$CONTAINER/Documents/production-home-gx.txt" evidence/ || true
+          cp "$CONTAINER/Documents/production-accent.png" "$CONTAINER/Documents/production-temi-picker.png" evidence/ || true
+          cp "$CONTAINER/Documents/production-home-gx.txt" "$CONTAINER/Documents/production-accent-errors.txt" evidence/ || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -378,3 +378,4 @@ jobs:
           include-hidden-files: true
           path: |
             evidence/*.png
+            evidence/*.txt
