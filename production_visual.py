@@ -956,7 +956,11 @@ if os.environ.get("NOVA_HOME_INTERACTION")=="1":
    web.evaluateJavaScript("String(($('#gxB')&&$('#gxB').innerHTML.length)||'EMPTY')"){v,_ in let t=(v as? String) ?? "NIL";try? t.write(to:dir.appendingPathComponent("production-home-gx.txt"),atomically:true,encoding:.utf8)}
    web.evaluateJavaScript("profOpen(0)"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.5){visualProductionSave(web,"production-profile-badges.png")
     web.evaluateJavaScript("[...document.querySelectorAll('#dBg [data-b]')].find(b=>b.dataset.b=='Sportivo')?.click()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-profile-badge-picked.png")
-     web.evaluateJavaScript("try{$('#dProf')?.close();$('#dSet')?.close()}catch(e){};try{S.accent='viola';theme();show()}catch(e){}"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.5){visualProductionSave(web,"production-accent.png");try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
+     web.evaluateJavaScript("try{$('#dProf')?.close()}catch(e){};try{pg(4);$('#bSet').click()}catch(e){}"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.5){visualProductionSave(web,"production-temi-picker.png")
+      web.evaluateJavaScript("try{document.querySelector('#fA [data-v=viola]')?.click()}catch(e){}"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.2){visualProductionSave(web,"production-accent.png")
+       web.evaluateJavaScript("JSON.stringify(window.testErrorDetails||[])"){v,_ in let t=(v as? String) ?? "NIL";try? t.write(to:dir.appendingPathComponent("production-accent-errors.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+      }}
+     }}
     }}
    }}
   }}
