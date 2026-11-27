@@ -455,20 +455,7 @@ extension NOVAJSON {
                 ScrollViewReader{proxy in ScrollView{LazyVStack(alignment:.leading,spacing:14){
                     if messages.isEmpty{Text("Chiedimi aiuto con lo studio. Serve la tua chiave Groq già salvata nelle impostazioni.").foregroundStyle(.secondary)}
                     ForEach(Array(messages.enumerated()),id:\.offset){index,message in
-                        let o=message.object ?? [:]
-                        HStack{
-                        if o["r"]?.string=="user"{Spacer(minLength:40)}
-                        VStack(alignment:.leading,spacing:8){
-                            Text(o["r"]?.string=="user" ? "Tu":"NOVA").font(.caption.bold()).foregroundStyle(.secondary)
-                            if let image=o["img"]?.string,let data=Data(base64Encoded:image.components(separatedBy:",").last ?? ""),let ui=UIImage(data:data){Image(uiImage:ui).resizable().scaledToFit().frame(maxHeight:200)}
-                            Text(o["c"]?.string ?? "").textSelection(.enabled)
-                            ForEach(Array((o["acts"]?.array ?? []).enumerated()),id:\.offset){action,value in
-                                let item=value.object ?? [:],state=item["st"]?.string ?? ""
-                                VStack(alignment:.leading){Text(item["a"]?.string=="open" ? "Apri: "+(item["page"]?.string ?? ""):"Aggiungi: "+(item["title"]?.string ?? ""));if state=="wait",item["swiftID"]?.string != nil{HStack{Button("Conferma"){Task{await NOVASwiftAssistantActions.run(store,owner:owner,message:index,action:action)}};Button("Annulla"){try? NOVASwiftAssistantActions.update(store,owner:owner,message:index,action:action,state:"no",note:"Annullata.")}}}else{Text(item["note"]?.string ?? (state=="pending" ? "Attendo conferma…":state=="off" ? "Azioni disattivate":"Azione conservata, non rieseguita.")).font(.caption).foregroundStyle(.secondary)}}
-                            }
-                        }.padding(.horizontal,14).padding(.vertical,10).background(o["r"]?.string=="user" ? Color.accentColor.opacity(0.16):Color.secondary.opacity(0.10),in:RoundedRectangle(cornerRadius:20))
-                        if o["r"]?.string!="user"{Spacer(minLength:40)}
-                        }.id(index)
+                        assistantRow(index:index,message:message).id(index)
                     }
                 }.padding().padding(.bottom,80)}.scrollClipDisabled().onChange(of:messages.count){_,_ in if !messages.isEmpty{proxy.scrollTo(messages.count-1,anchor:.bottom)}}}
                 if !status.isEmpty{Text(status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
@@ -486,6 +473,22 @@ extension NOVAJSON {
                 }.modifier(NOVASwiftComposerGlassGroup(composerBoundary:true)).padding(.horizontal,12).padding(.vertical,8)
                 .frame(maxWidth:.infinity)
             }.toolbar{ToolbarItem(placement:.topBarTrailing){if composerFocused{Button("Fine tastiera"){composerFocused=false}}}}.navigationTitle("Assistente").preference(key:NOVASwiftHideTabsKey.self,value:true)
+    }
+    private func assistantRow(index:Int,message:NOVAJSON) -> some View {
+        let o=message.object ?? [:]
+        return HStack{
+        if o["r"]?.string=="user"{Spacer(minLength:40)}
+        VStack(alignment:.leading,spacing:8){
+            Text(o["r"]?.string=="user" ? "Tu":"NOVA").font(.caption.bold()).foregroundStyle(.secondary)
+            if let image=o["img"]?.string,let data=Data(base64Encoded:image.components(separatedBy:",").last ?? ""),let ui=UIImage(data:data){Image(uiImage:ui).resizable().scaledToFit().frame(maxHeight:200)}
+            Text(o["c"]?.string ?? "").textSelection(.enabled)
+            ForEach(Array((o["acts"]?.array ?? []).enumerated()),id:\.offset){action,value in
+                let item=value.object ?? [:],state=item["st"]?.string ?? ""
+                VStack(alignment:.leading){Text(item["a"]?.string=="open" ? "Apri: "+(item["page"]?.string ?? ""):"Aggiungi: "+(item["title"]?.string ?? ""));if state=="wait",item["swiftID"]?.string != nil{HStack{Button("Conferma"){Task{await NOVASwiftAssistantActions.run(store,owner:owner,message:index,action:action)}};Button("Annulla"){try? NOVASwiftAssistantActions.update(store,owner:owner,message:index,action:action,state:"no",note:"Annullata.")}}}else{Text(item["note"]?.string ?? (state=="pending" ? "Attendo conferma…":state=="off" ? "Azioni disattivate":"Azione conservata, non rieseguita.")).font(.caption).foregroundStyle(.secondary)}}
+            }
+        }.padding(.horizontal,14).padding(.vertical,10).background(o["r"]?.string=="user" ? Color.accentColor.opacity(0.16):Color.secondary.opacity(0.10),in:RoundedRectangle(cornerRadius:20))
+        if o["r"]?.string!="user"{Spacer(minLength:40)}
+        }
     }
     private func loadPhoto(_ item:PhotosPickerItem?){photoEpoch+=1;let epoch=photoEpoch,expectedOwner=owner;Task{guard let data=try? await item?.loadTransferable(type:Data.self),let image=UIImage(data:data),epoch==photoEpoch,owner==expectedOwner,owner==store.archive?.owner else{return};let scale=min(1,1200/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};photoDraft="data:image/jpeg;base64,"+jpeg.base64EncodedString()}}
 
