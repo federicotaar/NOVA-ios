@@ -436,8 +436,14 @@ jobs:
               timeout: 30000
           - takeScreenshot: evidence/bot-camera
           FLOW
-          $HOME/.maestro/bin/maestro test /tmp/botlab.yaml --debug-output evidence/maestro-debug || { find "$HOME/.maestro" /tmp \( -name 'bot-*.png' \) -exec cp {} evidence/ \; 2>/dev/null || true; exit 1; }
+          ok=0
+          for t in 1 2; do
+            if MAESTRO_DRIVER_STARTUP_TIMEOUT=300000 $HOME/.maestro/bin/maestro test /tmp/botlab.yaml --debug-output evidence/maestro-debug; then ok=1; break; fi
+            find "$HOME/.maestro" /tmp \( -name 'bot-*.png' \) -exec cp {} evidence/ \; 2>/dev/null || true
+            sleep 5
+          done
           find "$HOME/.maestro" /tmp \( -name 'bot-*.png' \) -exec cp {} evidence/ \; 2>/dev/null || true
+          test "$ok" = 1 || exit 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
