@@ -429,12 +429,15 @@ jobs:
           - extendedWaitUntil:
               visible: "Sta pensando…"
               timeout: 30000
-          - tapOn:
-              id: "swiftBotCamOpen"
-          # XCUITest snapshots go blind while the camera sheet is presented on the
-          # simulator (hierarchy returns SpringBoard only), so a text assert cannot
-          # see the sheet even though it renders. Settle, then screenshot: the
-          # artifact review is the gate for this preview capture.
+          # The fixture auto-opens the scanner sheet 0.8s after the preview appears.
+          # XCUITest snapshots go blind while the sheet is presented on the
+          # simulator (hierarchy returns SpringBoard only) and a second tap on the
+          # composer button would dismiss the sheet, so: no assert, no extra tap,
+          # just settle and screenshot. The artifact review is the gate.
+          - waitForAnimationToEnd:
+              timeout: 8000
+          - waitForAnimationToEnd:
+              timeout: 8000
           - waitForAnimationToEnd:
               timeout: 8000
           - takeScreenshot: evidence/bot-camera
