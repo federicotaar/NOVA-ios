@@ -422,10 +422,14 @@ extension NOVAJSON {
 @MainActor struct NOVASwiftAssistant:View {
     @ObservedObject var store:NOVASwiftStore
     let embedded:Bool
-    init(store:NOVASwiftStore,initialDraft:String="",embedded:Bool=false){self.store=store;self.embedded=embedded;_draft=State(initialValue:initialDraft)}
+    let previewMood:NOVABotMood?
+    let autoOpenCamera:Bool
+    init(store:NOVASwiftStore,initialDraft:String="",embedded:Bool=false,previewMood:NOVABotMood?=nil,autoOpenCamera:Bool=false){self.store=store;self.embedded=embedded;self.previewMood=previewMood;self.autoOpenCamera=autoOpenCamera;_draft=State(initialValue:initialDraft)}
     @State private var draft=""
     @FocusState private var composerFocused:Bool
     @State private var sending=false
+    @State private var mood:NOVABotMood = .thinking
+    @State private var cameraOpen=false
     @State private var status=""
     @State private var generation=0
     @State private var owner=""
@@ -435,16 +439,25 @@ extension NOVAJSON {
     var messages:[NOVAJSON]{store.archive?.active.object?["chat"]?.array ?? []}
     var body:some View {
         Group {if embedded {assistantContent}else{NavigationStack{assistantContent}}}
-        .onAppear{owner=store.archive?.owner ?? ""}.onDisappear{generation+=1;photoEpoch+=1;sending=false}
+        .onAppear{owner=store.archive?.owner ?? "";if autoOpenCamera{DispatchQueue.main.asyncAfter(deadline:.now()+0.8){cameraOpen=true}}}.onDisappear{generation+=1;photoEpoch+=1;sending=false}
+        .sheet(isPresented:$cameraOpen){NOVASwiftBotCameraSheet{data in photoDraft=data}.presentationDetents([.medium]).presentationDragIndicator(.visible)}
         .onChange(of:store.archive?.owner){_,_ in generation+=1;photoEpoch+=1;owner=store.archive?.owner ?? "";draft="";photoDraft=nil;sending=false}
         .onChange(of:photo){_,item in loadPhoto(item)}
     }
     private var assistantContent:some View {
             VStack(spacing:0){
+                if sending || previewMood != nil {
+                    VStack(spacing:6){
+                        NOVASwiftOrb(mood:previewMood ?? mood,size:64)
+                        Text((previewMood ?? mood).title).font(.callout.weight(.medium)).foregroundStyle(.secondary).contentTransition(.interpolate)
+                    }.padding(.top,18).padding(.bottom,6)
+                }
                 ScrollViewReader{proxy in ScrollView{LazyVStack(alignment:.leading,spacing:14){
                     if messages.isEmpty{Text("Chiedimi aiuto con lo studio. Serve la tua chiave Groq già salvata nelle impostazioni.").foregroundStyle(.secondary)}
                     ForEach(Array(messages.enumerated()),id:\.offset){index,message in
                         let o=message.object ?? [:]
+                        HStack{
+                        if o["r"]?.string=="user"{Spacer(minLength:40)}
                         VStack(alignment:.leading,spacing:8){
                             Text(o["r"]?.string=="user" ? "Tu":"NOVA").font(.caption.bold()).foregroundStyle(.secondary)
                             if let image=o["img"]?.string,let data=Data(base64Encoded:image.components(separatedBy:",").last ?? ""),let ui=UIImage(data:data){Image(uiImage:ui).resizable().scaledToFit().frame(maxHeight:200)}
@@ -453,7 +466,9 @@ extension NOVAJSON {
                                 let item=value.object ?? [:],state=item["st"]?.string ?? ""
                                 VStack(alignment:.leading){Text(item["a"]?.string=="open" ? "Apri: "+(item["page"]?.string ?? ""):"Aggiungi: "+(item["title"]?.string ?? ""));if state=="wait",item["swiftID"]?.string != nil{HStack{Button("Conferma"){Task{await NOVASwiftAssistantActions.run(store,owner:owner,message:index,action:action)}};Button("Annulla"){try? NOVASwiftAssistantActions.update(store,owner:owner,message:index,action:action,state:"no",note:"Annullata.")}}}else{Text(item["note"]?.string ?? (state=="pending" ? "Attendo conferma…":state=="off" ? "Azioni disattivate":"Azione conservata, non rieseguita.")).font(.caption).foregroundStyle(.secondary)}}
                             }
-                        }.padding(14).frame(maxWidth:.infinity,alignment:.leading).background(o["r"]?.string=="user" ? Color.blue.opacity(0.1):Color.secondary.opacity(0.08),in:RoundedRectangle(cornerRadius:20)).id(index)
+                        }.padding(.horizontal,14).padding(.vertical,10).background(o["r"]?.string=="user" ? Color.accentColor.opacity(0.16):Color.secondary.opacity(0.10),in:RoundedRectangle(cornerRadius:20))
+                        if o["r"]?.string!="user"{Spacer(minLength:40)}
+                        }.id(index)
                     }
                 }.padding().padding(.bottom,80)}.scrollClipDisabled().onChange(of:messages.count){_,_ in if !messages.isEmpty{proxy.scrollTo(messages.count-1,anchor:.bottom)}}}
                 if !status.isEmpty{Text(status).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)}
@@ -462,6 +477,7 @@ extension NOVAJSON {
             }.frame(maxWidth:.infinity,maxHeight:.infinity)
             .overlay(alignment:.bottom){
                 HStack(alignment:.bottom,spacing:10){
+                    Button{cameraOpen=true}label:{Image(systemName:"camera").font(.system(size:20)).frame(width:42,height:42).contentShape(Circle())}.buttonStyle(.plain).accessibilityLabel("Scansiona con la fotocamera").accessibilityIdentifier("swiftAssistantCamOpen")
                     PhotosPicker(selection:$photo,matching:.images){Image(systemName:"plus").font(.system(size:24,weight:.regular)).frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).modifier(NOVASwiftAssistantGlass(circle:true)).accessibilityLabel("Allega foto")
                     HStack(alignment:.bottom,spacing:8){
                         TextField("Scrivi un messaggio",text:$draft,axis:.vertical).accessibilityIdentifier("swiftAssistantComposer").focused($composerFocused).lineLimit(1...4).textFieldStyle(.plain).modifier(NOVASwiftComposerTextShadow()).frame(minHeight:28)
@@ -480,7 +496,8 @@ extension NOVAJSON {
         guard Secret.get("groq") != nil else{status="Prima salva la tua chiave Groq nelle impostazioni.";return}
         let snapshot=store.archive!.active.object ?? [:]
         do{try store.update(owner:owner){root in var chat=root["chat"]?.array ?? [];var item:[String:NOVAJSON]=["r":.string("user"),"c":.string(text)];if let image=image{item["img"] = .string(image)};chat.append(.object(item));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Messaggio non salvato. Riprova.";return}
-        draft="";photoDraft=nil;sending=true;generation+=1;let expected=generation,expectedOwner=owner,expectedSession=store.archive.flatMap{NOVASession($0.active)}
+        draft="";photoDraft=nil;sending=true;mood = .connecting;generation+=1;let expected=generation,expectedOwner=owner,expectedSession=store.archive.flatMap{NOVASession($0.active)}
+        Task{try? await Task.sleep(nanoseconds:1_200_000_000);if sending && generation==expected{mood = .thinking}}
         let permission=snapshot["aiAct"]?.string ?? "ask"
         let system=NOVASwiftAssistantActions.system(snapshot)
         let history=messages.suffix(12).map{message -> [String:String] in let o=message.object ?? [:];return["role":o["r"]?.string=="user" ? "user":"assistant","content":o["c"]?.string ?? ""]}
