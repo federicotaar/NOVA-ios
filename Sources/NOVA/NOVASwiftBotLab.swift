@@ -60,6 +60,9 @@ struct NOVASwiftOrb:View {
     private var completion:((UIImage?)->Void)?
 
     func start(){
+        #if targetEnvironment(simulator)
+        return
+        #endif
         guard AVCaptureDevice.authorizationStatus(for:.video) == .authorized else{return}
         guard !session.isRunning else{return}
         DispatchQueue.global(qos:.userInitiated).async{[weak self] in
@@ -91,10 +94,14 @@ struct NOVASwiftBotCameraPreview:UIViewRepresentable {
     @ObservedObject var camera:NOVABotCamera
     func makeUIView(context:Context)->UIView {
         let view=UIView();view.backgroundColor = .black
+        #if targetEnvironment(simulator)
+        // Simulatore: niente layer fotocamera (anteprima comunque nera) cosi' XCUITest legge la gerarchia.
+        #else
         let layer=AVCaptureVideoPreviewLayer(session:camera.session)
         layer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(layer)
         context.coordinator.layer=layer
+        #endif
         return view
     }
     func updateUIView(_ view:UIView,context:Context){context.coordinator.layer?.frame=view.bounds}
