@@ -158,8 +158,7 @@ jobs:
               visible:
                 id: "swiftPagellaShare"
               timeout: 30000
-          - assertVisible:
-              id: "swiftPagellaOverall"
+          - assertVisible: "Media generale"
           - takeScreenshot: evidence/pagella
           - tapOn: "NOVA scuola"
           - tapOn:
