@@ -50,7 +50,7 @@ struct NOVASwiftOrb:View {
                     let th=fi*2.399963229728653
                     let x0=cos(th)*rr, z0=sin(th)*rr
                     let xr=x0*cos(a)+z0*sin(a)
-                    let zr=-x0*sin(a)+z0*cos(a)
+                    let zr = -x0*sin(a)+z0*cos(a)
                     let y=y0*cos(tilt)-zr*sin(tilt)
                     let z=y0*sin(tilt)+zr*cos(tilt)
                     let scale=persp/(persp-z)
@@ -58,9 +58,9 @@ struct NOVASwiftOrb:View {
                     var opacity=0.25+0.75*((z+1)/2)
                     switch mood {
                     case .thinking:
-                        let sweep=a.truncatingRemainder(dividingBy:.pi*2)
-                        var rel=(sweep-atan2(z,xr)).truncatingRemainder(dividingBy:.pi*2)
-                        if rel<0 {rel+=.pi*2}
+                        let sweep=a.truncatingRemainder(dividingBy:Double.pi*2)
+                        var rel=(sweep-atan2(z,xr)).truncatingRemainder(dividingBy:Double.pi*2)
+                        if rel<0 {rel += Double.pi*2}
                         if rel<1.5 {opacity*=0.10+0.90*(rel/1.5)}
                     case .connecting:
                         opacity*=0.55+0.45*sin(t*3.0-atan2(z,xr)*2.0)
@@ -75,7 +75,7 @@ struct NOVASwiftOrb:View {
                     if mood == .thinking {
                         let a2=a-0.10
                         let x2=x0*cos(a2)+z0*sin(a2)
-                        let z2r=-x0*sin(a2)+z0*cos(a2)
+                        let z2r = -x0*sin(a2)+z0*cos(a2)
                         let y2=y0*cos(tilt)-z2r*sin(tilt)
                         let z2=y0*sin(tilt)+z2r*cos(tilt)
                         let scale2=persp/(persp-z2)
