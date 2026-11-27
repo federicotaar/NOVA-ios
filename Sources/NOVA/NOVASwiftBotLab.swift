@@ -1,11 +1,11 @@
 import SwiftUI
 import AVFoundation
 
-// Stati animati dell'assistente NOVA (item 13): orbe di punti su sfera che
-// replica in nativo il look e il moto dei "Thinking orbs" di libraries.dev
-// (niente libreria: i kit Pro sono a pagamento). ~200 punti quadrati su un
-// reticolo di Fibonacci, proiezione prospettica, profondita' in scala e
-// opacita'; ogni stato ha il suo movimento caratteristico.
+// Stati animati dell'assistente NOVA (item 13): un disegno diverso per stato,
+// replicati in nativo dai "Thinking orbs" di libraries.dev (niente libreria:
+// i kit Pro sono a pagamento). Pensando = cupola di barre verticali che
+// ondeggiano; ricerca = sfera di punti; collegando = arco aperto che ruota;
+// ascolto = sfera con cupola luminosa che pulsa.
 enum NOVABotMood:String,CaseIterable {
     case thinking, searching, connecting, listening
     var title:String {
@@ -42,61 +42,90 @@ private struct NOVAOrbCanvas:View {
     var body:some View {
         Canvas{context,rect in
             let cx=rect.width/2, cy=rect.height/2
-            var R=rect.width*0.40
-            if mood == .listening { R *= CGFloat(1.0+0.04*sin(t*2.2)) }
-            let tilt=0.42
-            let a=t*mood.speed
-            let persp=3.2
-            var dots:[NOVAOrbDot]=[]
-            dots.reserveCapacity(NOVAOrbBasePoints.count)
-            for p in NOVAOrbBasePoints {
-                let xr=p.x*cos(a)+p.z*sin(a)
-                let zr = -p.x*sin(a)+p.z*cos(a)
-                let y=p.y*cos(tilt)-zr*sin(tilt)
-                let z=p.y*sin(tilt)+zr*cos(tilt)
-                let scale=persp/(persp-z)
-                var dot=Double(rect.width)*0.045*scale
-                var opacity=0.25+0.75*((z+1)/2)
-                switch mood {
-                case .thinking:
-                    let sweep=a.truncatingRemainder(dividingBy:Double.pi*2)
-                    var rel=(sweep-atan2(z,xr)).truncatingRemainder(dividingBy:Double.pi*2)
-                    if rel<0 {rel += Double.pi*2}
-                    if rel<1.5 {opacity*=0.10+0.90*(rel/1.5)}
-                case .connecting:
-                    opacity*=0.55+0.45*sin(t*3.0-atan2(z,xr)*2.0)
-                case .listening:
-                    dot*=1.0+0.45*sin(t*5.2-(p.x+p.y+p.z)*3.0)
-                case .searching:
-                    break
-                }
-                let sx=cx+CGFloat(xr*scale)*R
-                let sy=cy+CGFloat(y*scale)*R
-                var tx=sx, ty=sy
-                if mood == .thinking {
-                    let a2=a-0.10
-                    let x2=p.x*cos(a2)+p.z*sin(a2)
-                    let z2r = -p.x*sin(a2)+p.z*cos(a2)
-                    let y2=p.y*cos(tilt)-z2r*sin(tilt)
-                    let z2=p.y*sin(tilt)+z2r*cos(tilt)
-                    let scale2=persp/(persp-z2)
-                    tx=cx+CGFloat(x2*scale2)*R
-                    ty=cy+CGFloat(y2*scale2)*R
-                }
-                dots.append(NOVAOrbDot(sx:sx,sy:sy,d:CGFloat(max(dot,Double(rect.width)*0.012)),o:opacity,tx:tx,ty:ty))
-            }
-            dots.sort{ $0.o < $1.o }
+            let R=rect.width*0.40
             let ink=Color.primary
-            for dot in dots {
-                if mood == .thinking {
-                    var path=Path();path.move(to:CGPoint(x:dot.tx,y:dot.ty));path.addLine(to:CGPoint(x:dot.sx,y:dot.sy))
-                    context.stroke(path,with:.color(ink.opacity(dot.o*0.6)),lineWidth:max(dot.d*0.7,1))
+            switch mood {
+            case .searching, .listening:
+                // Sfera di punti: ricerca con luce uniforme, ascolto con cupola luminosa che pulsa.
+                let tilt=0.42
+                let a=t*mood.speed
+                let persp=3.2
+                let pulse=0.5+0.5*sin(t*2.4)
+                var dots:[NOVAOrbDot]=[]
+                dots.reserveCapacity(NOVAOrbBasePoints.count)
+                for p in NOVAOrbBasePoints {
+                    let xr=p.x*cos(a)+p.z*sin(a)
+                    let zr = -p.x*sin(a)+p.z*cos(a)
+                    let y=p.y*cos(tilt)-zr*sin(tilt)
+                    let z=p.y*sin(tilt)+zr*cos(tilt)
+                    let scale=persp/(persp-z)
+                    let dot=Double(rect.width)*0.045*scale
+                    var opacity=0.25+0.75*((z+1)/2)
+                    var rScale=1.0
+                    if mood == .listening {
+                        let cap=0.5-0.5*y
+                        opacity*=0.15+0.85*cap*(0.45+0.55*pulse)
+                        rScale=1.0+0.04*sin(t*2.4)
+                    }
+                    let sx=cx+CGFloat(xr*scale*rScale)*R
+                    let sy=cy+CGFloat(y*scale*rScale)*R
+                    dots.append(NOVAOrbDot(sx:sx,sy:sy,d:CGFloat(max(dot,Double(rect.width)*0.012)),o:opacity,tx:sx,ty:sy))
                 }
-                context.fill(Path(CGRect(x:dot.sx-dot.d/2,y:dot.sy-dot.d/2,width:dot.d,height:dot.d)),with:.color(ink.opacity(dot.o)))
+                dots.sort{ $0.o < $1.o }
+                for dot in dots {
+                    context.fill(Path(CGRect(x:dot.sx-dot.d/2,y:dot.sy-dot.d/2,width:dot.d,height:dot.d)),with:.color(ink.opacity(dot.o)))
+                }
+            case .thinking:
+                // Cupola di barre verticali che ondeggiano (look "Thinking" del sito).
+                let bw=Double(rect.width)*0.030
+                let sp=Double(rect.width)*0.075
+                var bars:[NOVAOrbBar]=[]
+                for gx in -5...5 {
+                    for gy in -4...4 {
+                        let fx=Double(gx), fy=Double(gy)
+                        let rr=(fx*fx+fy*fy).squareRoot()
+                        if rr>5.4 {continue}
+                        let wave=0.5+0.5*sin(t*2.8+fx*0.85+fy*0.5)
+                        let h=(0.25+0.75*wave)*Double(rect.width)*0.16
+                        let fall=1.0-rr/6.2
+                        let o=(0.25+0.75*fall)*(0.35+0.65*wave)
+                        bars.append(NOVAOrbBar(x:Double(cx)+fx*sp,y:Double(cy)+fy*sp*0.82,w:bw,h:h,o:o))
+                    }
+                }
+                bars.sort{ $0.o < $1.o }
+                for bar in bars {
+                    let r2=CGRect(x:CGFloat(bar.x-bar.w/2),y:CGFloat(bar.y-bar.h/2),width:CGFloat(bar.w),height:CGFloat(bar.h))
+                    context.fill(Path(roundedRect:r2,cornerRadius:CGFloat(bar.w/2)),with:.color(ink.opacity(bar.o)))
+                }
+            case .connecting:
+                // Arco aperto di punti che ruota con testa luminosa (look "Connecting" del sito).
+                let n=44
+                let head=t*2.0
+                for i in 0..<n {
+                    let th=Double(i)/Double(n)*Double.pi*2+t*0.55
+                    var rel=(head-th).truncatingRemainder(dividingBy:Double.pi*2)
+                    if rel<0 {rel += Double.pi*2}
+                    let b=1.0-rel/(Double.pi*1.7)
+                    if b<=0.22 {continue}
+                    let dot=Double(rect.width)*(0.020+0.030*b)
+                    let sx=cx+CGFloat(cos(th))*R
+                    let sy=cy+CGFloat(sin(th)*0.92)*R
+                    context.fill(Path(CGRect(x:sx-CGFloat(dot/2),y:sy-CGFloat(dot/2),width:CGFloat(dot),height:CGFloat(dot))),with:.color(ink.opacity(0.15+0.85*b)))
+                }
+                for k in 0..<2 {
+                    let th=t*0.9+Double(k)*Double.pi
+                    let rr=0.35+0.10*sin(t*1.4+Double(k)*2.0)
+                    let dot=Double(rect.width)*0.022
+                    let sx=cx+CGFloat(cos(th)*rr)*R
+                    let sy=cy+CGFloat(sin(th)*rr*0.92)*R
+                    context.fill(Path(CGRect(x:sx-CGFloat(dot/2),y:sy-CGFloat(dot/2),width:CGFloat(dot),height:CGFloat(dot))),with:.color(ink.opacity(0.5)))
+                }
             }
         }
     }
 }
+
+private struct NOVAOrbBar { var x:Double; var y:Double; var w:Double; var h:Double; var o:Double }
 
 struct NOVASwiftOrb:View {
     let mood:NOVABotMood
