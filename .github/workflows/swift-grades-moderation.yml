@@ -442,9 +442,65 @@ jobs:
               timeout: 8000
           - takeScreenshot: evidence/bot-camera
           FLOW
+          cat > /tmp/botlab2.yaml <<'FLOW2'
+          appId: site.federicotaranu.nova.chattest
+          ---
+          - launchApp
+          - extendedWaitUntil:
+              visible:
+                id: "fixtureBotRealThinking"
+              timeout: 30000
+          - tapOn:
+              id: "fixtureBotRealThinking"
+          - extendedWaitUntil:
+              visible: "Sta pensando…"
+              timeout: 30000
+          - assertVisible: "Mi spieghi le derivate per la verifica di domani?"
+          - assertVisible:
+              id: "swiftAssistantCamOpen"
+          - takeScreenshot: evidence/bot-real-thinking
+          - tapOn: "NOVA bot lab"
+          - tapOn:
+              id: "fixtureBotRealSearching"
+          - extendedWaitUntil:
+              visible: "Cerco sul web…"
+              timeout: 30000
+          - takeScreenshot: evidence/bot-real-searching
+          - tapOn: "NOVA bot lab"
+          - tapOn:
+              id: "fixtureBotRealConnecting"
+          - extendedWaitUntil:
+              visible: "Collegando…"
+              timeout: 30000
+          - takeScreenshot: evidence/bot-real-collegando
+          - tapOn: "NOVA bot lab"
+          - tapOn:
+              id: "fixtureBotRealListening"
+          - extendedWaitUntil:
+              visible: "Ti ascolto…"
+              timeout: 30000
+          - takeScreenshot: evidence/bot-real-listening
+          - tapOn: "NOVA bot lab"
+          - tapOn:
+              id: "fixtureBotRealCamera"
+          - extendedWaitUntil:
+              visible:
+                id: "swiftAssistantCamOpen"
+              timeout: 30000
+          # The fixture auto-opens the scanner sheet 0.8s after the real assistant
+          # appears. Same XCUITest sheet blindness as the lab camera: no taps,
+          # just settle and screenshot. The artifact review is the gate.
+          - waitForAnimationToEnd:
+              timeout: 8000
+          - waitForAnimationToEnd:
+              timeout: 8000
+          - waitForAnimationToEnd:
+              timeout: 8000
+          - takeScreenshot: evidence/bot-real-camera
+          FLOW2
           ok=0
           for t in 1 2; do
-            if MAESTRO_DRIVER_STARTUP_TIMEOUT=300000 $HOME/.maestro/bin/maestro test /tmp/botlab.yaml --debug-output evidence/maestro-debug; then ok=1; break; fi
+            if MAESTRO_DRIVER_STARTUP_TIMEOUT=300000 $HOME/.maestro/bin/maestro test /tmp/botlab.yaml --debug-output evidence/maestro-debug && MAESTRO_DRIVER_STARTUP_TIMEOUT=300000 $HOME/.maestro/bin/maestro test /tmp/botlab2.yaml --debug-output evidence/maestro-debug2; then ok=1; break; fi
             find "$HOME/.maestro" /tmp \( -name 'bot-*.png' \) -exec cp {} evidence/ \; 2>/dev/null || true
             sleep 5
           done
