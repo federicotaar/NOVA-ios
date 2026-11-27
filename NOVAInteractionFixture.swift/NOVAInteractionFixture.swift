@@ -445,7 +445,13 @@ import UIKit
 }
 
 @MainActor struct NOVASwiftBotLabMenu:View {
+    let store:NOVASwiftStore
     var body:some View {NavigationStack{List{
+        NavigationLink("Bot reale · Sta pensando"){NOVASwiftAssistant(store:store,embedded:true,previewMood:.thinking)}.accessibilityIdentifier("fixtureBotRealThinking")
+        NavigationLink("Bot reale · Cerco sul web"){NOVASwiftAssistant(store:store,embedded:true,previewMood:.searching)}.accessibilityIdentifier("fixtureBotRealSearching")
+        NavigationLink("Bot reale · Collegando"){NOVASwiftAssistant(store:store,embedded:true,previewMood:.connecting)}.accessibilityIdentifier("fixtureBotRealConnecting")
+        NavigationLink("Bot reale · Ti ascolto"){NOVASwiftAssistant(store:store,embedded:true,previewMood:.listening)}.accessibilityIdentifier("fixtureBotRealListening")
+        NavigationLink("Bot reale · Fotocamera scanner"){NOVASwiftAssistant(store:store,embedded:true,autoOpenCamera:true)}.accessibilityIdentifier("fixtureBotRealCamera")
         NavigationLink("Bot · Sta pensando"){NOVASwiftBotChatPreview(mood:.thinking,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotThinking")
         NavigationLink("Bot · Cerco sul web"){NOVASwiftBotChatPreview(mood:.searching,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotSearching")
         NavigationLink("Bot · Collegando"){NOVASwiftBotChatPreview(mood:.connecting,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotConnecting")
@@ -456,5 +462,9 @@ import UIKit
 
 @MainActor func visualSwiftBotLabReady(_ web:WKWebView,_ attempt:Int){
  guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftBotLabReady(web,attempt+1)}};return}
- let page=UIHostingController(rootView:NOVASwiftBotLabMenu());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+ let directory=FileManager.default.temporaryDirectory.appendingPathComponent("botlab-interaction")
+ let store=NOVASwiftStore(directory:directory)
+ if store.archive==nil{try? store.importOnce(["nova.v1":"{\"name\":\"Demo\",\"done\":1,\"introOff\":1,\"theme\":\"dark\",\"acct\":{\"email\":\"demo@test.invalid\",\"token\":\"synthetic-only\"},\"prof\":{\"username\":\"demo\"},\"tasks\":[],\"w\":{}}"])}
+ try? store.update(owner:store.archive!.owner){state in state["chat"] = .array([.object(["r":.string("user"),"c":.string("Mi spieghi le derivate per la verifica di domani?")]),.object(["r":.string("assistant"),"c":.string("Certo! Una derivata misura quanto velocemente cambia una funzione. Partiamo dalla definizione con il limite del rapporto incrementale, poi due esempi sui polinomi.")])])}
+ let page=UIHostingController(rootView:NOVASwiftBotLabMenu(store:store));page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
 }
