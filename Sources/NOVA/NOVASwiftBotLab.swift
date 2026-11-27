@@ -165,6 +165,7 @@ struct NOVASwiftScannerCorners:Shape {
 struct NOVASwiftBotChatPreview:View {
     let mood:NOVABotMood
     @ObservedObject var fixture:NOVABotLabFixture
+    var autoOpenCamera=false
     @State private var cameraOpen=false
     private let demo:[(Bool,String)] = [
         (true,"Mi spieghi le derivate per la verifica di domani?"),
@@ -206,5 +207,6 @@ struct NOVASwiftBotChatPreview:View {
         }
         .navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented:$cameraOpen){NOVASwiftBotCameraSheet{data in fixture.attached=data}.presentationDetents([.medium])}
+        .onAppear{if autoOpenCamera{DispatchQueue.main.asyncAfter(deadline:.now()+0.8){cameraOpen=true}}}
     }
 }
