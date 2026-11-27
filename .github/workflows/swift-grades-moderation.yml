@@ -181,8 +181,7 @@ jobs:
           - tapOn:
               id: "fixtureMenuSondaggio"
           - extendedWaitUntil:
-              visible:
-                id: "swiftPollBubble"
+              visible: "Uscita sabato?"
               timeout: 30000
           - takeScreenshot: evidence/sondaggio
           - tapOn:
