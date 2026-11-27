@@ -28,77 +28,83 @@ enum NOVABotMood:String,CaseIterable {
 
 private struct NOVAOrbDot { var sx:CGFloat; var sy:CGFloat; var d:CGFloat; var o:Double; var tx:CGFloat; var ty:CGFloat }
 
+private let NOVAOrbBasePoints:[(x:Double,y:Double,z:Double)]=(0..<207).map{i in
+    let fi=Double(i)
+    let y=1.0-2.0*(fi+0.5)/207.0
+    let r=(1.0-y*y).squareRoot()
+    let th=fi*2.399963229728653
+    return (cos(th)*r,y,sin(th)*r)
+}
+
+private struct NOVAOrbCanvas:View {
+    let mood:NOVABotMood
+    let t:Double
+    var body:some View {
+        Canvas{context,rect in
+            let cx=rect.midX, cy=rect.midY
+            var R=rect.width*0.40
+            if mood == .listening { R *= CGFloat(1.0+0.04*sin(t*2.2)) }
+            let tilt=0.42
+            let a=t*mood.speed
+            let persp=3.2
+            var dots:[NOVAOrbDot]=[]
+            dots.reserveCapacity(NOVAOrbBasePoints.count)
+            for p in NOVAOrbBasePoints {
+                let xr=p.x*cos(a)+p.z*sin(a)
+                let zr = -p.x*sin(a)+p.z*cos(a)
+                let y=p.y*cos(tilt)-zr*sin(tilt)
+                let z=p.y*sin(tilt)+zr*cos(tilt)
+                let scale=persp/(persp-z)
+                var dot=Double(rect.width)*0.045*scale
+                var opacity=0.25+0.75*((z+1)/2)
+                switch mood {
+                case .thinking:
+                    let sweep=a.truncatingRemainder(dividingBy:Double.pi*2)
+                    var rel=(sweep-atan2(z,xr)).truncatingRemainder(dividingBy:Double.pi*2)
+                    if rel<0 {rel += Double.pi*2}
+                    if rel<1.5 {opacity*=0.10+0.90*(rel/1.5)}
+                case .connecting:
+                    opacity*=0.55+0.45*sin(t*3.0-atan2(z,xr)*2.0)
+                case .listening:
+                    dot*=1.0+0.45*sin(t*5.2-(p.x+p.y+p.z)*3.0)
+                case .searching:
+                    break
+                }
+                let sx=cx+CGFloat(xr*scale)*R
+                let sy=cy+CGFloat(y*scale)*R
+                var tx=sx, ty=sy
+                if mood == .thinking {
+                    let a2=a-0.10
+                    let x2=p.x*cos(a2)+p.z*sin(a2)
+                    let z2r = -p.x*sin(a2)+p.z*cos(a2)
+                    let y2=p.y*cos(tilt)-z2r*sin(tilt)
+                    let z2=p.y*sin(tilt)+z2r*cos(tilt)
+                    let scale2=persp/(persp-z2)
+                    tx=cx+CGFloat(x2*scale2)*R
+                    ty=cy+CGFloat(y2*scale2)*R
+                }
+                dots.append(NOVAOrbDot(sx:sx,sy:sy,d:CGFloat(max(dot,Double(rect.width)*0.012)),o:opacity,tx:tx,ty:ty))
+            }
+            dots.sort{ $0.o < $1.o }
+            let ink=Color.primary
+            for dot in dots {
+                if mood == .thinking {
+                    var path=Path();path.move(to:CGPoint(x:dot.tx,y:dot.ty));path.addLine(to:CGPoint(x:dot.sx,y:dot.sy))
+                    context.stroke(path,with:.color(ink.opacity(dot.o*0.6)),lineWidth:max(dot.d*0.7,1))
+                }
+                context.fill(Path(CGRect(x:dot.sx-dot.d/2,y:dot.sy-dot.d/2,width:dot.d,height:dot.d)),with:.color(ink.opacity(dot.o)))
+            }
+        }
+    }
+}
+
 struct NOVASwiftOrb:View {
     let mood:NOVABotMood
     var size:CGFloat = 56
-    private static let count=207
-    private static let base:[(x:Double,y:Double,z:Double)]=(0..<count).map{i in
-        let fi=Double(i)
-        let y=1.0-2.0*(fi+0.5)/Double(count)
-        let r=(1.0-y*y).squareRoot()
-        let th=fi*2.399963229728653
-        return (cos(th)*r,y,sin(th)*r)
-    }
     var body:some View {
         TimelineView(.animation(minimumInterval:1.0/30)){timeline in
-            let t=timeline.date.timeIntervalSinceReferenceDate
-            let base=Self.base
-            Canvas{context,rect in
-                let cx=rect.midX, cy=rect.midY
-                var R=rect.width*0.40
-                if mood == .listening { R *= CGFloat(1.0+0.04*sin(t*2.2)) }
-                let tilt=0.42
-                let a=t*mood.speed
-                let persp=3.2
-                var dots:[NOVAOrbDot]=[]
-                dots.reserveCapacity(base.count)
-                for p in base {
-                    let xr=p.x*cos(a)+p.z*sin(a)
-                    let zr = -p.x*sin(a)+p.z*cos(a)
-                    let y=p.y*cos(tilt)-zr*sin(tilt)
-                    let z=p.y*sin(tilt)+zr*cos(tilt)
-                    let scale=persp/(persp-z)
-                    var dot=Double(rect.width)*0.045*scale
-                    var opacity=0.25+0.75*((z+1)/2)
-                    switch mood {
-                    case .thinking:
-                        let sweep=a.truncatingRemainder(dividingBy:Double.pi*2)
-                        var rel=(sweep-atan2(z,xr)).truncatingRemainder(dividingBy:Double.pi*2)
-                        if rel<0 {rel += Double.pi*2}
-                        if rel<1.5 {opacity*=0.10+0.90*(rel/1.5)}
-                    case .connecting:
-                        opacity*=0.55+0.45*sin(t*3.0-atan2(z,xr)*2.0)
-                    case .listening:
-                        dot*=1.0+0.45*sin(t*5.2-(p.x+p.y+p.z)*3.0)
-                    case .searching:
-                        break
-                    }
-                    let sx=cx+CGFloat(xr*scale)*R
-                    let sy=cy+CGFloat(y*scale)*R
-                    var tx=sx, ty=sy
-                    if mood == .thinking {
-                        let a2=a-0.10
-                        let x2=p.x*cos(a2)+p.z*sin(a2)
-                        let z2r = -p.x*sin(a2)+p.z*cos(a2)
-                        let y2=p.y*cos(tilt)-z2r*sin(tilt)
-                        let z2=p.y*sin(tilt)+z2r*cos(tilt)
-                        let scale2=persp/(persp-z2)
-                        tx=cx+CGFloat(x2*scale2)*R
-                        ty=cy+CGFloat(y2*scale2)*R
-                    }
-                    dots.append(NOVAOrbDot(sx:sx,sy:sy,d:CGFloat(max(dot,Double(rect.width)*0.012)),o:opacity,tx:tx,ty:ty))
-                }
-                dots.sort{ $0.o < $1.o }
-                let ink=Color.primary
-                for dot in dots {
-                    if mood == .thinking {
-                        var path=Path();path.move(to:CGPoint(x:dot.tx,y:dot.ty));path.addLine(to:CGPoint(x:dot.sx,y:dot.sy))
-                        context.stroke(path,with:.color(ink.opacity(dot.o*0.6)),lineWidth:max(dot.d*0.7,1))
-                    }
-                    context.fill(Path(CGRect(x:dot.sx-dot.d/2,y:dot.sy-dot.d/2,width:dot.d,height:dot.d)),with:.color(ink.opacity(dot.o)))
-                }
-            }
-            .frame(width:size,height:size)
+            NOVAOrbCanvas(mood:mood,t:timeline.date.timeIntervalSinceReferenceDate)
+                .frame(width:size,height:size)
         }
         .frame(width:size,height:size)
         .accessibilityElement(children:.ignore)
