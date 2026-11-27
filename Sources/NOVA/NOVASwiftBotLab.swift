@@ -92,21 +92,23 @@ extension NOVABotCamera:AVCapturePhotoCaptureDelegate {
 
 struct NOVASwiftBotCameraPreview:UIViewRepresentable {
     @ObservedObject var camera:NOVABotCamera
-    func makeUIView(context:Context)->UIView {
-        let view=UIView();view.backgroundColor = .black
+    func makeUIView(context:Context)->NOVABotCameraPreviewView {
+        let view=NOVABotCameraPreviewView();view.backgroundColor = .black
         #if targetEnvironment(simulator)
         // Simulatore: niente layer fotocamera (anteprima comunque nera) cosi' XCUITest legge la gerarchia.
         #else
         let layer=AVCaptureVideoPreviewLayer(session:camera.session)
         layer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(layer)
-        context.coordinator.layer=layer
+        view.previewLayer=layer
         #endif
         return view
     }
-    func updateUIView(_ view:UIView,context:Context){context.coordinator.layer?.frame=view.bounds}
-    func makeCoordinator()->Coordinator{Coordinator()}
-    final class Coordinator { var layer:AVCaptureVideoPreviewLayer? }
+    func updateUIView(_ view:NOVABotCameraPreviewView,context:Context){}
+}
+final class NOVABotCameraPreviewView:UIView {
+    var previewLayer:AVCaptureVideoPreviewLayer?
+    override func layoutSubviews(){super.layoutSubviews();CATransaction.begin();CATransaction.setDisableActions(true);previewLayer?.frame=bounds;CATransaction.commit()}
 }
 
 struct NOVASwiftBotCameraSheet:View {
@@ -115,43 +117,22 @@ struct NOVASwiftBotCameraSheet:View {
     @StateObject private var camera=NOVABotCamera()
     @State private var shot:UIImage?
     var body:some View {
-        VStack(spacing:14){
-            HStack{
-                Button("Annulla"){dismiss()}.accessibilityIdentifier("swiftBotCamCancel")
+        ZStack(alignment:.top){
+            NOVASwiftBotCameraPreview(camera:camera).ignoresSafeArea()
+            if let shot=shot{Image(uiImage:shot).resizable().scaledToFill().ignoresSafeArea()}
+            VStack{
                 Spacer()
-                Text("Scansiona per NOVA").font(.headline)
-                Spacer()
-                Button("Annulla"){dismiss()}.hidden()
+                Text("Inquadra la pagina o l'esercizio").font(.footnote).foregroundStyle(.white).padding(.horizontal,12).padding(.vertical,6).background(.black.opacity(0.55),in:Capsule())
+                Button{
+                    camera.capture{image in if let image=image{shot=image;let scale=min(1,1200/max(image.size.width,image.size.height));let size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};onCapture("data:image/jpeg;base64,"+jpeg.base64EncodedString());dismiss()}}
+                }label:{
+                    ZStack{Circle().stroke(Color.white.opacity(0.9),lineWidth:4).frame(width:64,height:64);Circle().fill(Color.white).frame(width:50,height:50)}
+                }.buttonStyle(.plain).accessibilityLabel("Scatta foto").accessibilityIdentifier("swiftBotCamCapture").padding(.top,14).padding(.bottom,34)
             }
-            ZStack{
-                NOVASwiftBotCameraPreview(camera:camera)
-                    .clipShape(RoundedRectangle(cornerRadius:24))
-                if let shot=shot{Image(uiImage:shot).resizable().scaledToFill().clipShape(RoundedRectangle(cornerRadius:24))}
-                NOVASwiftScannerCorners().stroke(Color.white,lineWidth:4).padding(26)
-                VStack{Spacer();Text("Inquadra la pagina o l'esercizio dentro la cornice").font(.footnote).foregroundStyle(.white).padding(.horizontal,12).padding(.vertical,6).background(.black.opacity(0.55),in:Capsule()).padding(.bottom,14)}
-            }
-            .frame(maxWidth:.infinity)
-            .layoutPriority(1)
-            Button{
-                camera.capture{image in if let image=image{shot=image;let scale=min(1,1200/max(image.size.width,image.size.height));let size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.7){_ in image.draw(in:CGRect(origin:.zero,size:size))};onCapture("data:image/jpeg;base64,"+jpeg.base64EncodedString());dismiss()}}
-            }label:{
-                ZStack{Circle().stroke(Color.primary.opacity(0.35),lineWidth:4).frame(width:64,height:64);Circle().fill(Color.primary).frame(width:50,height:50)}
-            }.buttonStyle(.plain).accessibilityLabel("Scatta foto").accessibilityIdentifier("swiftBotCamCapture")
+            HStack{Text("Scansiona per NOVA").font(.headline).padding(.horizontal,16).padding(.vertical,12).modifier(NOVASwiftAssistantGlass(circle:false));Spacer();Button("Chiudi"){dismiss()}.font(.body.weight(.medium)).padding(.horizontal,16).padding(.vertical,12).modifier(NOVASwiftAssistantGlass(circle:false)).accessibilityIdentifier("swiftBotCamCancel")}.foregroundStyle(.white).padding(.horizontal,16).padding(.top,22)
         }
-        .padding()
         .onAppear{camera.start()}
         .onDisappear{camera.stop()}
-    }
-}
-
-struct NOVASwiftScannerCorners:Shape {
-    func path(in rect:CGRect)->Path {
-        var p=Path();let l:CGFloat=30
-        p.move(to:CGPoint(x:rect.minX,y:rect.minY+l));p.addLine(to:CGPoint(x:rect.minX,y:rect.minY));p.addLine(to:CGPoint(x:rect.minX+l,y:rect.minY))
-        p.move(to:CGPoint(x:rect.maxX-l,y:rect.minY));p.addLine(to:CGPoint(x:rect.maxX,y:rect.minY));p.addLine(to:CGPoint(x:rect.maxX,y:rect.minY+l))
-        p.move(to:CGPoint(x:rect.maxX,y:rect.maxY-l));p.addLine(to:CGPoint(x:rect.maxX,y:rect.maxY));p.addLine(to:CGPoint(x:rect.maxX-l,y:rect.maxY))
-        p.move(to:CGPoint(x:rect.minX+l,y:rect.maxY));p.addLine(to:CGPoint(x:rect.minX,y:rect.maxY));p.addLine(to:CGPoint(x:rect.minX,y:rect.maxY-l))
-        return p
     }
 }
 
@@ -206,7 +187,7 @@ struct NOVASwiftBotChatPreview:View {
             }.padding(.horizontal,14).padding(.vertical,10)
         }
         .navigationTitle("NOVA").navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented:$cameraOpen){NOVASwiftBotCameraSheet{data in fixture.attached=data}.presentationDetents([.medium])}
+        .sheet(isPresented:$cameraOpen){NOVASwiftBotCameraSheet{data in fixture.attached=data}.presentationDetents([.medium]).presentationDragIndicator(.visible)}
         .onAppear{if autoOpenCamera{DispatchQueue.main.asyncAfter(deadline:.now()+0.8){cameraOpen=true}}}
     }
 }
