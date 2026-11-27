@@ -1,8 +1,11 @@
 import SwiftUI
 import AVFoundation
 
-// Stati animati dell'assistente NOVA (proposta item 13): l'orbe cambia colore
-// e movimento in base a cosa sta facendo il bot.
+// Stati animati dell'assistente NOVA (item 13): orbe di punti su sfera che
+// replica in nativo il look e il moto dei "Thinking orbs" di libraries.dev
+// (niente libreria: i kit Pro sono a pagamento). ~200 punti quadrati su un
+// reticolo di Fibonacci, proiezione prospettica, profondita' in scala e
+// opacita'; ogni stato ha il suo movimento caratteristico.
 enum NOVABotMood:String,CaseIterable {
     case thinking, searching, connecting, listening
     var title:String {
@@ -13,37 +16,88 @@ enum NOVABotMood:String,CaseIterable {
         case .listening: return "Ti ascolto…"
         }
     }
-    var colors:[Color] {
+    var speed:Double {
         switch self {
-        case .thinking: return [Color(red:0.44,green:0.48,blue:1.0),Color(red:0.68,green:0.45,blue:1.0)]
-        case .searching: return [Color(red:0.20,green:0.85,blue:0.55),Color(red:0.30,green:0.65,blue:1.0)]
-        case .connecting: return [Color(red:1.0,green:0.65,blue:0.30),Color(red:1.0,green:0.45,blue:0.55)]
-        case .listening: return [Color(red:1.0,green:0.35,blue:0.55),Color(red:0.65,green:0.40,blue:1.0)]
+        case .thinking: return 2.4
+        case .searching: return 0.9
+        case .connecting: return 0.7
+        case .listening: return 0.45
         }
     }
-    var pulse:Double { self == .listening ? 6.0 : 2.2 }
 }
 
 struct NOVASwiftOrb:View {
     let mood:NOVABotMood
     var size:CGFloat = 56
+    private let count=207
     var body:some View {
         TimelineView(.animation){timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            ZStack{
-                Circle().fill(mood.colors[0]).frame(width:size*0.92,height:size*0.92)
-                    .offset(x:CGFloat(sin(t*1.3))*size*0.12,y:CGFloat(cos(t*1.1))*size*0.12)
-                    .blur(radius:size*0.20)
-                Circle().fill(mood.colors[1]).frame(width:size*0.74,height:size*0.74)
-                    .offset(x:CGFloat(cos(t*0.9+1.0))*size*0.14,y:CGFloat(sin(t*1.4+2.0))*size*0.14)
-                    .blur(radius:size*0.16)
-                Circle().fill(Color.white.opacity(0.85)).frame(width:size*0.26,height:size*0.26)
-                    .offset(y:CGFloat(sin(t*2.0))*size*0.05)
-                    .blur(radius:size*0.08)
+            let t=timeline.date.timeIntervalSinceReferenceDate
+            Canvas{context,rect in
+                let cx=rect.midX, cy=rect.midY
+                var R=rect.width*0.40
+                if mood == .listening { R *= 1.0+0.04*sin(t*2.2) }
+                let tilt=0.42
+                let a=t*mood.speed
+                let persp=3.2
+                struct Dot { var sx:CGFloat; var sy:CGFloat; var d:CGFloat; var o:Double; var tx:CGFloat; var ty:CGFloat }
+                var dots:[Dot]=[]
+                dots.reserveCapacity(count)
+                for i in 0..<count {
+                    let fi=Double(i)
+                    let y0=1.0-2.0*(fi+0.5)/Double(count)
+                    let rr=(1.0-y0*y0).squareRoot()
+                    let th=fi*2.399963229728653
+                    let x0=cos(th)*rr, z0=sin(th)*rr
+                    let xr=x0*cos(a)+z0*sin(a)
+                    let zr=-x0*sin(a)+z0*cos(a)
+                    let y=y0*cos(tilt)-zr*sin(tilt)
+                    let z=y0*sin(tilt)+zr*cos(tilt)
+                    let scale=persp/(persp-z)
+                    var dot=Double(rect.width)*0.045*scale
+                    var opacity=0.25+0.75*((z+1)/2)
+                    switch mood {
+                    case .thinking:
+                        let sweep=a.truncatingRemainder(dividingBy:.pi*2)
+                        var rel=(sweep-atan2(z,xr)).truncatingRemainder(dividingBy:.pi*2)
+                        if rel<0 {rel+=.pi*2}
+                        if rel<1.5 {opacity*=0.10+0.90*(rel/1.5)}
+                    case .connecting:
+                        opacity*=0.55+0.45*sin(t*3.0-atan2(z,xr)*2.0)
+                    case .listening:
+                        dot*=1.0+0.45*sin(t*5.2-(x0+y0+z0)*3.0)
+                    case .searching:
+                        break
+                    }
+                    let sx=cx+CGFloat(xr*scale)*R
+                    let sy=cy+CGFloat(y*scale)*R
+                    var tx=sx, ty=sy
+                    if mood == .thinking {
+                        let a2=a-0.10
+                        let x2=x0*cos(a2)+z0*sin(a2)
+                        let z2r=-x0*sin(a2)+z0*cos(a2)
+                        let y2=y0*cos(tilt)-z2r*sin(tilt)
+                        let z2=y0*sin(tilt)+z2r*cos(tilt)
+                        let scale2=persp/(persp-z2)
+                        tx=cx+CGFloat(x2*scale2)*R
+                        ty=cy+CGFloat(y2*scale2)*R
+                    }
+                    dots.append(Dot(sx:sx,sy:sy,d:CGFloat(max(dot,Double(rect.width)*0.012)),o:opacity,tx:tx,ty:ty))
+                }
+                // Algoritmo del pittore: prima i punti sul retro.
+                dots.sort{ $0.o < $1.o }
+                let ink=Color.primary
+                for dot in dots {
+                    if mood == .thinking {
+                        var path=Path();path.move(to:CGPoint(x:dot.tx,y:dot.ty));path.addLine(to:CGPoint(x:dot.sx,y:dot.sy))
+                        context.stroke(path,with:.color(ink.opacity(dot.o*0.6)),lineWidth:max(dot.d*0.7,1))
+                    }
+                    context.fill(Path(CGRect(x:dot.sx-dot.d/2,y:dot.sy-dot.d/2,width:dot.d,height:dot.d)),with:.color(ink.opacity(dot.o)))
+                }
             }
             .frame(width:size,height:size)
-            .scaleEffect(1.0+0.04*CGFloat(sin(t*mood.pulse)))
         }
+        .frame(width:size,height:size)
         .accessibilityElement(children:.ignore)
         .accessibilityLabel("Stato assistente: \(mood.title)")
         .accessibilityIdentifier("swiftOrb"+mood.rawValue.capitalized)
