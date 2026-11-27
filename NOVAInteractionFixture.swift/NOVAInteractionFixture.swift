@@ -450,7 +450,7 @@ import UIKit
         NavigationLink("Bot · Cerco sul web"){NOVASwiftBotChatPreview(mood:.searching,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotSearching")
         NavigationLink("Bot · Collegando"){NOVASwiftBotChatPreview(mood:.connecting,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotConnecting")
         NavigationLink("Bot · Ti ascolto"){NOVASwiftBotChatPreview(mood:.listening,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotListening")
-        NavigationLink("Bot · Fotocamera scanner"){NOVASwiftBotChatPreview(mood:.thinking,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotCamera")
+        NavigationLink("Bot · Fotocamera scanner"){NOVASwiftBotChatPreview(mood:.thinking,fixture:NOVABotLabFixture.shared,autoOpenCamera:true)}.accessibilityIdentifier("fixtureBotCamera")
     }.navigationTitle("NOVA bot lab")}}
 }
 
