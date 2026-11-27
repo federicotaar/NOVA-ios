@@ -1447,6 +1447,59 @@ enum Groq {
     // Groq depreca in fretta: llama-4 vision spenti a meta 2026, llama-3.x chat spenti ago 2026.
     // Vivi ora (ott 2026): gpt-oss per chat, qwen3.8-27b per vision. Controlla console.groq.com/docs/deprecations.
     static let models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
+
+    static let searchTool: [String: Any] = [
+        "type": "function",
+        "function": [
+            "name": "cerca_web",
+            "description": "Cerca informazioni aggiornate sul web: notizie, eventi recenti, date, risultati, fatti che cambiano nel tempo. Usala SOLO quando la risposta richiede dati attuali o esterni non presenti nella conversazione.",
+            "parameters": ["type": "object", "properties": ["query": ["type": "string", "description": "Query di ricerca breve, in italiano"]], "required": ["query"]]
+        ]
+    ]
+
+    static func webSearch(_ query: String) async -> String {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return #"{"ok":false}"# }
+        var results: [[String: String]] = []
+        func stripTags(_ html: String) -> String {
+            (try? NSRegularExpression(pattern: "<[^>]+>"))?.stringByReplacingMatches(in: html, range: NSRange(html.startIndex..., in: html), withTemplate: "") ?? html
+        }
+        if var comps = URLComponents(string: "https://it.wikipedia.org/w/rest.php/v1/search/page") {
+            comps.queryItems = [URLQueryItem(name: "q", value: q), URLQueryItem(name: "limit", value: "3")]
+            var req = URLRequest(url: comps.url!)
+            req.timeoutInterval = 12
+            req.setValue("NOVA-school-assistant/1.0", forHTTPHeaderField: "User-Agent")
+            if let (data, resp) = try? await URLSession.shared.data(for: req), (resp as? HTTPURLResponse)?.statusCode == 200,
+               let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let pages = j["pages"] as? [[String: Any]] {
+                for p in pages.prefix(3) {
+                    let title = String((p["title"] as? String ?? "").prefix(120))
+                    let snippet = String(stripTags(p["excerpt"] as? String ?? "").replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines).prefix(300))
+                    let slug = (p["title"] as? String ?? "").replacingOccurrences(of: " ", with: "_")
+                    if !title.isEmpty { results.append(["source": "Wikipedia", "title": title, "snippet": snippet, "url": "https://it.wikipedia.org/wiki/" + slug]) }
+                }
+            }
+        }
+        if var comps = URLComponents(string: "https://news.google.com/rss/search") {
+            comps.queryItems = [URLQueryItem(name: "q", value: q), URLQueryItem(name: "hl", value: "it"), URLQueryItem(name: "gl", value: "IT"), URLQueryItem(name: "ceid", value: "IT:it")]
+            var req = URLRequest(url: comps.url!)
+            req.timeoutInterval = 12
+            req.setValue("NOVA-school-assistant/1.0", forHTTPHeaderField: "User-Agent")
+            if let (data, resp) = try? await URLSession.shared.data(for: req), (resp as? HTTPURLResponse)?.statusCode == 200,
+               let xml = String(data: data, encoding: .utf8) {
+                for item in xml.components(separatedBy: "<item>").dropFirst().prefix(3) {
+                    func tag(_ name: String) -> String {
+                        guard let open = item.range(of: "<" + name + ">"), let close = item.range(of: "</" + name + ">"), open.upperBound <= close.lowerBound else { return "" }
+                        return String(item[open.upperBound..<close.lowerBound])
+                    }
+                    let title = String(tag("title").prefix(160))
+                    if !title.isEmpty { results.append(["source": "Notizie", "title": title, "snippet": tag("pubDate"), "url": String(tag("link").prefix(300))]) }
+                }
+            }
+        }
+        let out: [String: Any] = ["ok": true, "results": results]
+        return (try? JSONSerialization.data(withJSONObject: out)).flatMap { String(data: $0, encoding: .utf8) } ?? #"{"ok":false}"#
+    }
     static let visionModels = ["qwen/qwen3.8-27b"]
     static let base = "https://api.groq.com/openai/v1"
 
@@ -1475,25 +1528,46 @@ enum Groq {
         case "chat":
             guard let key = Secret.get("groq") else { return ["ok": 0, "err": "nokey"] }
             let msgs = msg["messages"] as? [[String: Any]] ?? []
+            let onSearching = msg["onSearching"] as? () -> Void
             for model in models {
-                var req = URLRequest(url: URL(string: base + "/chat/completions")!)
-                req.httpMethod = "POST"
-                req.timeoutInterval = 60
-                req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
-                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                let body: [String: Any] = ["model": model, "messages": msgs, "temperature": 0.5, "max_tokens": 2500, "reasoning_effort": "low"]
-                req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-                do {
-                    let (data, resp) = try await URLSession.shared.data(for: req)
-                    let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
-                    if status == 200,
-                       let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let ch = (j["choices"] as? [[String: Any]])?.first,
-                       let m = ch["message"] as? [String: Any],
-                       let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model] }
-                    if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
-                    if status == 429 { return ["ok": 0, "err": "limite"] }
-                } catch { return ["ok": 0, "err": "rete"] }
+                var conversation = msgs
+                var searches = 0
+                for round in 0...3 {
+                    var req = URLRequest(url: URL(string: base + "/chat/completions")!)
+                    req.httpMethod = "POST"
+                    req.timeoutInterval = 60
+                    req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    var body: [String: Any] = ["model": model, "messages": conversation, "temperature": 0.5, "max_tokens": 2500, "reasoning_effort": "low"]
+                    if round == 0 { body["tools"] = [searchTool]; body["tool_choice"] = "auto" }
+                    req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                    do {
+                        let (data, resp) = try await URLSession.shared.data(for: req)
+                        let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                        if status == 200,
+                           let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let ch = (j["choices"] as? [[String: Any]])?.first,
+                           let m = ch["message"] as? [String: Any] {
+                            if searches < 2,
+                               let calls = m["tool_calls"] as? [[String: Any]], !calls.isEmpty,
+                               let call = calls.first,
+                               (call["function"] as? [String: Any])?["name"] as? String == "cerca_web" {
+                                searches += 1
+                                onSearching?()
+                                let argText = (call["function"] as? [String: Any])?["arguments"] as? String ?? "{}"
+                                let query = ((try? JSONSerialization.jsonObject(with: Data(argText.utf8))) as? [String: Any])?["query"] as? String ?? ""
+                                let found = await webSearch(query)
+                                conversation.append(["role": "assistant", "content": m["content"] as? String ?? "", "tool_calls": calls])
+                                conversation.append(["role": "tool", "tool_call_id": call["id"] as? String ?? "", "content": found])
+                                continue
+                            }
+                            if let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model, "searched": searches] }
+                        }
+                        if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
+                        if status == 429 { return ["ok": 0, "err": "limite"] }
+                        break
+                    } catch { return ["ok": 0, "err": "rete"] }
+                }
             }
             return ["ok": 0, "err": "modello"]
         case "vision":
