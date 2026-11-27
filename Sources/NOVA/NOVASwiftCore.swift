@@ -484,7 +484,7 @@ extension NOVAJSON {
             Text(o["c"]?.string ?? "").textSelection(.enabled)
             ForEach(Array((o["acts"]?.array ?? []).enumerated()),id:\.offset){action,value in assistantAction(index:index,action:action,value:value) }
         }.padding(.horizontal,14).padding(.vertical,10).background(o["r"]?.string=="user" ? Color.accentColor.opacity(0.16):Color.secondary.opacity(0.10),in:RoundedRectangle(cornerRadius:20))
-        if o["r"]?.string!="user"{Spacer(minLength:40)}
+        if o["r"]?.string != "user"{Spacer(minLength:40)}
         }
     }
     private func assistantAction(index:Int,action:Int,value:NOVAJSON) -> some View {
