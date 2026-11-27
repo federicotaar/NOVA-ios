@@ -512,7 +512,7 @@ extension NOVAJSON {
         guard Secret.get("groq") != nil else{status="Prima salva la tua chiave Groq nelle impostazioni.";return}
         let snapshot=store.archive!.active.object ?? [:]
         do{try store.update(owner:owner){root in var chat=root["chat"]?.array ?? [];var item:[String:NOVAJSON]=["r":.string("user"),"c":.string(text)];if let image=image{item["img"] = .string(image)};chat.append(.object(item));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Messaggio non salvato. Riprova.";return}
-        draft="";photoDraft=nil;sending=true;mood = .connecting;generation+=1;let expected=generation,expectedOwner=owner,expectedSession=store.archive.flatMap{NOVASession($0.active)}
+        draft="";photoDraft=nil;sending=true;mood = .connecting;generation+=1;let expected=generation,expectedOwner=owner,expectedSession=store.archive.flatMap{NOVASession($0.active)},shown=Date()
         Task{try? await Task.sleep(nanoseconds:1_200_000_000);if sending && generation==expected{mood = .thinking}}
         let permission=snapshot["aiAct"]?.string ?? "ask"
         let system=NOVASwiftAssistantActions.system(snapshot)
@@ -520,7 +520,7 @@ extension NOVAJSON {
         Task{
             let response:[String:Any]
             if let image=image{response=await Groq.handle(["op":"vision","img":image,"prompt":system+"\nRichiesta: "+text])}else{response=await Groq.handle(["op":"chat","messages":[["role":"system","content":system]]+history,"onSearching":{Task{await MainActor.run{if expected==generation,expectedOwner==store.archive?.owner{mood = .searching}}}}])}
-            guard expected==generation,expectedOwner==store.archive?.owner,store.archive.flatMap({NOVASession($0.active)})==expectedSession else{return};sending=false
+            let orbElapsed=Date().timeIntervalSince(shown);if orbElapsed<1.5{try? await Task.sleep(nanoseconds:UInt64((1.5-orbElapsed)*1_000_000_000))};guard expected==generation,expectedOwner==store.archive?.owner,store.archive.flatMap({NOVASession($0.active)})==expectedSession else{return};sending=false
             let answer=(response["ok"] as? Int)==1 ? (response["text"] as? String ?? ""):"Richiesta non completata. Controlla connessione e chiave Groq."
             let (visible,actions)=NOVASwiftAssistantActions.parse(answer,permission:permission)
             do{try store.update(owner:expectedOwner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("assistant"),"c":.string(visible),"acts":.array(actions)]));root["chat"] = .array(Array(chat.suffix(40)))};if permission=="always"{let message=messages.count-1;for action in actions.indices{await NOVASwiftAssistantActions.run(store,owner:expectedOwner,message:message,action:action,automatic:true)}}}catch{status="Risposta ricevuta ma non salvata: "+visible}
@@ -559,7 +559,7 @@ extension NOVAJSON {
             ToolbarItem(placement:.cancellationAction){Button("Annulla"){dismiss()}.disabled(saving)}
             ToolbarItem(placement:.confirmationAction){Button(saving ? "Salvo…":"Salva"){Task{await save()}}.disabled(saving)}
         }}.sheet(isPresented:$songPicker){NOVASwiftSongPicker(draft:$draft)}
-        .onAppear{active=true;guard !initialized else{return};initialized=true;owner=store.archive?.owner ?? "";draft=store.archive?.active.object?["prof"]?.object ?? [:];token=store.archive?.active.object?["acct"]?.object?["token"]?.string ?? ""}
+        .onAppear{active=true;guard !initialized else{return};initialized=true;owner=store.archive?.owner ?? "";draft=store.archive?.active.object?["prof"]?.object ?? [:];token=store.archive?.active.object?["acct"]?.object?["token"]?.string ?? "";if let avatar=draft["avatar"]?.string,avatar.count>400_000,let bytes=Data(base64Encoded:avatar.components(separatedBy:",").last ?? ""),let image=UIImage(data:bytes){let side=min(image.size.width,image.size.height);let scale=256/side;let jpeg=UIGraphicsImageRenderer(size:CGSize(width:256,height:256)).jpegData(withCompressionQuality:0.65){_ in image.draw(in:CGRect(x:-(image.size.width-side)*scale/2,y:-(image.size.height-side)*scale/2,width:image.size.width*scale,height:image.size.height*scale))};draft["avatar"] = .string("data:image/jpeg;base64,"+jpeg.base64EncodedString())}}
         .onDisappear{active=false;photoEpoch+=1}
         .onChange(of:photo){_,item in
             photoEpoch+=1;let expected=photoEpoch,expectedOwner=owner
