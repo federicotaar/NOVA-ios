@@ -443,3 +443,18 @@ import UIKit
  let social=NOVASwiftSocial(transport:transport)
  let page=UIHostingController(rootView:NavigationStack{NOVASwiftConversation(store:store,social:social,id:"demo",title:"Chat demo")});page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];Task{await social.open("demo",store);try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}}
 }
+
+@MainActor struct NOVASwiftBotLabMenu:View {
+    var body:some View {NavigationStack{List{
+        NavigationLink("Bot · Sta pensando"){NOVASwiftBotChatPreview(mood:.thinking,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotThinking")
+        NavigationLink("Bot · Cerco sul web"){NOVASwiftBotChatPreview(mood:.searching,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotSearching")
+        NavigationLink("Bot · Collegando"){NOVASwiftBotChatPreview(mood:.connecting,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotConnecting")
+        NavigationLink("Bot · Ti ascolto"){NOVASwiftBotChatPreview(mood:.listening,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotListening")
+        NavigationLink("Bot · Fotocamera scanner"){NOVASwiftBotChatPreview(mood:.thinking,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotCamera")
+    }.navigationTitle("NOVA bot lab")}}
+}
+
+@MainActor func visualSwiftBotLabReady(_ web:WKWebView,_ attempt:Int){
+ guard let root=web.window?.rootViewController else{if attempt<60{DispatchQueue.main.asyncAfter(deadline:.now()+1){visualSwiftBotLabReady(web,attempt+1)}};return}
+ let page=UIHostingController(rootView:NOVASwiftBotLabMenu());page.modalPresentationStyle = .fullScreen;root.present(page,animated:false){let dir=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0];try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
+}
