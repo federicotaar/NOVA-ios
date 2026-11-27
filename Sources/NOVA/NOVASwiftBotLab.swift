@@ -46,7 +46,7 @@ struct NOVASwiftOrb:View {
             Canvas{context,rect in
                 let cx=rect.midX, cy=rect.midY
                 var R=rect.width*0.40
-                if mood == .listening { R *= 1.0+0.04*sin(t*2.2) }
+                if mood == .listening { R *= CGFloat(1.0+0.04*sin(t*2.2)) }
                 let tilt=0.42
                 let a=t*mood.speed
                 let persp=3.2
