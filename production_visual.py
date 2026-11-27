@@ -8,7 +8,10 @@
 # checkout in place; runners are disposable, nothing here ships.
 from pathlib import Path
 s=Path('Sources/NOVA/NOVAApp.swift').read_text()+chr(10)+chr(10).join(p.read_text() for p in sorted(Path('Sources/NOVA').glob('*.swift')) if p.name!='NOVAApp.swift')
-h=Path('Sources/NOVA/nova.html');html=h.read_text();html=html.replace(' const syncNative=()=>{syncDashboard();syncGlassButtons();', ' window.__settingsTestKeys=()=>({fields:nativeFields,epoch:settingsEpoch,sync:syncNative,dashboardFields,dashboardEpoch});const syncNative=()=>{syncDashboard();syncGlassButtons();');h.write_text(html)
+h=Path('Sources/NOVA/nova.html');html=h.read_text();html=html.replace(' const syncNative=()=>{syncDashboard();syncGlassButtons();', ' window.__settingsTestKeys=()=>({fields:nativeFields,epoch:settingsEpoch,sync:syncNative,dashboardFields,dashboardEpoch});const syncNative=()=>{syncDashboard();syncGlassButtons();')
+for cdn in ('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js','https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js','https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'):
+    html=html.replace('<script defer src="'+cdn+'"></script>','<script defer crossorigin="anonymous" src="'+cdn+'"></script>')
+h.write_text(html)
 r=Path('ChatRegression.swift').read_text();fixture=r.split(' let fixture="""',1)[1].split('"""',1)[0]
 fixture += '''
  window.testErrorDetails=[];window.addEventListener('error',e=>testErrorDetails.push({message:e.message,file:e.filename,line:e.lineno,column:e.colno}));const demoCanvas=document.createElement('canvas');demoCanvas.width=demoCanvas.height=64;const demoCtx=demoCanvas.getContext('2d');demoCtx.fillStyle='#6877ef';demoCtx.fillRect(0,0,64,64);demoCtx.fillStyle='#fff';demoCtx.font='bold 36px sans-serif';demoCtx.fillText('N',17,45);const demoAvatar=demoCanvas.toDataURL('image/png');const demoState=JSON.parse(localStorage.getItem('nova.v1'));demoState.prof.avatar=demoAvatar;demoState.tasks=[{id:'synthetic-task',title:'Synthetic homework',subj:'Maths',due:'2026-10-30T17:00',done:0}];localStorage.setItem('nova.v1',JSON.stringify(demoState));const oldDemoFetch=window.fetch;window.fetch=async(...args)=>{const res=await oldDemoFetch(...args),oldJson=res.json;res.json=async()=>{const j=await oldJson();if(j.friends)j.friends.forEach(f=>f.avatar=demoAvatar);if(j.chats)j.chats=[{id:'synthetic',type:'dm',title:'Example friend',avatar:demoAvatar,unread:0}];return j};return res};
@@ -964,11 +967,12 @@ if os.environ.get("NOVA_HOME_INTERACTION")=="1":
    web.evaluateJavaScript("String(($('#gxB')&&$('#gxB').innerHTML.length)||'EMPTY')"){v,_ in let t=(v as? String) ?? "NIL";try? t.write(to:dir.appendingPathComponent("production-home-gx.txt"),atomically:true,encoding:.utf8)}
    web.evaluateJavaScript("profOpen(0)"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.5){visualProductionSave(web,"production-profile-badges.png")
     web.evaluateJavaScript("[...document.querySelectorAll('#dBg [data-b]')].find(b=>b.dataset.b=='Sportivo')?.click()"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1){visualProductionSave(web,"production-profile-badge-picked.png")
-     web.evaluateJavaScript("try{$('#dProf')?.close()}catch(e){};try{pg(4);$('#bSet').click()}catch(e){}"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.5){visualProductionSave(web,"production-temi-picker.png")
+     web.evaluateJavaScript("try{$('#dProf')?.close()}catch(e){};try{pg(4);$('#bSet').click()}catch(e){}"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.5){web.evaluateJavaScript("try{document.querySelector('#fA').scrollIntoView({block:'center'})}catch(e){}"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+0.8){visualProductionSave(web,"production-temi-picker.png")
       web.evaluateJavaScript("try{document.querySelector('#fA [data-v=viola]')?.click()}catch(e){}"){_,_ in DispatchQueue.main.asyncAfter(deadline:.now()+1.2){visualProductionSave(web,"production-accent.png")
        web.evaluateJavaScript("JSON.stringify(window.testErrorDetails||[])"){v,_ in let t=(v as? String) ?? "NIL";try? t.write(to:dir.appendingPathComponent("production-accent-errors.txt"),atomically:true,encoding:.utf8);try? Data().write(to:dir.appendingPathComponent("interaction-ready"))}
       }}
      }}
+    }}
     }}
    }}
   }}
