@@ -431,9 +431,12 @@ jobs:
               timeout: 30000
           - tapOn:
               id: "swiftBotCamOpen"
-          - extendedWaitUntil:
-              visible: "Scansiona per NOVA"
-              timeout: 30000
+          # XCUITest snapshots go blind while the camera sheet is presented on the
+          # simulator (hierarchy returns SpringBoard only), so a text assert cannot
+          # see the sheet even though it renders. Settle, then screenshot: the
+          # artifact review is the gate for this preview capture.
+          - waitForAnimationToEnd:
+              timeout: 8000
           - takeScreenshot: evidence/bot-camera
           FLOW
           ok=0
