@@ -1,0 +1,22 @@
+name: backend-contract
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Sources/NOVA/**'
+      - 'Scripts/check_backend_contract.py'
+      - '.github/workflows/backend-contract.yml'
+  pull_request:
+    paths:
+      - 'Sources/NOVA/**'
+      - 'Scripts/check_backend_contract.py'
+      - '.github/workflows/backend-contract.yml'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check client keys against the live worker contract
+        run: python3 Scripts/check_backend_contract.py
