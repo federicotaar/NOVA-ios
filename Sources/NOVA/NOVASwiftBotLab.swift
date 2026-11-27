@@ -41,7 +41,7 @@ private struct NOVAOrbCanvas:View {
     let t:Double
     var body:some View {
         Canvas{context,rect in
-            let cx=rect.midX, cy=rect.midY
+            let cx=rect.width/2, cy=rect.height/2
             var R=rect.width*0.40
             if mood == .listening { R *= CGFloat(1.0+0.04*sin(t*2.2)) }
             let tilt=0.42
