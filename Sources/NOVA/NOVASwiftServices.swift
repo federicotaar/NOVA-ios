@@ -80,8 +80,7 @@ import SwiftUI
             }
         }
     }
-    var body:some View{Form{
-        assistantSection
+    @ViewBuilder private var schoolSection:some View{
         Section("ClasseViva"){
             if store.archive?.active.object?["cv"]?.object?["on"]?.flag==true{Text("Collegato: "+(store.archive?.active.object?["cv"]?.object?["name"]?.string ?? ""));Button("Aggiorna registro"){Task{await model.schoolRequest("refresh",store)}};Button("Scollega ClasseViva",role:.destructive){confirmSchool=true}}
             TextField("Codice utente o email",text:$uid).textInputAutocapitalization(.never).autocorrectionDisabled();SecureField("Password",text:$password)
@@ -89,6 +88,8 @@ import SwiftUI
             ForEach(Array(model.choices.enumerated()),id:\.offset){_,choice in Button((choice.object?["name"]?.string ?? "Studente")+" · "+(choice.object?["school"]?.string ?? "")){Task{await model.schoolRequest("login",uid:uid,password:password,ident:choice.object?["ident"]?.string ?? "",store);if model.choices.isEmpty{password=""}}}}
             Text("Password salvata nel Portachiavi di questo iPhone. I dati già importati restano conservati se l'aggiornamento fallisce.").font(.footnote).foregroundStyle(.secondary)
         }
+    }
+    @ViewBuilder private var spotifySection:some View{
         Section("Spotify"){
             Text(model.spotifyConnected ? "Spotify collegato.":"Spotify non collegato.")
             TextField("Client ID Spotify",text:$client).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -97,7 +98,13 @@ import SwiftUI
             if model.spotifyConnected{Button("Aggiorna riproduzione"){Task{await model.musicRequest("state")}};Button("Scollega Spotify",role:.destructive){Task{await model.musicRequest("logout")}}}
             Text("Controlli di riproduzione: richiedono Spotify Premium. Redirect da configurare nella tua app Spotify: nova://spotify-callback").font(.footnote).foregroundStyle(.secondary)
         }
-        if !model.status.isEmpty{Text(model.status).font(.footnote)}
+    }
+    @ViewBuilder private var statusLine:some View{if !model.status.isEmpty{Text(model.status).font(.footnote)}}
+    var body:some View{Form{
+        assistantSection
+        schoolSection
+        spotifySection
+        statusLine
     }.navigationTitle("Servizi").task{await model.load()}.onDisappear{password="";key="";model.cancel()}.onChange(of:store.archive?.owner){_,_ in password="";key="";model.cancel()}
     .confirmationDialog("Scollegare ClasseViva da questo iPhone? Compiti e voti gia importati restano salvati.",isPresented:$confirmSchool,titleVisibility:.visible){Button("Scollega",role:.destructive){password="";Task{await model.schoolRequest("logout",store)}};Button("Annulla",role:.cancel){}}
     .confirmationDialog("Rimuovere la chiave "+(Groq.provider(model.aiProvider)?.name ?? "API")+" da questo iPhone?",isPresented:$confirmGroq,titleVisibility:.visible){Button("Rimuovi",role:.destructive){Task{await model.aiClear(model.aiProvider)}};Button("Annulla",role:.cancel){}}
