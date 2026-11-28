@@ -1,0 +1,36 @@
+name: Publish botlab evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_id:
+        description: Artifact ID to publish
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download artifact and push evidence branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          curl -sL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ inputs.artifact_id }}/zip" -o /tmp/botlab.zip
+          mkdir -p /tmp/botlab && unzip -o -q /tmp/botlab.zip -d /tmp/botlab
+          git config user.name "nova-ci"; git config user.email "ci@localhost"
+          git checkout --orphan evidence-botlab 2>/dev/null || git checkout evidence-botlab
+          git rm -rf . 2>/dev/null || true
+          mkdir -p botlab
+          cp /tmp/botlab/*.png botlab/ 2>/dev/null || true
+          ls -la botlab/
+          git add botlab/
+          git commit -m "botlab evidence from run 46133665211" || echo "nothing to commit"
+          git push -f origin evidence-botlab
