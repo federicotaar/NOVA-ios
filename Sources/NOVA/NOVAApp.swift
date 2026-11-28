@@ -1452,7 +1452,7 @@ enum Groq {
         "type": "function",
         "function": [
             "name": "cerca_web",
-            "description": "Cerca informazioni aggiornate sul web: notizie, eventi recenti, date, risultati, fatti che cambiano nel tempo. Usala SOLO quando la risposta richiede dati attuali o esterni non presenti nella conversazione.",
+            "description": "Cerca sul web in generale: siti, persone, fatti pubblici, notizie, eventi recenti, date, risultati. Usala quando la risposta richiede dati esterni o attuali non presenti nella conversazione, anche solo per conoscere qualcuno o qualcosa.",
             "parameters": ["type": "object", "properties": ["query": ["type": "string", "description": "Query di ricerca breve, in italiano"]], "required": ["query"]]
         ]
     ]
@@ -1463,6 +1463,63 @@ enum Groq {
         var results: [[String: String]] = []
         func stripTags(_ html: String) -> String {
             (try? NSRegularExpression(pattern: "<[^>]+>"))?.stringByReplacingMatches(in: html, range: NSRange(html.startIndex..., in: html), withTemplate: "") ?? html
+        }
+        func decodeEntities(_ s: String) -> String {
+            var out = s.replacingOccurrences(of: "&amp;", with: "&").replacingOccurrences(of: "&quot;", with: "\"").replacingOccurrences(of: "&#39;", with: "'").replacingOccurrences(of: "&lt;", with: "<").replacingOccurrences(of: "&gt;", with: ">")
+            if let rx = try? NSRegularExpression(pattern: "&#(\\d+);") {
+                for m in rx.matches(in: out, range: NSRange(out.startIndex..., in: out)).reversed() {
+                    if let r = Range(m.range, in: out), let n = Int(out[r].dropFirst(2).dropLast()), let scalar = Unicode.Scalar(n) { out.replaceSubrange(r, with: String(scalar)) }
+                }
+            }
+            return out
+        }
+        if var comps = URLComponents(string: "https://html.duckduckgo.com/html/") {
+            comps.queryItems = [URLQueryItem(name: "q", value: q)]
+            var req = URLRequest(url: comps.url!)
+            req.timeoutInterval = 12
+            req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+            if let (data, resp) = try? await URLSession.shared.data(for: req), (resp as? HTTPURLResponse)?.statusCode == 200,
+               let html = String(data: data, encoding: .utf8) {
+                for chunk in html.components(separatedBy: "class=\"result__a\"").dropFirst().prefix(5) {
+                    guard let hrefStart = chunk.range(of: "href=\""), let hrefEnd = chunk.range(of: "\"", range: hrefStart.upperBound..<chunk.endIndex) else { continue }
+                    var url = String(chunk[hrefStart.upperBound..<hrefEnd.lowerBound])
+                    if let uddg = url.range(of: "uddg=") {
+                        let rest = url[uddg.upperBound...]
+                        let end = rest.range(of: "&")?.lowerBound ?? rest.endIndex
+                        url = String(rest[..<end]).removingPercentEncoding ?? url
+                    }
+                    guard let titleStart = chunk.range(of: ">", range: hrefEnd.upperBound..<chunk.endIndex), let titleEnd = chunk.range(of: "</a>", range: titleStart.upperBound..<chunk.endIndex) else { continue }
+                    let title = String(decodeEntities(stripTags(String(chunk[titleStart.upperBound..<titleEnd.lowerBound]))).prefix(160))
+                    var snippet = ""
+                    if let snip = chunk.range(of: "class=\"result__snippet\""), let snipOpen = chunk.range(of: ">", range: snip.upperBound..<chunk.endIndex), let snipClose = chunk.range(of: "</a>", range: snipOpen.upperBound..<chunk.endIndex) {
+                        snippet = String(decodeEntities(stripTags(String(chunk[snipOpen.upperBound..<snipClose.lowerBound]))).replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines).prefix(300))
+                    }
+                    if !title.isEmpty { results.append(["source": "Web", "title": title, "snippet": snippet, "url": String(url.prefix(300))]) }
+                }
+            }
+        }
+        if !results.contains(where: { $0["source"] == "Web" }), var comps = URLComponents(string: "https://www.bing.com/search") {
+            comps.queryItems = [URLQueryItem(name: "q", value: q), URLQueryItem(name: "setlang", value: "it")]
+            var req = URLRequest(url: comps.url!)
+            req.timeoutInterval = 12
+            req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+            if let (data, resp) = try? await URLSession.shared.data(for: req), (resp as? HTTPURLResponse)?.statusCode == 200,
+               let html = String(data: data, encoding: .utf8) {
+                for chunk in html.components(separatedBy: "<li class=\"b_algo\"").dropFirst().prefix(5) {
+                    let block = String(chunk.components(separatedBy: "</li>").first ?? "")
+                    guard let hrefMark = block.range(of: "href=\""), let quoteEnd = block.range(of: "\"", range: hrefMark.upperBound..<block.endIndex) else { continue }
+                    let candidate = String(block[hrefMark.upperBound..<quoteEnd.lowerBound])
+                    guard let h2Open = block.range(of: "<h2"), let h2TagEnd = block.range(of: ">", range: h2Open.upperBound..<block.endIndex), let h2Close = block.range(of: "</h2>", range: h2TagEnd.upperBound..<block.endIndex) else { continue }
+                    let title = decodeEntities(stripTags(String(block[h2TagEnd.upperBound..<h2Close.lowerBound])).trimmingCharacters(in: .whitespacesAndNewlines))
+                    var snippet = ""
+                    if let pOpen = block.range(of: "<p"), let pOpenEnd = block.range(of: ">", range: pOpen.upperBound..<block.endIndex), let pClose = block.range(of: "</p>", range: pOpenEnd.upperBound..<block.endIndex) {
+                        snippet = String(decodeEntities(stripTags(String(block[pOpenEnd.upperBound..<pClose.lowerBound]))).replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines).prefix(300))
+                    }
+                    if candidate.hasPrefix("http"), !title.isEmpty, !candidate.contains("bing.com") {
+                        results.append(["source": "Web", "title": String(title.prefix(160)), "snippet": snippet, "url": String(candidate.prefix(300))])
+                    }
+                }
+            }
         }
         if var comps = URLComponents(string: "https://it.wikipedia.org/w/rest.php/v1/search/page") {
             comps.queryItems = [URLQueryItem(name: "q", value: q), URLQueryItem(name: "limit", value: "3")]
