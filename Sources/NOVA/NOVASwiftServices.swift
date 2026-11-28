@@ -60,7 +60,7 @@ import SwiftUI
     @State private var confirmSchool=false
     @State private var confirmGroq=false
     @State private var confirmMusic=false
-    var body:some View{Form{
+    @ViewBuilder private var assistantSection:some View{
         Section("Assistente AI"){
             ForEach(Groq.providers,id:\.id){p in
                 Button{key="";Task{await model.aiSelect(p.id)}}label:{
@@ -79,6 +79,9 @@ import SwiftUI
                 Text("La chiave resta nel Portachiavi di questo iPhone e va solo a "+sel.name+", mai ai server NOVA. Puoi salvare più provider e cambiare scelta quando vuoi.").font(.footnote).foregroundStyle(.secondary)
             }
         }
+    }
+    var body:some View{Form{
+        assistantSection
         Section("ClasseViva"){
             if store.archive?.active.object?["cv"]?.object?["on"]?.flag==true{Text("Collegato: "+(store.archive?.active.object?["cv"]?.object?["name"]?.string ?? ""));Button("Aggiorna registro"){Task{await model.schoolRequest("refresh",store)}};Button("Scollega ClasseViva",role:.destructive){confirmSchool=true}}
             TextField("Codice utente o email",text:$uid).textInputAutocapitalization(.never).autocorrectionDisabled();SecureField("Password",text:$password)
