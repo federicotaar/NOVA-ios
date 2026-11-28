@@ -1597,6 +1597,13 @@ enum Groq {
             req = URLRequest(url: URL(string: p.base + "/v1/models")!)
             req.setValue(key, forHTTPHeaderField: "x-api-key")
             req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        } else if p.id == "ollama" {
+            // Ollama Cloud: /v1/models e pubblico, solo le chiamate chat richiedono la chiave.
+            req = URLRequest(url: URL(string: p.base + "/chat/completions")!)
+            req.httpMethod = "POST"
+            req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try? JSONSerialization.data(withJSONObject: ["model": p.models[0], "messages": [["role": "user", "content": "ok"]], "max_tokens": 1])
         } else {
             req = URLRequest(url: URL(string: p.base + "/models")!)
             req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
@@ -1629,6 +1636,8 @@ enum Groq {
                     body["temperature"] = 0.5
                     body["max_tokens"] = 2500
                     body["reasoning_effort"] = "low"
+                } else if p.id == "ollama" {
+                    body["max_tokens"] = 2500
                 } else {
                     body["max_completion_tokens"] = 2500
                     if p.id == "openai" { body["reasoning_effort"] = "none" }
