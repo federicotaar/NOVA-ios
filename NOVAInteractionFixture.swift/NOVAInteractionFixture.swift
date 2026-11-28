@@ -452,6 +452,11 @@ import UIKit
         NavigationLink("Bot reale · Collegando"){NOVASwiftAssistant(store:store,embedded:true,previewMood:.connecting)}.accessibilityIdentifier("fixtureBotRealConnecting")
         NavigationLink("Bot reale · Ti ascolto"){NOVASwiftAssistant(store:store,embedded:true,previewMood:.listening)}.accessibilityIdentifier("fixtureBotRealListening")
         NavigationLink("Bot reale · Fotocamera scanner"){NOVASwiftAssistant(store:store,embedded:true,autoOpenCamera:true)}.accessibilityIdentifier("fixtureBotRealCamera")
+        NavigationLink("Servizi AI"){NOVASwiftServices(store:store,model:NOVASwiftServicesModel(ai:{body in
+            let op=body["op"] as? String ?? ""
+            if op=="has"{return ["ok":1,"has":1,"provider":"gemini","keys":["groq":1,"gemini":1,"openai":0,"anthropic":0,"ollama":0]]}
+            return ["ok":1]
+        }))}.accessibilityIdentifier("fixtureBotServicesAI")
         NavigationLink("Bot · Sta pensando"){NOVASwiftBotChatPreview(mood:.thinking,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotThinking")
         NavigationLink("Bot · Cerco sul web"){NOVASwiftBotChatPreview(mood:.searching,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotSearching")
         NavigationLink("Bot · Collegando"){NOVASwiftBotChatPreview(mood:.connecting,fixture:NOVABotLabFixture.shared)}.accessibilityIdentifier("fixtureBotConnecting")
