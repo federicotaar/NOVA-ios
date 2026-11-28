@@ -425,6 +425,13 @@ jobs:
           - takeScreenshot: evidence/bot-listening
           - tapOn: "NOVA bot lab"
           - tapOn:
+              id: "fixtureBotServicesAI"
+          - extendedWaitUntil:
+              visible: "Verifica e salva chiave"
+              timeout: 30000
+          - takeScreenshot: evidence/bot-services-ai
+          - tapOn: "NOVA bot lab"
+          - tapOn:
               id: "fixtureBotCamera"
           - extendedWaitUntil:
               visible: "Sta pensando…"
