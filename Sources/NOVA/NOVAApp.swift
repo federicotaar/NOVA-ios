@@ -1441,18 +1441,46 @@ enum TT {
     }
 }
 
-// MARK: - Groq (chatbot): api.groq.com, NON Grok di xAI
+// MARK: - Assistente AI: provider a scelta (Groq, Gemini, OpenAI, Anthropic, Ollama Cloud)
+// Le chiavi stanno SOLO nel Portachiavi di questo iPhone e vanno solo al provider
+// scelto, mai ai server NOVA. Endpoint e modelli verificati il 28 nov 2026 dalle
+// rispettive documentazioni ufficiali (console.groq.com, aistudio.google.com,
+// developers.openai.com, platform.claude.com, docs.ollama.com).
+
+struct NOVAAIProvider {
+    let id: String
+    let name: String
+    let prefix: String
+    let console: String
+    let kind: String // "openai" | "gemini" | "anthropic"
+    let base: String
+    let models: [String]
+    let vision: [String]
+    let search: Bool
+}
 
 enum Groq {
-    // Groq depreca in fretta: llama-4 vision spenti a meta 2026, llama-3.x chat spenti ago 2026.
-    // Vivi ora (ott 2026): gpt-oss per chat, qwen3.8-27b per vision. Controlla console.groq.com/docs/deprecations.
-    static let models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
+    static let providers: [NOVAAIProvider] = [
+        NOVAAIProvider(id: "groq", name: "Groq", prefix: "gsk_", console: "https://console.groq.com/keys", kind: "openai", base: "https://api.groq.com/openai/v1", models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"], vision: ["qwen/qwen3.8-27b"], search: true),
+        NOVAAIProvider(id: "gemini", name: "Gemini", prefix: "AIza", console: "https://aistudio.google.com/apikey", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", models: ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"], vision: ["gemini-3.8-flash"], search: true),
+        NOVAAIProvider(id: "openai", name: "OpenAI", prefix: "sk-", console: "https://platform.openai.com/api-keys", kind: "openai", base: "https://api.openai.com/v1", models: ["gpt-5.4-mini"], vision: ["gpt-5.4-mini"], search: true),
+        NOVAAIProvider(id: "anthropic", name: "Anthropic", prefix: "sk-ant-", console: "https://console.anthropic.com/settings/keys", kind: "anthropic", base: "https://api.anthropic.com", models: ["claude-haiku-5-5", "claude-sonnet-5-5"], vision: ["claude-haiku-5-5"], search: true),
+        NOVAAIProvider(id: "ollama", name: "Ollama Cloud", prefix: "", console: "https://ollama.com/settings/keys", kind: "openai", base: "https://ollama.com/v1", models: ["gemma4:31b"], vision: [], search: false),
+    ]
+
+    static func provider(_ id: String) -> NOVAAIProvider? { providers.first { $0.id == id } }
+    static func selectedProvider() -> NOVAAIProvider {
+        let id = UserDefaults.standard.string(forKey: "nova.ai.provider") ?? "groq"
+        return provider(id) ?? providers[0]
+    }
+
+    static let searchDescription = "Cerca sul web in generale: siti, persone, fatti pubblici, notizie, eventi recenti, date, risultati. Usala quando la risposta richiede dati esterni o attuali non presenti nella conversazione, anche solo per conoscere qualcuno o qualcosa."
 
     static let searchTool: [String: Any] = [
         "type": "function",
         "function": [
             "name": "cerca_web",
-            "description": "Cerca sul web in generale: siti, persone, fatti pubblici, notizie, eventi recenti, date, risultati. Usala quando la risposta richiede dati esterni o attuali non presenti nella conversazione, anche solo per conoscere qualcuno o qualcosa.",
+            "description": searchDescription,
             "parameters": ["type": "object", "properties": ["query": ["type": "string", "description": "Query di ricerca breve, in italiano"]], "required": ["query"]]
         ]
     ]
@@ -1557,100 +1585,55 @@ enum Groq {
         let out: [String: Any] = ["ok": true, "results": results]
         return (try? JSONSerialization.data(withJSONObject: out)).flatMap { String(data: $0, encoding: .utf8) } ?? #"{"ok":false}"#
     }
-    static let visionModels = ["qwen/qwen3.8-27b"]
-    static let base = "https://api.groq.com/openai/v1"
 
-    static func handle(_ msg: [String: Any]) async -> [String: Any] {
-        switch msg["op"] as? String ?? "" {
-        case "has":
-            return ["ok": 1, "has": Secret.get("groq") != nil]
-        case "clear":
-            Secret.clear("groq")
-            return ["ok": 1]
-        case "set":
-            let key = (msg["key"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            if key.hasPrefix("xai-") { return ["ok": 0, "err": "grok"] }
-            guard key.hasPrefix("gsk_"), key.count > 20 else { return ["ok": 0, "err": "formato"] }
-            var req = URLRequest(url: URL(string: base + "/models")!)
-            req.timeoutInterval = 20
+    // Verifica la chiave contro la lista modelli del provider prima di salvarla.
+    static func validate(_ p: NOVAAIProvider, _ key: String) async -> [String: Any] {
+        var req: URLRequest
+        if p.kind == "gemini" {
+            var comps = URLComponents(string: p.base + "/models")!
+            comps.queryItems = [URLQueryItem(name: "key", value: key)]
+            req = URLRequest(url: comps.url!)
+        } else if p.kind == "anthropic" {
+            req = URLRequest(url: URL(string: p.base + "/v1/models")!)
+            req.setValue(key, forHTTPHeaderField: "x-api-key")
+            req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        } else {
+            req = URLRequest(url: URL(string: p.base + "/models")!)
             req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
-            do {
-                let (_, resp) = try await URLSession.shared.data(for: req)
-                let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
-                if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
-                guard status == 200 else { return ["ok": 0, "err": "rete", "info": "HTTP \(status)"] }
-            } catch { return ["ok": 0, "err": "rete"] }
-            Secret.set("groq", key)
+        }
+        req.timeoutInterval = 20
+        do {
+            let (_, resp) = try await URLSession.shared.data(for: req)
+            let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
+            if status == 400, p.kind == "gemini" { return ["ok": 0, "err": "key"] }
+            if status == 429 { return ["ok": 0, "err": "limite"] }
+            guard status == 200 else { return ["ok": 0, "err": "rete", "info": "HTTP \(status)"] }
             return ["ok": 1]
-        case "chat":
-            guard let key = Secret.get("groq") else { return ["ok": 0, "err": "nokey"] }
-            let msgs = msg["messages"] as? [[String: Any]] ?? []
-            let onSearching = msg["onSearching"] as? () -> Void
-            for model in models {
-                var conversation = msgs
-                var searches = 0
-                for round in 0...3 {
-                    var req = URLRequest(url: URL(string: base + "/chat/completions")!)
-                    req.httpMethod = "POST"
-                    req.timeoutInterval = 60
-                    req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
-                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    var body: [String: Any] = ["model": model, "messages": conversation, "temperature": 0.5, "max_tokens": 2500, "reasoning_effort": "low"]
-                    if round == 0 { body["tools"] = [searchTool]; body["tool_choice"] = "auto" }
-                    req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-                    do {
-                        let (data, resp) = try await URLSession.shared.data(for: req)
-                        let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
-                        if status == 200,
-                           let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                           let ch = (j["choices"] as? [[String: Any]])?.first,
-                           let m = ch["message"] as? [String: Any] {
-                            if searches < 2,
-                               let calls = m["tool_calls"] as? [[String: Any]], !calls.isEmpty,
-                               let call = calls.first,
-                               (call["function"] as? [String: Any])?["name"] as? String == "cerca_web" {
-                                searches += 1
-                                onSearching?()
-                                let argText = (call["function"] as? [String: Any])?["arguments"] as? String ?? "{}"
-                                let query = ((try? JSONSerialization.jsonObject(with: Data(argText.utf8))) as? [String: Any])?["query"] as? String ?? ""
-                                let found = await webSearch(query)
-                                conversation.append(["role": "assistant", "content": m["content"] as? String ?? "", "tool_calls": calls])
-                                conversation.append(["role": "tool", "tool_call_id": call["id"] as? String ?? "", "content": found])
-                                continue
-                            }
-                            if let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model, "searched": searches] }
-                        }
-                        if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
-                        if status == 429 { return ["ok": 0, "err": "limite"] }
-                        break
-                    } catch { return ["ok": 0, "err": "rete"] }
-                }
-            }
-            return ["ok": 0, "err": "modello"]
-        case "vision":
-            guard let key = Secret.get("groq") else { return ["ok": 0, "err": "nokey"] }
-            let prompt = msg["prompt"] as? String ?? ""
-            let img = msg["img"] as? String ?? ""
-            guard img.hasPrefix("data:image/") else { return ["ok": 0, "err": "img"] }
-            let content: [[String: Any]] = [
-                ["type": "text", "text": prompt],
-                ["type": "image_url", "image_url": ["url": img]]
-            ]
-            var lastInfo = ""
-            for model in visionModels {
-                var req = URLRequest(url: URL(string: base + "/chat/completions")!)
+        } catch { return ["ok": 0, "err": "rete"] }
+    }
+
+    // Chat per i provider compatibili OpenAI: Groq, OpenAI, Ollama Cloud.
+    static func openAIChat(_ p: NOVAAIProvider, _ key: String, _ msgs: [[String: Any]], _ onSearching: (() -> Void)?) async -> [String: Any] {
+        for model in p.models {
+            var conversation = msgs
+            var searches = 0
+            for round in 0...3 {
+                var req = URLRequest(url: URL(string: p.base + "/chat/completions")!)
                 req.httpMethod = "POST"
-                req.timeoutInterval = 90
+                req.timeoutInterval = 60
                 req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                let body: [String: Any] = [
-                    "model": model,
-                    "messages": [["role": "user", "content": content]],
-                    "temperature": 0,
-                    "max_tokens": 3000,
-                    "reasoning_effort": "none",
-                    "response_format": ["type": "json_object"]
-                ]
+                var body: [String: Any] = ["model": model, "messages": conversation]
+                if p.id == "groq" {
+                    body["temperature"] = 0.5
+                    body["max_tokens"] = 2500
+                    body["reasoning_effort"] = "low"
+                } else {
+                    body["max_completion_tokens"] = 2500
+                    if p.id == "openai" { body["reasoning_effort"] = "none" }
+                }
+                if p.search, round == 0 { body["tools"] = [searchTool]; body["tool_choice"] = "auto" }
                 req.httpBody = try? JSONSerialization.data(withJSONObject: body)
                 do {
                     let (data, resp) = try await URLSession.shared.data(for: req)
@@ -1658,14 +1641,249 @@ enum Groq {
                     if status == 200,
                        let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let ch = (j["choices"] as? [[String: Any]])?.first,
-                       let m = ch["message"] as? [String: Any],
-                       let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model] }
+                       let m = ch["message"] as? [String: Any] {
+                        if searches < 2,
+                           let calls = m["tool_calls"] as? [[String: Any]], !calls.isEmpty,
+                           let call = calls.first,
+                           (call["function"] as? [String: Any])?["name"] as? String == "cerca_web" {
+                            searches += 1
+                            onSearching?()
+                            let argText = (call["function"] as? [String: Any])?["arguments"] as? String ?? "{}"
+                            let query = ((try? JSONSerialization.jsonObject(with: Data(argText.utf8))) as? [String: Any])?["query"] as? String ?? ""
+                            let found = await webSearch(query)
+                            conversation.append(["role": "assistant", "content": m["content"] as? String ?? "", "tool_calls": calls])
+                            conversation.append(["role": "tool", "tool_call_id": call["id"] as? String ?? "", "content": found])
+                            continue
+                        }
+                        if let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model, "searched": searches] }
+                    }
                     if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
                     if status == 429 { return ["ok": 0, "err": "limite"] }
-                    if let txt = String(data: data, encoding: .utf8) { lastInfo = String(txt.prefix(300)) }
+                    break
                 } catch { return ["ok": 0, "err": "rete"] }
             }
-            return ["ok": 0, "err": "modello", "info": lastInfo]
+        }
+        return ["ok": 0, "err": "modello"]
+    }
+
+    // Chat Gemini (AI Studio): generateContent con function calling per cerca_web.
+    static func geminiChat(_ p: NOVAAIProvider, _ key: String, _ msgs: [[String: Any]], _ onSearching: (() -> Void)?) async -> [String: Any] {
+        var system = ""
+        var contents: [[String: Any]] = []
+        for m in msgs {
+            let role = m["role"] as? String ?? "user", text = m["content"] as? String ?? ""
+            if role == "system" { system += (system.isEmpty ? "" : "\n") + text; continue }
+            contents.append(["role": role == "assistant" ? "model" : "user", "parts": [["text": text]]])
+        }
+        for model in p.models {
+            var convo = contents
+            var searches = 0
+            for round in 0...3 {
+                var comps = URLComponents(string: p.base + "/models/" + model + ":generateContent")!
+                comps.queryItems = [URLQueryItem(name: "key", value: key)]
+                var req = URLRequest(url: comps.url!)
+                req.httpMethod = "POST"
+                req.timeoutInterval = 60
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                var body: [String: Any] = ["contents": convo, "generationConfig": ["temperature": 0.5, "maxOutputTokens": 2500]]
+                if !system.isEmpty { body["system_instruction"] = ["parts": [["text": system]]] }
+                if p.search, round == 0 {
+                    body["tools"] = [["function_declarations": [["name": "cerca_web", "description": searchDescription, "parameters": ["type": "OBJECT", "properties": ["query": ["type": "STRING", "description": "Query di ricerca breve, in italiano"]], "required": ["query"]]]]]]
+                }
+                req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                do {
+                    let (data, resp) = try await URLSession.shared.data(for: req)
+                    let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                    if status == 200,
+                       let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let cands = j["candidates"] as? [[String: Any]],
+                       let content = cands.first?["content"] as? [String: Any],
+                       let parts = content["parts"] as? [[String: Any]] {
+                        if searches < 2,
+                           let callPart = parts.first(where: { $0["functionCall"] != nil }),
+                           let fc = callPart["functionCall"] as? [String: Any],
+                           fc["name"] as? String == "cerca_web" {
+                            searches += 1
+                            onSearching?()
+                            let query = (fc["args"] as? [String: Any])?["query"] as? String ?? ""
+                            let found = await webSearch(query)
+                            convo.append(["role": "model", "parts": [["functionCall": ["name": "cerca_web", "args": fc["args"] ?? [:]]]]])
+                            convo.append(["role": "user", "parts": [["functionResponse": ["name": "cerca_web", "response": ["output": found]]]]])
+                            continue
+                        }
+                        let text = parts.compactMap { $0["text"] as? String }.joined()
+                        if !text.isEmpty { return ["ok": 1, "text": text, "model": model, "searched": searches] }
+                    }
+                    if status == 400 || status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
+                    if status == 429 { return ["ok": 0, "err": "limite"] }
+                    break
+                } catch { return ["ok": 0, "err": "rete"] }
+            }
+        }
+        return ["ok": 0, "err": "modello"]
+    }
+
+    // Chat Anthropic (Claude): Messages API con tool use per cerca_web.
+    static func anthropicChat(_ p: NOVAAIProvider, _ key: String, _ msgs: [[String: Any]], _ onSearching: (() -> Void)?) async -> [String: Any] {
+        var system = ""
+        var baseMsgs: [[String: Any]] = []
+        for m in msgs {
+            let role = m["role"] as? String ?? "user", text = m["content"] as? String ?? ""
+            if role == "system" { system += (system.isEmpty ? "" : "\n") + text; continue }
+            baseMsgs.append(["role": role == "assistant" ? "assistant" : "user", "content": text])
+        }
+        for model in p.models {
+            var convo = baseMsgs
+            var searches = 0
+            for round in 0...3 {
+                var req = URLRequest(url: URL(string: p.base + "/v1/messages")!)
+                req.httpMethod = "POST"
+                req.timeoutInterval = 60
+                req.setValue(key, forHTTPHeaderField: "x-api-key")
+                req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+                req.setValue("application/json", forHTTPHeaderField: "content-type")
+                var body: [String: Any] = ["model": model, "max_tokens": 2500, "messages": convo]
+                if !system.isEmpty { body["system"] = system }
+                if p.search, round == 0 {
+                    body["tools"] = [["name": "cerca_web", "description": searchDescription, "input_schema": ["type": "object", "properties": ["query": ["type": "string", "description": "Query di ricerca breve, in italiano"]], "required": ["query"]]]]
+                }
+                req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                do {
+                    let (data, resp) = try await URLSession.shared.data(for: req)
+                    let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                    if status == 200,
+                       let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let blocks = j["content"] as? [[String: Any]] {
+                        if searches < 2,
+                           let tu = blocks.first(where: { $0["type"] as? String == "tool_use" }),
+                           tu["name"] as? String == "cerca_web" {
+                            searches += 1
+                            onSearching?()
+                            let query = (tu["input"] as? [String: Any])?["query"] as? String ?? ""
+                            let found = await webSearch(query)
+                            convo.append(["role": "assistant", "content": blocks])
+                            convo.append(["role": "user", "content": [["type": "tool_result", "tool_use_id": tu["id"] as? String ?? "", "content": found]]])
+                            continue
+                        }
+                        let text = blocks.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }.joined()
+                        if !text.isEmpty { return ["ok": 1, "text": text, "model": model, "searched": searches] }
+                    }
+                    if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
+                    if status == 429 { return ["ok": 0, "err": "limite"] }
+                    break
+                } catch { return ["ok": 0, "err": "rete"] }
+            }
+        }
+        return ["ok": 0, "err": "modello"]
+    }
+
+    // Vision (import orario da foto, scanner): per provider che leggono immagini.
+    static func runVision(_ p: NOVAAIProvider, _ key: String, _ prompt: String, _ img: String) async -> [String: Any] {
+        guard !p.vision.isEmpty else { return ["ok": 0, "err": "vision"] }
+        let b64 = img.components(separatedBy: ",").last ?? ""
+        var lastInfo = ""
+        for model in p.vision {
+            var req: URLRequest
+            var body: [String: Any] = [:]
+            if p.kind == "gemini" {
+                var comps = URLComponents(string: p.base + "/models/" + model + ":generateContent")!
+                comps.queryItems = [URLQueryItem(name: "key", value: key)]
+                req = URLRequest(url: comps.url!)
+                body = ["contents": [["role": "user", "parts": [["text": prompt], ["inline_data": ["mime_type": "image/jpeg", "data": b64]]]]], "generationConfig": ["temperature": 0, "maxOutputTokens": 3000, "responseMimeType": "application/json"]]
+            } else if p.kind == "anthropic" {
+                req = URLRequest(url: URL(string: p.base + "/v1/messages")!)
+                req.setValue(key, forHTTPHeaderField: "x-api-key")
+                req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+                body = ["model": model, "max_tokens": 3000, "temperature": 0, "messages": [["role": "user", "content": [["type": "image", "source": ["type": "base64", "media_type": "image/jpeg", "data": b64]], ["type": "text", "text": prompt]]]]]
+            } else {
+                req = URLRequest(url: URL(string: p.base + "/chat/completions")!)
+                req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+                let content: [[String: Any]] = [
+                    ["type": "text", "text": prompt],
+                    ["type": "image_url", "image_url": ["url": img]]
+                ]
+                if p.id == "groq" {
+                    body = ["model": model, "messages": [["role": "user", "content": content]], "temperature": 0, "max_tokens": 3000, "reasoning_effort": "none", "response_format": ["type": "json_object"]]
+                } else {
+                    body = ["model": model, "messages": [["role": "user", "content": content]], "max_completion_tokens": 3000, "reasoning_effort": "none", "response_format": ["type": "json_object"]]
+                }
+            }
+            req.httpMethod = "POST"
+            req.timeoutInterval = 90
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            do {
+                let (data, resp) = try await URLSession.shared.data(for: req)
+                let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                if status == 200, let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if p.kind == "gemini",
+                       let cands = j["candidates"] as? [[String: Any]],
+                       let content = cands.first?["content"] as? [String: Any],
+                       let parts = content["parts"] as? [[String: Any]] {
+                        let text = parts.compactMap { $0["text"] as? String }.joined()
+                        if !text.isEmpty { return ["ok": 1, "text": text, "model": model] }
+                    } else if p.kind == "anthropic",
+                              let blocks = j["content"] as? [[String: Any]] {
+                        let text = blocks.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }.joined()
+                        if !text.isEmpty { return ["ok": 1, "text": text, "model": model] }
+                    } else if p.kind == "openai",
+                              let ch = (j["choices"] as? [[String: Any]])?.first,
+                              let m = ch["message"] as? [String: Any],
+                              let t = m["content"] as? String { return ["ok": 1, "text": t, "model": model] }
+                }
+                if status == 401 || status == 403 { return ["ok": 0, "err": "key"] }
+                if status == 400, p.kind == "gemini" { return ["ok": 0, "err": "key"] }
+                if status == 429 { return ["ok": 0, "err": "limite"] }
+                if let txt = String(data: data, encoding: .utf8) { lastInfo = String(txt.prefix(300)) }
+            } catch { return ["ok": 0, "err": "rete"] }
+        }
+        return ["ok": 0, "err": "modello", "info": lastInfo]
+    }
+
+    static func handle(_ msg: [String: Any]) async -> [String: Any] {
+        switch msg["op"] as? String ?? "" {
+        case "has":
+            var keys: [String: Int] = [:]
+            for p in providers { keys[p.id] = Secret.get(p.id) != nil ? 1 : 0 }
+            let sel = selectedProvider()
+            return ["ok": 1, "has": keys[sel.id] ?? 0, "provider": sel.id, "keys": keys]
+        case "select":
+            guard let p = provider(msg["provider"] as? String ?? "") else { return ["ok": 0, "err": "op"] }
+            UserDefaults.standard.set(p.id, forKey: "nova.ai.provider")
+            return ["ok": 1, "has": Secret.get(p.id) != nil ? 1 : 0]
+        case "clear":
+            let p = provider(msg["provider"] as? String ?? selectedProvider().id) ?? selectedProvider()
+            Secret.clear(p.id)
+            return ["ok": 1]
+        case "set":
+            let p = provider(msg["provider"] as? String ?? selectedProvider().id) ?? selectedProvider()
+            let key = (msg["key"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if p.id == "groq", key.hasPrefix("xai-") { return ["ok": 0, "err": "grok"] }
+            if p.prefix.isEmpty {
+                guard key.count > 10 else { return ["ok": 0, "err": "formato"] }
+            } else {
+                guard key.hasPrefix(p.prefix), key.count > 20 else { return ["ok": 0, "err": "formato"] }
+            }
+            let check = await validate(p, key)
+            guard check["ok"] as? Int == 1 else { return check }
+            Secret.set(p.id, key)
+            UserDefaults.standard.set(p.id, forKey: "nova.ai.provider")
+            return ["ok": 1]
+        case "chat":
+            let p = selectedProvider()
+            guard let key = Secret.get(p.id) else { return ["ok": 0, "err": "nokey"] }
+            let msgs = msg["messages"] as? [[String: Any]] ?? []
+            let onSearching = msg["onSearching"] as? () -> Void
+            if p.kind == "gemini" { return await geminiChat(p, key, msgs, onSearching) }
+            if p.kind == "anthropic" { return await anthropicChat(p, key, msgs, onSearching) }
+            return await openAIChat(p, key, msgs, onSearching)
+        case "vision":
+            let p = selectedProvider()
+            guard let key = Secret.get(p.id) else { return ["ok": 0, "err": "nokey"] }
+            let prompt = msg["prompt"] as? String ?? ""
+            let img = msg["img"] as? String ?? ""
+            guard img.hasPrefix("data:image/") else { return ["ok": 0, "err": "img"] }
+            return await runVision(p, key, prompt, img)
         default:
             return ["ok": 0, "err": "op"]
         }
