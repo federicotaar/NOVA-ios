@@ -481,7 +481,7 @@ extension NOVAJSON {
         VStack(alignment:.leading,spacing:8){
             Text(o["r"]?.string=="user" ? "Tu":"NOVA").font(.caption.bold()).foregroundStyle(.secondary)
             if let image=o["img"]?.string,let data=Data(base64Encoded:image.components(separatedBy:",").last ?? ""),let ui=UIImage(data:data){Image(uiImage:ui).resizable().scaledToFit().frame(maxHeight:200)}
-            Text(o["c"]?.string ?? "").textSelection(.enabled)
+            if o["r"]?.string=="user"{Text(o["c"]?.string ?? "").textSelection(.enabled)}else{NOVASwiftAssistantBubbleText(text:o["c"]?.string ?? "")}
             ForEach(Array((o["acts"]?.array ?? []).enumerated()),id:\.offset){action,value in assistantAction(index:index,action:action,value:value) }
         }.padding(.horizontal,14).padding(.vertical,10).background(o["r"]?.string=="user" ? Color.accentColor.opacity(0.16):Color.secondary.opacity(0.10),in:RoundedRectangle(cornerRadius:20))
         if o["r"]?.string != "user"{Spacer(minLength:40)}
@@ -521,7 +521,16 @@ extension NOVAJSON {
             let response:[String:Any]
             if let image=image{response=await Groq.handle(["op":"vision","img":image,"prompt":system+"\nRichiesta: "+text])}else{response=await Groq.handle(["op":"chat","messages":[["role":"system","content":system]]+history,"onSearching":{Task{await MainActor.run{if expected==generation,expectedOwner==store.archive?.owner{mood = .searching}}}}])}
             let orbElapsed=Date().timeIntervalSince(shown);if orbElapsed<1.5{try? await Task.sleep(nanoseconds:UInt64((1.5-orbElapsed)*1_000_000_000))};guard expected==generation,expectedOwner==store.archive?.owner,store.archive.flatMap({NOVASession($0.active)})==expectedSession else{return};sending=false
-            let answer=(response["ok"] as? Int)==1 ? (response["text"] as? String ?? ""):"Richiesta non completata. Controlla connessione e chiave Groq."
+            let answer:String
+            if (response["ok"] as? Int)==1{answer=response["text"] as? String ?? ""}else{
+                switch response["err"] as? String ?? "" {
+                case "nokey":answer="Prima salva la tua chiave Groq nelle impostazioni."
+                case "key":answer="La chiave Groq salvata non è più valida: aggiornala nelle impostazioni."
+                case "limite":answer="Troppe richieste a Groq in pochi minuti: riprova tra poco."
+                case "rete":answer="Connessione assente o troppo lenta. Controlla la rete e riprova."
+                default:answer="Richiesta non completata: il modello non ha risposto. Riprova tra poco."
+                }
+            }
             let (visible,actions)=NOVASwiftAssistantActions.parse(answer,permission:permission)
             do{try store.update(owner:expectedOwner){root in var chat=root["chat"]?.array ?? [];chat.append(.object(["r":.string("assistant"),"c":.string(visible),"acts":.array(actions)]));root["chat"] = .array(Array(chat.suffix(40)))};if permission=="always"{let message=messages.count-1;for action in actions.indices{await NOVASwiftAssistantActions.run(store,owner:expectedOwner,message:message,action:action,automatic:true)}}}catch{status="Risposta ricevuta ma non salvata: "+visible}
         }
@@ -1089,6 +1098,25 @@ enum NOVASwiftMessageLinks {
         }
         return (try? AttributedString(result,including:\.uiKit)) ?? AttributedString(text)
     }
+    // Risposte del modello: grassetto **...** (coppie; un segno spaiato resta letterale) + link tappabili http/https con le stesse regole safe().
+    static func assistant(_ text:String)->AttributedString {
+        var parts=text.components(separatedBy:"**")
+        if parts.count>1 && parts.count%2==0{let tail=parts.suffix(2).joined(separator:"**");parts=Array(parts.dropLast(2))+[tail]}
+        let result=NSMutableAttributedString()
+        for (index,part) in parts.enumerated(){
+            if part.isEmpty{continue}
+            result.append(NSAttributedString(string:part,attributes:index%2==1 ? [.font:UIFont.boldSystemFont(ofSize:17)]:[:]))
+        }
+        if result.length==0{result.append(NSAttributedString(string:text))}
+        let full=result.string
+        if let detector=try? NSDataDetector(types:NSTextCheckingResult.CheckingType.link.rawValue){
+            for match in detector.matches(in:full,range:NSRange(full.startIndex...,in:full)){
+                guard let url=match.url,safe(url) else{continue}
+                result.addAttributes([.link:url,.underlineStyle:NSUnderlineStyle.single.rawValue],range:match.range)
+            }
+        }
+        return (try? AttributedString(result,including:\.uiKit)) ?? AttributedString(text)
+    }
 }
 struct NOVASwiftMessageText:View {
     let text:String
@@ -1097,6 +1125,23 @@ struct NOVASwiftMessageText:View {
     var body:some View {
         Text(NOVASwiftMessageLinks.attributed(text))
             .tint(own ? .white:.blue)
+            .textSelection(.enabled)
+            .fixedSize(horizontal:false,vertical:true)
+            .environment(\.openURL,OpenURLAction{url in
+                // Recheck at activation, never execute arbitrary custom schemes.
+                guard NOVASwiftMessageLinks.safe(url) else{return .discarded}
+                openURL(url)
+                return .handled
+            })
+    }
+}
+
+struct NOVASwiftAssistantBubbleText:View {
+    let text:String
+    @Environment(\.openURL) private var openURL
+    var body:some View {
+        Text(NOVASwiftMessageLinks.assistant(text))
+            .tint(.blue)
             .textSelection(.enabled)
             .fixedSize(horizontal:false,vertical:true)
             .environment(\.openURL,OpenURLAction{url in
