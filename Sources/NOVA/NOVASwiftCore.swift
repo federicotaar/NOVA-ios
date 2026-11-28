@@ -173,7 +173,7 @@ struct NOVALessonDraft: Identifiable {
             let scale=min(1,1600/max(image.size.width,image.size.height)),size=CGSize(width:image.size.width*scale,height:image.size.height*scale);let jpeg=UIGraphicsImageRenderer(size:size).jpegData(withCompressionQuality:0.85){_ in image.draw(in:CGRect(origin:.zero,size:size))}
             let prompt="Estrai tutte le lezioni visibili in questo orario scolastico. Rispondi solo JSON: {\"lessons\":[{\"d\":1,\"h\":1,\"s\":\"08:10\",\"e\":\"09:00\",\"n\":\"MAT\"}]}. d=1 lunedi fino 6 sabato. h=numero ora. s/e=null se non visibili. Non inventare materie."
             let response=await Groq.handle(["op":"vision","img":"data:image/jpeg;base64,"+jpeg.base64EncodedString(),"prompt":prompt]);guard active,epoch==importEpoch,store.archive?.owner==owner,store.archive.flatMap({NOVASession($0.active)})==session else{return}
-            do{guard response["ok"] as? Int==1,let text=response["text"] as? String else{throw NOVAServiceError.invalidResponse};let parsed=try NOVASwiftTimetablePhoto.parse(text);lessons=parsed.lessons;day=2;error=parsed.estimated ? "Foto letta. Orari mancanti stimati: controlla ogni giorno e salva solo dopo averli corretti.":"Foto letta. Controlla giorni, orari e materie, poi Salva."}catch{self.error="Orario non importato. Controlla la chiave Groq o prova una foto piu nitida. La bozza precedente resta conservata."}
+            do{guard response["ok"] as? Int==1,let text=response["text"] as? String else{throw NOVAServiceError.invalidResponse};let parsed=try NOVASwiftTimetablePhoto.parse(text);lessons=parsed.lessons;day=2;error=parsed.estimated ? "Foto letta. Orari mancanti stimati: controlla ogni giorno e salva solo dopo averli corretti.":"Foto letta. Controlla giorni, orari e materie, poi Salva."}catch{self.error="Orario non importato. Controlla la chiave API dell'assistente o prova una foto piu nitida. La bozza precedente resta conservata."}
         }
     }
     func time(_ value: Binding<Int>) -> Binding<Date> {
@@ -453,7 +453,7 @@ extension NOVAJSON {
                     }.padding(.top,18).padding(.bottom,6)
                 }
                 ScrollViewReader{proxy in ScrollView{LazyVStack(alignment:.leading,spacing:14){
-                    if messages.isEmpty{Text("Chiedimi aiuto con lo studio. Serve la tua chiave Groq già salvata nelle impostazioni.").foregroundStyle(.secondary)}
+                    if messages.isEmpty{Text("Chiedimi aiuto con lo studio. Serve una chiave API salvata nei Servizi.").foregroundStyle(.secondary)}
                     ForEach(Array(messages.enumerated()),id:\.offset){index,message in
                         assistantRow(index:index,message:message).id(index)
                     }
@@ -509,7 +509,7 @@ extension NOVAJSON {
         let text=draft.trimmingCharacters(in:.whitespacesAndNewlines)
         let image=photoDraft
         guard (!text.isEmpty || image != nil),!sending,owner==store.archive?.owner else{return}
-        guard Secret.get("groq") != nil else{status="Prima salva la tua chiave Groq nelle impostazioni.";return}
+        guard Secret.get(Groq.selectedProvider().id) != nil else{status="Prima salva la chiave API del provider nelle impostazioni Servizi.";return}
         let snapshot=store.archive!.active.object ?? [:]
         do{try store.update(owner:owner){root in var chat=root["chat"]?.array ?? [];var item:[String:NOVAJSON]=["r":.string("user"),"c":.string(text)];if let image=image{item["img"] = .string(image)};chat.append(.object(item));root["chat"] = .array(Array(chat.suffix(40)))}}catch{status="Messaggio non salvato. Riprova.";return}
         draft="";photoDraft=nil;sending=true;mood = .connecting;generation+=1;let expected=generation,expectedOwner=owner,expectedSession=store.archive.flatMap{NOVASession($0.active)},shown=Date()
@@ -524,9 +524,10 @@ extension NOVAJSON {
             let answer:String
             if (response["ok"] as? Int)==1{answer=response["text"] as? String ?? ""}else{
                 switch response["err"] as? String ?? "" {
-                case "nokey":answer="Prima salva la tua chiave Groq nelle impostazioni."
-                case "key":answer="La chiave Groq salvata non è più valida: aggiornala nelle impostazioni."
-                case "limite":answer="Troppe richieste a Groq in pochi minuti: riprova tra poco."
+                case "nokey":answer="Prima salva la chiave "+Groq.selectedProvider().name+" nelle impostazioni Servizi."
+                case "key":answer="La chiave "+Groq.selectedProvider().name+" salvata non è più valida: aggiornala nelle impostazioni Servizi."
+                case "limite":answer="Troppe richieste a "+Groq.selectedProvider().name+" in pochi minuti: riprova tra poco."
+                case "vision":answer="Il provider scelto non legge le foto: scegli Groq, Gemini, OpenAI o Anthropic nei Servizi."
                 case "rete":answer="Connessione assente o troppo lenta. Controlla la rete e riprova."
                 default:answer="Richiesta non completata: il modello non ha risposto. Riprova tra poco."
                 }
@@ -959,7 +960,7 @@ Section("Privacy"){
                 NavigationLink("Modifica orario"){NOVASwiftTimetable(store:store)}
             }
             Section("Assistente AI"){
-                NavigationLink("Collega ClasseViva, Groq e Spotify"){NOVASwiftServices(store:store)}
+                NavigationLink("Collega ClasseViva, assistente AI e Spotify"){NOVASwiftServices(store:store)}
                 Picker("Azioni",selection:Binding(get:{store.archive?.active.object?["aiAct"]?.string ?? "ask"},set:{value in if value=="always",store.archive?.active.object?["aiAct"]?.string != "always"{confirmAlways=true}else{do{try store.update(owner:store.archive?.owner ?? ""){$0["aiAct"] = .string(value)}}catch{self.error="Scelta non salvata."}}})){Text("Chiedi prima").tag("ask");Text("Sempre").tag("always");Text("Mai").tag("deny")}
                 TextEditor(text:text("agentMd")).frame(minHeight:100)
                 Text("Chiedi prima mostra la conferma per ogni azione. Sempre può aggiungere compiti e promemoria o aprire schermate senza chiedere; Mai disattiva le nuove azioni.").font(.footnote).foregroundStyle(.secondary)
