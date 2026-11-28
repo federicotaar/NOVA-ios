@@ -22,7 +22,8 @@ import SwiftUI
     @Published private(set) var spotify:NOVAJSON?
     @Published private(set) var spotifyConnected=false
     @Published private(set) var spotifyClient=false
-    @Published private(set) var hasGroq=false
+    @Published private(set) var aiProvider="groq"
+    @Published private(set) var aiKeys:[String:Bool]=[:]
     private var epoch=0
     typealias Handler=([String:Any]) async -> [String:Any]
     private let school:Handler
@@ -32,7 +33,7 @@ import SwiftUI
     init(school:Handler?=nil,music:Handler?=nil,ai:Handler?=nil){injectedSchool=school != nil;self.school=school ?? {body in let op=body["op"] as? String ?? "";if op=="logout"{return ["ok":1]};if op=="refresh",let credentials=CredStore.read(){return await ClasseViva.loginFlow(uid:credentials.uid,pass:credentials.pass,ident:UserDefaults.standard.string(forKey:"nova.swift.school.ident"),save:false,sideEffects:false)};if op=="login",let uid=body["uid"] as? String,let password=body["pass"] as? String{return await ClasseViva.loginFlow(uid:uid,pass:password,ident:body["ident"] as? String,save:false,sideEffects:false)};return ["ok":0]};self.music=music ?? {await Spotify.handle($0)};self.ai=ai ?? {await Groq.handle($0)}}
     static func json(_ value:[String:Any])->NOVAJSON?{guard let data=try? JSONSerialization.data(withJSONObject:value) else{return nil};return try? JSONDecoder().decode(NOVAJSON.self,from:data)}
     func cancel(){epoch+=1;busy=false;choices=[];spotify=nil}
-    func load() async {let expected=epoch;let result=await music(["op":"status"]);guard expected==epoch else{return};spotifyConnected=result["conn"] as? Bool ?? (result["conn"] as? Int==1);spotifyClient=result["cid"] as? Bool ?? (result["cid"] as? Int==1);let aiStatus=await ai(["op":"has"]);guard expected==epoch else{return};hasGroq=aiStatus["has"] as? Bool ?? (aiStatus["has"] as? Int==1)}
+    func load() async {let expected=epoch;let result=await music(["op":"status"]);guard expected==epoch else{return};spotifyConnected=result["conn"] as? Bool ?? (result["conn"] as? Int==1);spotifyClient=result["cid"] as? Bool ?? (result["cid"] as? Int==1);let aiStatus=await ai(["op":"has"]);guard expected==epoch else{return};aiProvider=aiStatus["provider"] as? String ?? "groq";var map:[String:Bool]=[:];if let keys=aiStatus["keys"] as? [String:Any]{for (k,v) in keys{map[k]=(v as? Int==1) || (v as? Bool==true)}};aiKeys=map}
     func schoolRequest(_ op:String,uid:String="",password:String="",ident:String="",_ store:NOVASwiftStore) async {
         guard !busy,let archive=store.archive else{return};if op=="refresh",!injectedSchool,UserDefaults.standard.string(forKey:"nova.swift.school.owner") != archive.owner{status=UserDefaults.standard.string(forKey:"nova.swift.school.owner")==nil ? "Per sicurezza accedi di nuovo a ClasseViva: i voti e i compiti gia' importati restano salvati.":"Ricollega ClasseViva per questo account prima di aggiornare.";return};busy=true;let expected=epoch,owner=archive.owner,session=NOVASession(archive.active)
         var body:[String:Any]=["op":op];if op=="login"{guard !uid.isEmpty,!password.isEmpty,password==password.trimmingCharacters(in:.whitespacesAndNewlines) else{busy=false;status="Controlla codice utente e spazi nella password.";return};body["uid"]=uid;body["pass"]=password;if !ident.isEmpty{body["ident"]=ident}}
@@ -43,7 +44,10 @@ import SwiftUI
         do{if op=="logout"{if !injectedSchool{CredStore.clear();UserDefaults.standard.removeObject(forKey:"nova.swift.school.owner");UserDefaults.standard.removeObject(forKey:"nova.swift.school.ident")};try store.update(owner:owner){root in root["cv"] = .object(["on":.number(0)])};choices=[];status="ClasseViva scollegato. Compiti e voti importati conservati.";return};try NOVASwiftSchoolImport.apply(response,store,owner:owner);if !injectedSchool{if op=="login"{CredStore.save(uid:uid,pass:password);UserDefaults.standard.set(ident,forKey:"nova.swift.school.ident")};UserDefaults.standard.set(owner,forKey:"nova.swift.school.owner")};choices=[];status="ClasseViva aggiornato.";_ = await NOVASwiftTaskSync.apply(store)}catch{status="Dati ClasseViva ricevuti ma non salvati."}
     }
     func musicRequest(_ op:String,client:String="") async {guard !busy else{return};busy=true;let expected=epoch;var body:[String:Any]=["op":op];if op=="setcid"{body["cid"]=client};let result=await music(body);guard expected==epoch else{return};busy=false;if result["ok"] as? Int==1{status="Spotify aggiornato.";if op=="state"{spotify=Self.json(result)};await load()}else{let error=result["err"] as? String ?? "";status=error=="premium" ? "Per controllare Spotify serve Premium.":error=="nodevice" ? "Apri Spotify e avvia una canzone sul telefono.":error=="auth" ? "Ricollega Spotify dalle impostazioni.":"Spotify non aggiornato: "+error}}
-    func groq(_ op:String,key:String="") async {guard !busy else{return};busy=true;let expected=epoch;let result=await ai(["op":op,"key":key]);guard expected==epoch else{return};busy=false;hasGroq=result["has"] as? Bool ?? (op=="set" && result["ok"] as? Int==1);status=result["ok"] as? Int==1 ? "Chiave Groq aggiornata nel Portachiavi.":"Chiave non salvata. Controlla formato Groq e connessione."}
+    func aiSelect(_ id:String) async {guard !busy else{return};busy=true;let expected=epoch;let result=await ai(["op":"select","provider":id]);guard expected==epoch else{return};busy=false;if result["ok"] as? Int==1{aiProvider=id;status=""}else{status="Scelta provider non salvata."}}
+    func aiSave(_ id:String,key:String) async {guard !busy else{return};busy=true;let expected=epoch;let result=await ai(["op":"set","provider":id,"key":key]);guard expected==epoch else{return};busy=false;let name=Groq.provider(id)?.name ?? id
+        if result["ok"] as? Int==1{aiKeys[id]=true;aiProvider=id;status="Chiave "+name+" verificata e salvata nel Portachiavi."}else{let err=result["err"] as? String ?? "";status=err=="grok" ? "Quella è una chiave di Grok (xAI), non di Groq.":err=="formato" ? "Formato chiave non valido per "+name+".":err=="key" ? "Chiave rifiutata da "+name+": controlla di averla copiata tutta.":err=="limite" ? "Troppe richieste a "+name+": riprova tra poco.":"Non riesco a contattare "+name+". Controlla la connessione."}}
+    func aiClear(_ id:String) async {guard !busy else{return};busy=true;let expected=epoch;_ = await ai(["op":"clear","provider":id]);guard expected==epoch else{return};busy=false;aiKeys[id]=false;status="Chiave rimossa da questo iPhone."}
 }
 @MainActor struct NOVASwiftServices:View {
     @ObservedObject var store:NOVASwiftStore
@@ -57,19 +61,30 @@ import SwiftUI
     @State private var confirmGroq=false
     @State private var confirmMusic=false
     var body:some View{Form{
+        Section("Assistente AI"){
+            ForEach(Groq.providers,id:\.id){p in
+                Button{key="";Task{await model.aiSelect(p.id)}}label:{
+                    HStack{Text(p.name).foregroundStyle(.primary);Spacer()
+                        if model.aiKeys[p.id] ?? false{Text(p.id==model.aiProvider ? "In uso":"Salvata").font(.footnote).foregroundStyle(.secondary)}
+                        if p.id==model.aiProvider{Image(systemName:"checkmark").foregroundStyle(Color.accentColor)}
+                    }
+                }
+            }
+            if let sel=Groq.provider(model.aiProvider){
+                Text(model.aiKeys[sel.id] ?? false ? "Chiave "+sel.name+" già presente nel Portachiavi.":"Serve una chiave "+sel.name+" personale.")
+                SecureField(sel.prefix.isEmpty ? "Chiave API "+sel.name : sel.prefix+"…",text:$key).textInputAutocapitalization(.never).autocorrectionDisabled()
+                Button("Verifica e salva chiave"){let value=key;key="";Task{await model.aiSave(sel.id,key:value)}}.disabled(model.busy||key.isEmpty)
+                Link("Crea una chiave "+sel.name,destination:URL(string:sel.console)!)
+                if model.aiKeys[sel.id] ?? false{Button("Rimuovi chiave",role:.destructive){confirmGroq=true}}
+                Text("La chiave resta nel Portachiavi di questo iPhone e va solo a "+sel.name+", mai ai server NOVA. Puoi salvare più provider e cambiare scelta quando vuoi.").font(.footnote).foregroundStyle(.secondary)
+            }
+        }
         Section("ClasseViva"){
             if store.archive?.active.object?["cv"]?.object?["on"]?.flag==true{Text("Collegato: "+(store.archive?.active.object?["cv"]?.object?["name"]?.string ?? ""));Button("Aggiorna registro"){Task{await model.schoolRequest("refresh",store)}};Button("Scollega ClasseViva",role:.destructive){confirmSchool=true}}
             TextField("Codice utente o email",text:$uid).textInputAutocapitalization(.never).autocorrectionDisabled();SecureField("Password",text:$password)
             Button("Collega ClasseViva"){Task{await model.schoolRequest("login",uid:uid,password:password,store);if model.choices.isEmpty{password=""}}}.disabled(model.busy||uid.isEmpty||password.isEmpty)
             ForEach(Array(model.choices.enumerated()),id:\.offset){_,choice in Button((choice.object?["name"]?.string ?? "Studente")+" · "+(choice.object?["school"]?.string ?? "")){Task{await model.schoolRequest("login",uid:uid,password:password,ident:choice.object?["ident"]?.string ?? "",store);if model.choices.isEmpty{password=""}}}}
             Text("Password salvata nel Portachiavi di questo iPhone. I dati già importati restano conservati se l'aggiornamento fallisce.").font(.footnote).foregroundStyle(.secondary)
-        }
-        Section("Assistente Groq"){
-            Text(model.hasGroq ? "Chiave già presente nel Portachiavi.":"Serve una chiave Groq personale.")
-            SecureField("gsk_…",text:$key).textInputAutocapitalization(.never).autocorrectionDisabled()
-            Button("Verifica e salva chiave"){let value=key;key="";Task{await model.groq("set",key:value)}}.disabled(model.busy||key.isEmpty)
-            Link("Crea una chiave Groq gratuita",destination:URL(string:"https://console.groq.com/keys")!)
-            if model.hasGroq{Button("Rimuovi chiave",role:.destructive){confirmGroq=true}}
         }
         Section("Spotify"){
             Text(model.spotifyConnected ? "Spotify collegato.":"Spotify non collegato.")
@@ -82,7 +97,7 @@ import SwiftUI
         if !model.status.isEmpty{Text(model.status).font(.footnote)}
     }.navigationTitle("Servizi").task{await model.load()}.onDisappear{password="";key="";model.cancel()}.onChange(of:store.archive?.owner){_,_ in password="";key="";model.cancel()}
     .confirmationDialog("Scollegare ClasseViva da questo iPhone? Compiti e voti gia importati restano salvati.",isPresented:$confirmSchool,titleVisibility:.visible){Button("Scollega",role:.destructive){password="";Task{await model.schoolRequest("logout",store)}};Button("Annulla",role:.cancel){}}
-    .confirmationDialog("Rimuovere la chiave Groq da questo iPhone?",isPresented:$confirmGroq,titleVisibility:.visible){Button("Rimuovi",role:.destructive){Task{await model.groq("clear")}};Button("Annulla",role:.cancel){}}
+    .confirmationDialog("Rimuovere la chiave "+(Groq.provider(model.aiProvider)?.name ?? "API")+" da questo iPhone?",isPresented:$confirmGroq,titleVisibility:.visible){Button("Rimuovi",role:.destructive){Task{await model.aiClear(model.aiProvider)}};Button("Annulla",role:.cancel){}}
     .confirmationDialog("Salvare il Client ID e scollegare la sessione Spotify attuale?",isPresented:$confirmMusic,titleVisibility:.visible){Button("Salva"){Task{await model.musicRequest("setcid",client:client)}};Button("Annulla",role:.cancel){}}
     }
 }
