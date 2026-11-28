@@ -140,6 +140,8 @@ struct NOVASwiftBotChatPreview:View {
         (true,"Mi spieghi le derivate per la verifica di domani?"),
         (false,"Certo! Una derivata misura quanto velocemente cambia una funzione. Partiamo dalla definizione con il limite del rapporto incrementale, poi facciamo due esempi sui polinomi."),
         (true,"E come capisco se una funzione è derivabile in un punto?"),
+        (true,"dammi il link al suo github"),
+        (false,"Ecco il profilo GitHub di **Federico Taranu**: https://github.com/federicotaar (fonte: Web)."),
     ]
     var body:some View {
         VStack(spacing:0){
@@ -153,7 +155,7 @@ struct NOVASwiftBotChatPreview:View {
                     ForEach(Array(demo.enumerated()),id:\.offset){_,msg in
                         HStack{
                             if msg.0{Spacer(minLength:40)}
-                            Text(msg.1)
+                            Group{if msg.0{Text(msg.1)}else{NOVASwiftAssistantBubbleText(text:msg.1)}}
                                 .padding(.horizontal,14).padding(.vertical,10)
                                 .background(msg.0 ? Color.accentColor.opacity(0.16):Color.secondary.opacity(0.10),in:RoundedRectangle(cornerRadius:20))
                                 .foregroundStyle(.primary)
